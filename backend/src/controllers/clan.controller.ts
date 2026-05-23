@@ -557,8 +557,8 @@ export const getClanLeaderboard = async (_req: Request, res: Response): Promise<
     });
 
     const ranked = clans.map((clan, index) => ({
-      rank: index + 1,
       ...clan,
+      rank: index + 1,
     }));
 
     res.json({ clans: ranked });
@@ -705,8 +705,8 @@ export const approveJoinRequest = async (req: Request, res: Response): Promise<v
 
     const request = await prisma.clanJoinRequest.findUnique({
       where: { id: requestId },
-      include: { clan: true },
-    });
+      include: { clan: true, user: { select: { username: true } } },
+    }) as any;
 
     if (!request) {
       res.status(404).json({ error: 'Join request not found' });
