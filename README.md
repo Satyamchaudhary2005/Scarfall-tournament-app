@@ -246,7 +246,7 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-supabase-key
 
 ### Frontend → Vercel
 ```bash
-cd frontend
+# Deploy from repo root (vercel.json handles frontend config)
 npx vercel --prod
 ```
 
