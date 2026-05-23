@@ -1,0 +1,651 @@
+'use client';
+
+import { useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { tournamentApi, clanApi } from '@/services/api';
+import { Navbar } from '@/components/layout/Navbar';
+import { Footer } from '@/components/layout/Footer';
+import { Button, Card, Badge } from '@/components/ui';
+import { useAuthStore } from '@/store/authStore';
+import {
+  Trophy, Users, Clock, IndianRupee, Zap, Calendar,
+  ChevronLeft, UserPlus, Check, X, AlertCircle, Swords,
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
+import { formatDateTime, getStatusBadgeVariant } from '@/lib/utils';
+import toast from 'react-hot-toast';
+
+type MemberSelection = Record<string, 'playing' | 'substitute'>;
+
+export default function TournamentDetailPage() {
+  const { id } = useParams();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const { user, isAuthenticated } = useAuthStore();
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [selectedMembers, setSelectedMembers] = useState<MemberSelection>({});
+  const [teamName, setTeamName] = useState('');
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['tournament', id],
+    queryFn: () => tournamentApi.getById(id as string),
+    enabled: !!id,
+  });
+
+  // Fetch user's clan members if tournament is DUO/SQUAD
+  const isDuoOrSquad = data?.tournament?.mode === 'DUO' || data?.tournament?.mode === 'SQUAD';
+  const { data: clanData } = useQuery({
+    queryKey: ['user-clan-members', user?.clanId],
+    queryFn: () => clanApi.getById(user!.clanId!),
+    enabled: !!user?.clanId && isDuoOrSquad && showRegisterModal,
+  });
+
+  const clanMembers = clanData?.clan?.members || [];
+  const clan = clanData?.clan;
+
+  const registerMutation = useMutation({
+    mutationFn: (data?: { teamName?: string; teamSize?: number }) =>
+      tournamentApi.register(id as string, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tournament', id] });
+      toast.success('Registered successfully!');
+      setShowRegisterModal(false);
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Registration failed');
+    },
+  });
+
+  const clanRegisterMutation = useMutation({
+    mutationFn: (data: { clanId: string; playingMembers: string[]; substituteMembers?: string[]; teamName?: string }) =>
+      tournamentApi.registerClan(id as string, data),
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries({ queryKey: ['tournament', id] });
+      toast.success(`Clan registered! +${res.clanXpAwarded} Clan XP`);
+      setShowRegisterModal(false);
+      setSelectedMembers({});
+      setTeamName('');
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Clan registration failed');
+    },
+  });
+
+  const unregisterMutation = useMutation({
+    mutationFn: () => tournamentApi.unregister(id as string),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tournament', id] });
+      toast.success('Unregistered successfully');
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Failed to unregister');
+    },
+  });
+
+  const tournament = data?.tournament;
+  const isRegistered = tournament?.registrations?.some(r => r.user.id === user?.id);
+  const isFull = tournament ? (tournament._count?.registrations || 0) >= tournament.slots : false;
+
+  // Check if any clan member is already registered
+  const isClanRegistered = tournament?.registrations?.some(r => r.clanId === user?.clanId);
+
+  const handleMemberToggle = (memberId: string, role: 'playing' | 'substitute') => {
+    setSelectedMembers(prev => {
+      const next = { ...prev };
+      if (next[memberId] === role) {
+        delete next[memberId];
+      } else {
+        next[memberId] = role;
+      }
+      return next;
+    });
+  };
+
+  const getMemberCounts = () => {
+    const counts = { playing: 0, substitute: 0 };
+    Object.values(selectedMembers).forEach(role => counts[role as keyof typeof counts]++);
+    return counts;
+  };
+
+  const isSquad = tournament?.mode === 'SQUAD';
+  const maxPlaying = isSquad ? 4 : 2;
+  const maxSubs = isSquad ? 3 : 2;
+
+  const counts = getMemberCounts();
+  const canRegisterClan = counts.playing === maxPlaying && counts.substitute <= maxSubs;
+
+  const handleClanRegister = () => {
+    if (!user?.clanId) {
+      toast.error('You must be in a clan to register for DUO/SQUAD tournaments');
+      return;
+    }
+    const playing = Object.entries(selectedMembers)
+      .filter(([_, role]) => role === 'playing')
+      .map(([id]) => id);
+    const subs = Object.entries(selectedMembers)
+      .filter(([_, role]) => role === 'substitute')
+      .map(([id]) => id);
+
+    clanRegisterMutation.mutate({
+      clanId: user.clanId,
+      playingMembers: playing,
+      substituteMembers: subs.length > 0 ? subs : undefined,
+      teamName: teamName || undefined,
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <main className="min-h-screen bg-surface">
+        <Navbar />
+        <div className="pt-24 pb-20 max-w-4xl mx-auto px-4">
+          <div className="h-8 w-48 bg-white/5 rounded-lg animate-pulse mb-4" />
+          <div className="h-64 rounded-xl bg-card border border-card-border animate-pulse" />
+        </div>
+      </main>
+    );
+  }
+
+  if (!tournament) {
+    return (
+      <main className="min-h-screen bg-surface">
+        <Navbar />
+        <div className="pt-24 pb-20 max-w-4xl mx-auto px-4 text-center">
+          <AlertCircle className="w-16 h-16 text-white/20 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-white mb-2">Tournament Not Found</h2>
+          <Link href="/tournaments" className="text-primary hover:underline">Back to tournaments</Link>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-screen bg-surface">
+      <Navbar />
+
+      <div className="pt-24 pb-20 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Back button */}
+        <button
+          onClick={() => router.back()}
+          className="flex items-center gap-2 text-sm text-white/40 hover:text-white transition-colors mb-6"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Back
+        </button>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          {/* Hero */}
+          <div className="relative rounded-xl overflow-hidden mb-8">
+            {tournament.bannerUrl ? (
+              <img src={tournament.bannerUrl} alt="" className="w-full h-48 sm:h-64 object-cover" />
+            ) : (
+              <div className="w-full h-48 sm:h-64 bg-gradient-to-br from-primary/20 to-surface flex items-center justify-center">
+                <Trophy className="w-16 h-16 text-primary/30" />
+              </div>
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/50 to-transparent" />
+            <div className="absolute bottom-6 left-6 right-6">
+              <Badge className={getStatusBadgeVariant(tournament.status)} size="md">
+                {tournament.status === 'REGISTRATION_OPEN' ? 'Registration Open' : tournament.status}
+              </Badge>
+              <h1 className="text-2xl sm:text-3xl font-black text-white mt-2">{tournament.title}</h1>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Main Content */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Quick Stats */}
+              <Card className="p-6">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+                  <div className="text-center">
+                    <IndianRupee className="w-5 h-5 text-primary mx-auto mb-1" />
+                    <p className="text-xl font-bold text-white">{tournament.prizePool}</p>
+                    <p className="text-xs text-white/40">Prize Pool</p>
+                  </div>
+                  <div className="text-center">
+                    <Users className="w-5 h-5 text-white/40 mx-auto mb-1" />
+                    <p className="text-xl font-bold text-white">{tournament._count?.registrations || 0}/{tournament.slots}</p>
+                    <p className="text-xs text-white/40">Players</p>
+                  </div>
+                  <div className="text-center">
+                    <Zap className="w-5 h-5 text-white/40 mx-auto mb-1" />
+                    <p className="text-xl font-bold text-white">{tournament.mode}</p>
+                    <p className="text-xs text-white/40">Mode</p>
+                  </div>
+                  <div className="text-center">
+                    <Calendar className="w-5 h-5 text-white/40 mx-auto mb-1" />
+                    <p className="text-xl font-bold text-white">{formatDateTime(tournament.startsAt)}</p>
+                    <p className="text-xs text-white/40">Date</p>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Description */}
+              {tournament.description && (
+                <Card className="p-6">
+                  <h3 className="text-lg font-semibold text-white mb-3">About This Tournament</h3>
+                  <p className="text-white/70 leading-relaxed">{tournament.description}</p>
+                </Card>
+              )}
+
+              {/* Rules */}
+              {tournament.rules && (
+                <Card className="p-6">
+                  <h3 className="text-lg font-semibold text-white mb-3">Rules</h3>
+                  <p className="text-white/70 whitespace-pre-line leading-relaxed">{tournament.rules}</p>
+                </Card>
+              )}
+
+              {/* Participants */}
+              <Card className="p-6">
+                <h3 className="text-lg font-semibold text-white mb-4">
+                  Participants ({tournament.registrations?.length || 0})
+                </h3>
+                {tournament.registrations && tournament.registrations.length > 0 ? (
+                  <div className="space-y-2">
+                    {(() => {
+                      // Group by clan for DUO/SQUAD, show individual for SOLO
+                      const clanGroups: Record<string, any[]> = {};
+                      const soloPlayers: any[] = [];
+
+                      tournament.registrations.forEach((reg: any) => {
+                        if (reg.clanId) {
+                          if (!clanGroups[reg.clanId]) clanGroups[reg.clanId] = [];
+                          // Only show each member once (they appear multiple times)
+                          if (!clanGroups[reg.clanId].find((r: any) => r.user.id === reg.user.id)) {
+                            clanGroups[reg.clanId].push(reg);
+                          }
+                        } else {
+                          soloPlayers.push(reg);
+                        }
+                      });
+
+                      return (
+                        <>
+                          {/* Clan groups */}
+                          {Object.entries(clanGroups).map(([clanId, regs]) => (
+                            <div key={clanId} className="p-3 rounded-lg bg-primary/5 border border-primary/10">
+                              <div className="flex items-center gap-2 mb-2 text-sm">
+                                <Swords className="w-4 h-4 text-primary" />
+                                <span className="font-semibold text-primary">
+                                  {regs[0]?.teamName || 'Team'}
+                                </span>
+                                {regs[0]?.playingMembers && (
+                                  <span className="text-xs text-white/30 ml-auto">
+                                    {JSON.parse(regs[0].playingMembers).length} playing
+                                    {regs[0].substituteMembers && JSON.parse(regs[0].substituteMembers).length > 0 &&
+                                      ` + ${JSON.parse(regs[0].substituteMembers).length} subs`
+                                    }
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                {regs.map((reg: any) => (
+                                  <div key={reg.user.id} className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-white/5">
+                                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
+                                      <span className="text-[10px] font-bold text-primary">
+                                        {reg.user.username[0].toUpperCase()}
+                                      </span>
+                                    </div>
+                                    <span className="text-xs text-white/80">{reg.user.username}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                          {/* Solo players */}
+                          {soloPlayers.map((reg) => (
+                            <div key={reg.id} className="flex items-center gap-3 p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+                              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                                <span className="text-xs font-bold text-primary">
+                                  {reg.user.username[0].toUpperCase()}
+                                </span>
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-white">{reg.user.username}</p>
+                                {reg.teamName && (
+                                  <p className="text-xs text-white/40">{reg.teamName}</p>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </>
+                      );
+                    })()}
+                  </div>
+                ) : (
+                  <p className="text-white/40 text-sm">No participants yet. Be the first!</p>
+                )}
+              </Card>
+            </div>
+
+            {/* Sidebar */}
+            <div className="space-y-4">
+              <Card className="p-6 sticky top-24">
+                <h3 className="text-lg font-semibold text-white mb-4">Registration</h3>
+
+                <div className="space-y-3 mb-6">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-white/50">Entry Fee</span>
+                    <span className="text-white font-medium">{tournament.entryFee}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-white/50">Slots</span>
+                    <span className="text-white font-medium">{tournament.slots}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-white/50">Available</span>
+                    <span className="text-white font-medium">
+                      {tournament.slots - (tournament._count?.registrations || 0)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-white/50">Host</span>
+                    <span className="text-white font-medium">{tournament.host.username}</span>
+                  </div>
+                  {tournament.mode !== 'SOLO' && (
+                    <>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-white/50">Clan XP</span>
+                        <span className="text-green-400 font-medium">
+                          +{tournament.mode === 'DUO' ? '50' : '100'} XP
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-white/50">Required</span>
+                        <span className="text-white font-medium">
+                          {tournament.mode === 'SQUAD' ? '4+3 subs' : '2+2 subs'}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {isRegistered ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-green-400 text-sm p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                      <Check className="w-4 h-4" />
+                      {isDuoOrSquad ? 'Your clan is registered' : 'You are registered'}
+                    </div>
+                    <Button
+                      variant="danger"
+                      className="w-full"
+                      onClick={() => {
+                        if (isDuoOrSquad && user?.clanId) {
+                          // Show confirm before unregistering entire clan
+                          if (window.confirm('Unregister your entire clan from this tournament?')) {
+                            unregisterMutation.mutate();
+                          }
+                        } else {
+                          unregisterMutation.mutate();
+                        }
+                      }}
+                      loading={unregisterMutation.isPending}
+                    >
+                      <X className="w-4 h-4" />
+                      Unregister
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    {isFull ? (
+                      <div className="flex items-center gap-2 text-yellow-400 text-sm p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+                        <AlertCircle className="w-4 h-4" />
+                        Tournament is full
+                      </div>
+                    ) : tournament.status === 'REGISTRATION_OPEN' || tournament.status === 'UPCOMING' ? (
+                      <Button
+                        className="w-full"
+                        onClick={() => {
+                          if (!isAuthenticated) {
+                            toast.error('Please login to register');
+                            router.push('/auth/login');
+                            return;
+                          }
+                          if (isDuoOrSquad && !user?.clanId) {
+                            toast.error('You must be in a clan to register for DUO/SQUAD tournaments');
+                            return;
+                          }
+                          if (isDuoOrSquad && isClanRegistered) {
+                            toast.error('Your clan is already registered');
+                            return;
+                          }
+                          setShowRegisterModal(true);
+                        }}
+                      >
+                        <UserPlus className="w-4 h-4" />
+                        {isDuoOrSquad ? 'Register as Clan' : 'Register Now'}
+                      </Button>
+                    ) : (
+                      <div className="flex items-center gap-2 text-white/40 text-sm p-3 rounded-lg bg-white/5">
+                        <Clock className="w-4 h-4" />
+                        Registration is closed
+                      </div>
+                    )}
+                  </>
+                )}
+              </Card>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Register Modal - Clan Member Selection for DUO/SQUAD */}
+      <AnimatePresence>
+        {showRegisterModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-lg max-h-[90vh] overflow-y-auto"
+            >
+              <Card className="p-6">
+                {isDuoOrSquad ? (
+                  <>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <Swords className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-white">Clan Registration</h3>
+                        <p className="text-sm text-white/50">{tournament.mode} Mode</p>
+                      </div>
+                    </div>
+
+                    <div className="bg-primary/5 border border-primary/10 rounded-lg p-3 mb-4">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-white/70">Playing: <strong className="text-white">{counts.playing}/{maxPlaying}</strong></span>
+                        <span className="text-white/70">Substitutes: <strong className="text-white">{counts.substitute}/{maxSubs}</strong></span>
+                        <span className="text-green-400 font-medium">+{isSquad ? '100' : '50'} Clan XP</span>
+                      </div>
+                    </div>
+
+                    {/* Team Name */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-white/70 mb-1.5">Team Name (optional)</label>
+                      <input
+                        type="text"
+                        placeholder={clan ? `Team ${clan.name}` : 'Enter team name...'}
+                        value={teamName}
+                        onChange={(e) => setTeamName(e.target.value)}
+                        className="input-base"
+                      />
+                    </div>
+
+                    {/* Member Selection */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-white/70 mb-2">
+                        Select Clan Members
+                      </label>
+                      <p className="text-xs text-white/40 mb-3">
+                        Click on a member to toggle between playing, substitute, or unselected.
+                      </p>
+
+                      {clanMembers.length === 0 ? (
+                        <div className="text-center py-8 text-white/40 text-sm">
+                          No clan members found. Members must join your clan first.
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {clanMembers.map((member: any) => {
+                            const role = selectedMembers[member.id];
+                            const isSelf = member.id === user?.id;
+                            return (
+                              <div
+                                key={member.id}
+                                className={`flex items-center justify-between p-3 rounded-lg border transition-all cursor-pointer ${
+                                  role === 'playing'
+                                    ? 'bg-green-500/10 border-green-500/30'
+                                    : role === 'substitute'
+                                    ? 'bg-yellow-500/10 border-yellow-500/30'
+                                    : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.04]'
+                                }`}
+                                onClick={() => {
+                                  if (!role || role === 'substitute') {
+                                    if (counts.playing < maxPlaying) {
+                                      handleMemberToggle(member.id, 'playing');
+                                    } else {
+                                      toast.error(`Maximum ${maxPlaying} playing members`);
+                                    }
+                                  } else if (role === 'playing') {
+                                    if (counts.substitute < maxSubs) {
+                                      handleMemberToggle(member.id, 'substitute');
+                                    } else {
+                                      handleMemberToggle(member.id, 'playing'); // Deselect
+                                    }
+                                  }
+                                }}
+                                onContextMenu={(e) => {
+                                  e.preventDefault();
+                                  if (role === 'playing') {
+                                    handleMemberToggle(member.id, 'substitute');
+                                  } else if (role === 'substitute') {
+                                    handleMemberToggle(member.id, 'playing');
+                                  } else {
+                                    if (counts.playing < maxPlaying) {
+                                      handleMemberToggle(member.id, 'playing');
+                                    }
+                                  }
+                                }}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                    {member.avatarUrl ? (
+                                      <img src={member.avatarUrl} alt="" className="w-full h-full object-cover" />
+                                    ) : (
+                                      <span className="text-xs font-bold text-primary">
+                                        {member.username[0].toUpperCase()}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium text-white">
+                                      {member.username}
+                                      {isSelf && <span className="text-xs text-white/30 ml-1">(you)</span>}
+                                    </p>
+                                    <p className="text-xs text-white/40">{member.clanRole || 'MEMBER'}</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  {role === 'playing' && (
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-green-400 bg-green-500/10 px-2 py-1 rounded">Playing</span>
+                                  )}
+                                  {role === 'substitute' && (
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-yellow-400 bg-yellow-500/10 px-2 py-1 rounded">Sub</span>
+                                  )}
+                                  {!role && (
+                                    <span className="text-[10px] text-white/30">Click to add</span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex gap-3">
+                      <Button
+                        variant="secondary"
+                        className="flex-1"
+                        onClick={() => {
+                          setShowRegisterModal(false);
+                          setSelectedMembers({});
+                          setTeamName('');
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        className="flex-1"
+                        disabled={!canRegisterClan || clanMembers.length === 0}
+                        onClick={handleClanRegister}
+                        loading={clanRegisterMutation.isPending}
+                      >
+                        {canRegisterClan
+                          ? `Register Clan (+${isSquad ? '100' : '50'} XP)`
+                          : `Select ${maxPlaying - counts.playing} more playing members`}
+                      </Button>
+                    </div>
+
+                    <p className="text-xs text-white/20 text-center mt-3">
+                      Left-click to toggle between unselected → playing → substitute. Right-click to reverse.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="text-xl font-bold text-white mb-2">Confirm Registration</h3>
+                    <p className="text-white/50 text-sm mb-6">
+                      You are about to register for <strong className="text-white">{tournament.title}</strong>
+                    </p>
+
+                    <div className="space-y-3 mb-6 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-white/50">Prize Pool</span>
+                        <span className="text-white font-medium">{tournament.prizePool}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-white/50">Entry Fee</span>
+                        <span className="text-white font-medium">{tournament.entryFee}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-white/50">Mode</span>
+                        <span className="text-white font-medium">{tournament.mode}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <Button
+                        variant="secondary"
+                        className="flex-1"
+                        onClick={() => setShowRegisterModal(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        className="flex-1"
+                        onClick={() => registerMutation.mutate({})}
+                        loading={registerMutation.isPending}
+                      >
+                        Confirm
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </Card>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <Footer />
+    </main>
+  );
+}

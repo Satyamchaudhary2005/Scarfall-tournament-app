@@ -1,0 +1,249 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                      String                   @id @default(uuid())
+  username                String                   @unique
+  email                   String                   @unique
+  passwordHash            String?
+  avatarUrl               String?
+  bannerUrl               String?
+  role                    String                   @default("USER")
+  googleId                String?                  @unique
+  discordId               String?                  @unique
+  supabaseId              String?                  @unique
+  points                  Int                      @default(0)
+  kills                   Int                      @default(0)
+  deaths                  Int                      @default(0)
+  matchesPlayed           Int                      @default(0)
+  wins                    Int                      @default(0)
+  clanId                  String?
+  clanRole                String?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  createdClan             Clan?                    @relation("ClanLeader")
+  clanActivityLogs        ClanActivityLog[]
+  receivedInvites         ClanInvite[]             @relation("ReceivedInvites")
+  sentInvites             ClanInvite[]             @relation("SentInvites")
+  joinRequests            ClanJoinRequest[]
+  leaderboardEntries      LeaderboardEntry[]
+  sentNotifications       Notification[]           @relation("NotificationSender")
+  notifications           Notification[]           @relation("NotificationRecipient")
+  reportedReports         Report[]                 @relation("ReportReported")
+  reports                 Report[]                 @relation("ReportReporter")
+  hostedTournaments       Tournament[]             @relation("TournamentHost")
+  tournamentRegistrations TournamentRegistration[]
+  clan                    Clan?                    @relation(fields: [clanId], references: [id])
+  wallet                  Wallet?
+
+  @@index([clanId])
+  @@index([points])
+  @@index([email])
+}
+
+model Clan {
+  id                      String                   @id @default(uuid())
+  name                    String                   @unique
+  tag                     String                   @unique
+  description             String?
+  logoUrl                 String?
+  bannerUrl               String?
+  color                   String                   @default("#ff1f1f")
+  points                  Int                      @default(0)
+  wins                    Int                      @default(0)
+  matchesPlayed           Int                      @default(0)
+  rank                    Int                      @default(0)
+  maxMembers              Int                      @default(15)
+  leaderId                String                   @unique
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  leader                  User                     @relation("ClanLeader", fields: [leaderId], references: [id])
+  activityLogs            ClanActivityLog[]
+  invites                 ClanInvite[]
+  joinRequests            ClanJoinRequest[]
+  tournamentRegistrations TournamentRegistration[]
+  members                 User[]
+
+  @@index([points])
+  @@index([name])
+}
+
+model Tournament {
+  id                   String                   @id @default(uuid())
+  title                String
+  description          String?
+  bannerUrl            String?
+  prizePool            String                   @default("0")
+  entryFee             String                   @default("Free")
+  mode                 String                   @default("SOLO")
+  slots                Int                      @default(100)
+  status               String                   @default("UPCOMING")
+  registrationStartsAt DateTime?
+  registrationEndsAt   DateTime?
+  startsAt             DateTime
+  endsAt               DateTime?
+  mapName              String?
+  maxTeams             Int?
+  minRank              String?
+  rules                String?
+  hostId               String
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+  host                 User                     @relation("TournamentHost", fields: [hostId], references: [id])
+  registrations        TournamentRegistration[]
+
+  @@index([status])
+  @@index([startsAt])
+  @@index([hostId])
+}
+
+model TournamentRegistration {
+  id                String     @id @default(uuid())
+  teamName          String?
+  teamSize          Int        @default(1)
+  clanId            String?
+  playingMembers    String?
+  substituteMembers String?
+  clanXpAwarded     Int        @default(0)
+  tournamentId      String
+  userId            String
+  status            String     @default("CONFIRMED")
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  user              User       @relation(fields: [userId], references: [id])
+  tournament        Tournament @relation(fields: [tournamentId], references: [id])
+  clan              Clan?      @relation(fields: [clanId], references: [id])
+
+  @@unique([tournamentId, userId])
+  @@index([tournamentId])
+  @@index([userId])
+  @@index([clanId])
+}
+
+model LeaderboardEntry {
+  id            String   @id @default(uuid())
+  score         Int      @default(0)
+  kills         Int      @default(0)
+  deaths        Int      @default(0)
+  wins          Int      @default(0)
+  matchesPlayed Int      @default(0)
+  type          String   @default("GLOBAL")
+  season        String?
+  userId        String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, type, season])
+  @@index([type, score])
+  @@index([userId])
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  type        String
+  title       String
+  message     String
+  link        String?
+  read        Boolean  @default(false)
+  recipientId String
+  senderId    String?
+  createdAt   DateTime @default(now())
+  sender      User?    @relation("NotificationSender", fields: [senderId], references: [id])
+  recipient   User     @relation("NotificationRecipient", fields: [recipientId], references: [id])
+
+  @@index([recipientId, read])
+  @@index([recipientId, createdAt])
+}
+
+model ClanInvite {
+  id        String   @id @default(uuid())
+  status    String   @default("PENDING")
+  clanId    String
+  inviterId String
+  inviteeId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  invitee   User     @relation("ReceivedInvites", fields: [inviteeId], references: [id])
+  inviter   User     @relation("SentInvites", fields: [inviterId], references: [id])
+  clan      Clan     @relation(fields: [clanId], references: [id])
+
+  @@unique([clanId, inviteeId])
+  @@index([inviteeId, status])
+  @@index([clanId, status])
+}
+
+model ClanJoinRequest {
+  id        String   @id @default(uuid())
+  status    String   @default("PENDING")
+  clanId    String
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+  clan      Clan     @relation(fields: [clanId], references: [id])
+
+  @@unique([clanId, userId])
+  @@index([clanId, status])
+  @@index([userId, status])
+}
+
+model ClanActivityLog {
+  id        String   @id @default(uuid())
+  action    String
+  details   String?
+  clanId    String
+  actorId   String
+  targetId  String?
+  createdAt DateTime @default(now())
+  actor     User     @relation(fields: [actorId], references: [id])
+  clan      Clan     @relation(fields: [clanId], references: [id])
+
+  @@index([clanId, createdAt])
+}
+
+model Report {
+  id          String   @id @default(uuid())
+  reason      String
+  description String?
+  status      String   @default("PENDING")
+  reporterId  String
+  reportedId  String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  reported    User     @relation("ReportReported", fields: [reportedId], references: [id])
+  reporter    User     @relation("ReportReporter", fields: [reporterId], references: [id])
+
+  @@index([status])
+  @@index([reportedId])
+}
+
+model Wallet {
+  id        String   @id @default(uuid())
+  balance   Float    @default(0)
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  transactions Transaction[]
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  type        String   // DEPOSIT, WITHDRAW, TOURNAMENT_FEE, TOURNAMENT_WINNING, CLAN_FEE
+  amount      Float
+  description String?
+  status      String   @default("COMPLETED") // PENDING, COMPLETED, FAILED
+  walletId    String
+  wallet      Wallet   @relation(fields: [walletId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([walletId, createdAt])
+}
