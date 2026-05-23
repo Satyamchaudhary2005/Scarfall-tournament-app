@@ -1074,7 +1074,7 @@ export const acceptInvite = async (req: Request, res: Response): Promise<void> =
     const invite = await prisma.clanInvite.findUnique({
       where: { id: inviteId },
       include: { clan: { include: { _count: { select: { members: true } } } } },
-    });
+    }) as any;
 
     if (!invite) {
       res.status(404).json({ error: 'Invite not found' });

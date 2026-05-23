@@ -5,8 +5,8 @@ import { JwtPayload } from '../middleware/auth';
 
 export const generateToken = (payload: JwtPayload): string => {
   return jwt.sign(payload, config.jwt.secret, {
-    expiresIn: config.jwt.expiresIn as string | number,
-  });
+    expiresIn: config.jwt.expiresIn,
+  } as jwt.SignOptions);
 };
 
 export const hashPassword = async (password: string): Promise<string> => {
