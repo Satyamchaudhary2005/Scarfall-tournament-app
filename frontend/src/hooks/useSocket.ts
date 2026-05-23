@@ -2,7 +2,7 @@
 
 import { useEffect, useCallback } from 'react';
 import { useAuthStore } from '@/store/authStore';
-import { connectSocket, disconnectSocket } from '@/services/socket';
+import { connectSocket, disconnectSocket, getSocket } from '@/services/socket';
 import toast from 'react-hot-toast';
 
 export function useSocket() {
@@ -34,9 +34,7 @@ export function useSocket() {
     }
   }, [token]);
 
-  import { getSocket } from '@/services/socket';
-
-const emit = useCallback((event: string, data?: any) => {
+  const emit = useCallback((event: string, data?: any) => {
     const socket = getSocket();
     if (socket?.connected) {
       socket.emit(event, data);
