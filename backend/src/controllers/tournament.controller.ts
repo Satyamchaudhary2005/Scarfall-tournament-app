@@ -5,10 +5,14 @@ import { paginate } from '../utils/helpers';
 
 export const getTournaments = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { status, mode, search, page: pageStr, limit: limitStr } = req.query;
+    const status = req.query.status as string | undefined;
+    const mode = req.query.mode as string | undefined;
+    const search = req.query.search as string | undefined;
+    const pageStr = req.query.page as string | undefined;
+    const limitStr = req.query.limit as string | undefined;
     const { skip, take, page, limit } = paginate(
-      pageStr ? parseInt(pageStr as string) : 1,
-      Math.min(limitStr ? parseInt(limitStr as string) : 20, 50)
+      pageStr ? parseInt(pageStr) : 1,
+      Math.min(limitStr ? parseInt(limitStr) : 20, 50)
     );
 
     const where: any = {};
@@ -57,7 +61,7 @@ export const getTournaments = async (req: Request, res: Response): Promise<void>
 
 export const getTournament = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const tournament = await prisma.tournament.findUnique({
       where: { id },
@@ -130,7 +134,7 @@ export const createTournament = async (req: Request, res: Response): Promise<voi
 
 export const updateTournament = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const data = updateTournamentSchema.parse(req.body);
 
     const tournament = await prisma.tournament.findUnique({ where: { id } });
@@ -170,20 +174,19 @@ export const updateTournament = async (req: Request, res: Response): Promise<voi
 
 export const registerForTournament = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { teamName, teamSize } = req.body;
 
     const tournament = await prisma.tournament.findUnique({
       where: { id },
       include: { _count: { select: { registrations: true } } },
-    });
+    }) as any;
 
     if (!tournament) {
       res.status(404).json({ error: 'Tournament not found' });
       return;
     }
 
-    // For DUO/SQUAD tournaments, use clan registration endpoint
     if (tournament.mode !== 'SOLO') {
       res.status(400).json({ error: 'Use clan registration for DUO/SQUAD tournaments' });
       return;
@@ -239,14 +242,14 @@ export const registerForTournament = async (req: Request, res: Response): Promis
 
 export const registerClanForTournament = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const parsed = clanTournamentRegistrationSchema.parse(req.body);
     const { clanId, playingMembers, substituteMembers, teamName } = parsed;
 
     const tournament = await prisma.tournament.findUnique({
       where: { id },
       include: { _count: { select: { registrations: true } } },
-    });
+    }) as any;
 
     if (!tournament) {
       res.status(404).json({ error: 'Tournament not found' });
@@ -349,7 +352,7 @@ export const registerClanForTournament = async (req: Request, res: Response): Pr
         userId: { in: allMemberIds },
       },
       select: { userId: true, user: { select: { username: true } } },
-    });
+    }) as any[];
 
     if (existingPlayerRegistrations.length > 0) {
       const names = existingPlayerRegistrations.map(r => r.user.username);
@@ -413,7 +416,7 @@ export const registerClanForTournament = async (req: Request, res: Response): Pr
 
 export const unregisterFromTournament = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     // Check if this is a clan registration - if so, unregister all clan members
     const clanRegistration = await prisma.tournamentRegistration.findFirst({

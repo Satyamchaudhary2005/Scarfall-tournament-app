@@ -30,7 +30,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 // Mark single notification as read
 router.patch('/:id/read', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const notification = await prisma.notification.findFirst({
       where: { id, recipientId: req.user!.id },
