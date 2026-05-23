@@ -32,7 +32,7 @@ export default function LoginPage() {
         router.push('/');
         return;
       } catch (backendErr: any) {
-        if (backendErr?.status !== 401) throw backendErr;
+        if (backendErr?.status !== 401 && !backendErr?.message?.includes('fetch')) throw backendErr;
       }
 
       const { user, token } = await supabaseAuthService.login(form.email, form.password);

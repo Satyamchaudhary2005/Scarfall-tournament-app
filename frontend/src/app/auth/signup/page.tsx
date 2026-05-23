@@ -41,7 +41,7 @@ export default function SignupPage() {
         router.push('/');
         return;
       } catch (backendErr: any) {
-        if (backendErr?.status !== 409) throw backendErr;
+        if (backendErr?.status !== 409 && !backendErr?.message?.includes('fetch')) throw backendErr;
       }
 
       const { user, token } = await supabaseAuthService.signup(form.email, form.password, form.username);
