@@ -90,11 +90,16 @@ export default function StagePresetSelector({ onSelect, onBack }: StagePresetSel
             <h3 className="text-base font-bold text-white mb-1 pr-16">{preset.name}</h3>
             <p className="text-xs text-white/40 mb-3">{preset.description}</p>
 
-            {/* Recommended teams */}
-            <div className="flex items-center gap-1.5 text-xs text-white/50 mb-4">
+            {/* Recommended teams & features */}
+            <div className="flex items-center gap-1.5 text-xs text-white/50 mb-2">
               <Users className="w-3.5 h-3.5" />
               <span>{preset.recommendedTeams} teams</span>
             </div>
+            {preset.features && (
+              <div className="text-[10px] text-primary/70 mb-3 line-clamp-2">
+                {preset.features}
+              </div>
+            )}
 
             {/* Stage flow mini view */}
             <div className="space-y-1">

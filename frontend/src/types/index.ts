@@ -251,17 +251,22 @@ export type StageType =
   | 'IN_GAME_QUALIFIER'
   | 'OPEN_QUALIFIER'
   | 'ONLINE_QUALIFIER'
+  | 'SCRIM_STAGE'
   | 'KNOCKOUT'
   | 'ROUND_1'
   | 'ROUND_2'
   | 'ROUND_3'
   | 'WILDCARD'
+  | 'POINT_RUSH'
   | 'SURVIVAL_STAGE'
   | 'LEAGUE_STAGE'
   | 'PLAYOFFS'
   | 'SEMI_FINALS'
-  | 'GRAND_FINALS'
+  | 'GUILD_WARS'
+  | 'REGIONAL_FINALS'
+  | 'INVITATIONAL_STAGE'
   | 'LAST_CHANCE_QUALIFIER'
+  | 'GRAND_FINALS'
   | (string & {});
 
 export interface TournamentStage {
@@ -299,6 +304,7 @@ export interface StagePreset {
   stages: StagePresetStage[];
   recommendedTeams: string;
   complexity: string;
+  features?: string;
 }
 
 export interface StagePresetStage {
