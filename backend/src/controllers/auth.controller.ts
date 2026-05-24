@@ -157,6 +157,40 @@ export const googleAuth = async (req: Request, res: Response): Promise<void> => 
   }
 };
 
+export const discordTokenProfile = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { accessToken } = req.body;
+
+    if (!accessToken) {
+      res.status(400).json({ error: 'Access token required' });
+      return;
+    }
+
+    const discordRes = await fetch('https://discord.com/api/users/@me', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (!discordRes.ok) {
+      res.status(401).json({ error: 'Failed to fetch Discord profile' });
+      return;
+    }
+
+    const profile = await discordRes.json();
+
+    res.json({
+      discordId: profile.id,
+      email: profile.email,
+      username: profile.username,
+      avatarUrl: profile.avatar
+        ? `https://cdn.discordapp.com/avatars/${profile.id}/${profile.avatar}.png`
+        : null,
+    });
+  } catch (error) {
+    console.error('Discord token profile error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 export const discordAuth = async (req: Request, res: Response): Promise<void> => {
   try {
     const { discordId, email, username, avatarUrl } = req.body;

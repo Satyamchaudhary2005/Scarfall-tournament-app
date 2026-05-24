@@ -68,6 +68,9 @@ export const authApi = {
   discordAuth: (data: { discordId: string; email: string; username: string; avatarUrl?: string }) =>
     request<AuthResponse>('/auth/oauth/discord', { method: 'POST', body: JSON.stringify(data) }),
 
+  discordProfile: (accessToken: string) =>
+    request<{ discordId: string; email: string; username: string; avatarUrl: string | null }>('/auth/discord/profile', { method: 'POST', body: JSON.stringify({ accessToken }) }),
+
   supabaseAuth: (data: { supabaseId: string; email: string; username: string; avatarUrl?: string }) =>
     request<AuthResponse>('/auth/supabase', { method: 'POST', body: JSON.stringify(data) }),
 

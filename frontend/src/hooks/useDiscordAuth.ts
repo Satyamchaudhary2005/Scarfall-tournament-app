@@ -59,27 +59,25 @@ export function useDiscordAuth() {
           clearInterval(interval);
           popup.close();
 
-          fetch('https://discord.com/api/users/@me', {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          })
-            .then((res) => res.json())
+          authApi.discordProfile(accessToken)
             .then(async (profile) => {
-              const avatarUrl = profile.avatar
-                ? `https://cdn.discordapp.com/avatars/${profile.id}/${profile.avatar}.png`
-                : undefined;
+              if (!profile.email) {
+                toast.error('Discord email is required. Make sure your Discord has a verified email.');
+                return;
+              }
 
               const { user, token } = await authApi.discordAuth({
-                discordId: profile.id,
+                discordId: profile.discordId,
                 email: profile.email,
                 username: profile.username,
-                avatarUrl,
+                avatarUrl: profile.avatarUrl || undefined,
               });
 
               setAuth(user, token);
               toast.success('Signed in with Discord!');
               router.push('/');
             })
-            .catch(() => toast.error('Failed to get Discord profile'));
+            .catch((err) => toast.error(err.message || 'Failed to get Discord profile'));
         }
       } catch {
         // cross-origin errors expected until redirect

@@ -6,6 +6,7 @@ import {
   resetPassword,
   googleAuth,
   discordAuth,
+  discordTokenProfile,
   supabaseAuth,
   getProfile,
   updateProfile,
@@ -21,6 +22,7 @@ router.post('/reset-password', resetPassword);
 router.post('/supabase', supabaseAuth);
 router.post('/oauth/google', googleAuth);
 router.post('/oauth/discord', discordAuth);
+router.post('/discord/profile', discordTokenProfile);
 router.get('/profile', authenticate, getProfile);
 router.patch('/profile', authenticate, updateProfile);
 
