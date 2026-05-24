@@ -122,6 +122,8 @@ model Round {
   title        String?  // e.g. "Match 1", "Group Stage"
   status       String   @default("UPCOMING") // UPCOMING, LIVE, COMPLETED
   startsAt     DateTime?
+  roomId       String?
+  roomPassword String?
   tournament   Tournament @relation(fields: [tournamentId], references: [id])
   scores       RoundScore[]
 

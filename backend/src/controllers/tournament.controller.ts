@@ -104,6 +104,12 @@ export const getTournament = async (req: Request, res: Response): Promise<void> 
     if (!isHost && !isRegistered) {
       (tournament as any).roomId = undefined;
       (tournament as any).roomPassword = undefined;
+      if ((tournament as any).rounds) {
+        (tournament as any).rounds = (tournament as any).rounds.map((r: any) => {
+          const { roomId, roomPassword, ...rest } = r;
+          return rest;
+        });
+      }
     }
 
     // Parse placementPoints JSON string to array for frontend
@@ -737,11 +743,18 @@ export const createRound = async (req: Request, res: Response): Promise<void> =>
 export const updateRoundStatus = async (req: Request, res: Response): Promise<void> => {
   try {
     const roundId = req.params.roundId as string;
-    const { status } = req.body;
+    const { status, roomId, roomPassword } = req.body;
 
     if (!['UPCOMING', 'LIVE', 'COMPLETED'].includes(status)) {
       res.status(400).json({ error: 'Invalid status' });
       return;
+    }
+
+    if (status === 'LIVE') {
+      if (!roomId || !roomPassword) {
+        res.status(400).json({ error: 'Room ID and Password are required to start a round' });
+        return;
+      }
     }
 
     const round = await prisma.round.findUnique({ where: { id: roundId } });
@@ -758,7 +771,10 @@ export const updateRoundStatus = async (req: Request, res: Response): Promise<vo
 
     const updated = await prisma.round.update({
       where: { id: roundId },
-      data: { status },
+      data: {
+        status,
+        ...(status === 'LIVE' && { roomId, roomPassword }),
+      },
     });
 
     // If completing a round and auto-calculate scores

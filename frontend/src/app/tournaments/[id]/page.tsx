@@ -365,6 +365,61 @@ export default function TournamentDetailPage() {
                 </Card>
               )}
 
+              {/* Per-round room credentials for multi-round tournaments */}
+              {tournament?.format === 'MULTI_ROUND' && (isRegistered || user?.id === tournament.host.id) && tournament?.rounds?.some((r: any) => r.status === 'LIVE' && r.roomId) && (
+                <Card className="p-6 border-blue-500/20">
+                  <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <Swords className="w-4 h-4 text-blue-400" />
+                    Match Rooms
+                  </h3>
+                  <div className="space-y-4">
+                    {tournament.rounds.filter((r: any) => r.status === 'LIVE' && r.roomId).map((round: any) => (
+                      <div key={round.id} className="p-3 rounded-lg bg-blue-500/5 border border-blue-500/10">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-6 h-6 rounded-md bg-blue-500/10 flex items-center justify-center">
+                            <span className="text-xs font-bold text-blue-400">R{round.roundNumber}</span>
+                          </div>
+                          <p className="text-sm font-semibold text-white">{round.title}</p>
+                          <Badge size="sm" variant="success">LIVE</Badge>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          <div>
+                            <p className="text-xs text-white/40 mb-0.5">Room ID</p>
+                            <div className="flex items-center gap-1 p-1.5 rounded bg-blue-500/5 border border-blue-500/10">
+                              <code className="text-xs font-mono text-blue-300 flex-1 select-all truncate">{round.roomId}</code>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(round.roomId);
+                                  toast.success('Room ID copied!');
+                                }}
+                                className="p-0.5 rounded hover:bg-blue-500/10 text-blue-400/60 hover:text-blue-400 transition-all shrink-0"
+                              >
+                                <Copy className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-xs text-white/40 mb-0.5">Password</p>
+                            <div className="flex items-center gap-1 p-1.5 rounded bg-blue-500/5 border border-blue-500/10">
+                              <code className="text-xs font-mono text-blue-300 flex-1 select-all truncate">{round.roomPassword}</code>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(round.roomPassword);
+                                  toast.success('Password copied!');
+                                }}
+                                className="p-0.5 rounded hover:bg-blue-500/10 text-blue-400/60 hover:text-blue-400 transition-all shrink-0"
+                              >
+                                <Copy className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+
               <Card className="p-6 sticky top-24">
                 <h3 className="text-lg font-semibold text-white mb-4">Registration</h3>
 

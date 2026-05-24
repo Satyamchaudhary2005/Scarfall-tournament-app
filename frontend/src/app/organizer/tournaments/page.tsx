@@ -182,8 +182,8 @@ function OrganizerContent() {
   });
 
   const updateRoundStatusMutation = useMutation({
-    mutationFn: ({ roundId, status }: { roundId: string; status: string }) =>
-      tournamentApi.updateRoundStatus(manageRoundsFor.id, roundId, status),
+    mutationFn: ({ roundId, status, roomId, roomPassword }: { roundId: string; status: string; roomId?: string; roomPassword?: string }) =>
+      tournamentApi.updateRoundStatus(manageRoundsFor.id, roundId, status, { roomId, roomPassword }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tournament-rounds', manageRoundsFor?.id] });
       toast.success('Round status updated');
@@ -203,6 +203,9 @@ function OrganizerContent() {
   // Score input for a round
   const [scoringRound, setScoringRound] = useState<any>(null);
   const [scoreEntries, setScoreEntries] = useState<{ teamId: string; teamName: string; placement: number; kills: number }[]>([]);
+
+  // Start round with room credentials
+  const [startRoundData, setStartRoundData] = useState<{ round: any; roomId: string; roomPassword: string } | null>(null);
 
   const openScoreInput = (round: any, scoreboard: any[]) => {
     setScoringRound(round);
@@ -490,7 +493,7 @@ function OrganizerContent() {
                           </button>
                           {round.status === 'UPCOMING' && (
                             <button
-                              onClick={() => updateRoundStatusMutation.mutate({ roundId: round.id, status: 'LIVE' })}
+                              onClick={() => setStartRoundData({ round, roomId: '', roomPassword: '' })}
                               className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-green-500/10 hover:bg-green-500/20 text-green-400 transition-all"
                             >
                               <PlayCircle className="w-3.5 h-3.5 inline mr-1" />
@@ -539,6 +542,77 @@ function OrganizerContent() {
                     </Button>
                   </div>
                 )}
+              </Card>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Start Round Credentials Modal */}
+      <AnimatePresence>
+        {startRoundData && (
+          <div className="fixed inset-0 z-[65] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md"
+            >
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
+                      <PlayCircle className="w-5 h-5 text-green-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-white">Start {startRoundData.round.title}</h3>
+                      <p className="text-sm text-white/50">Enter room credentials to share with participants</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setStartRoundData(null)} className="p-1.5 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-all">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-white/70 mb-1.5">Room ID *</label>
+                    <input
+                      type="text"
+                      value={startRoundData.roomId}
+                      onChange={(e) => setStartRoundData({ ...startRoundData, roomId: e.target.value })}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50 transition-all"
+                      placeholder="e.g. Room-12345"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-white/70 mb-1.5">Password *</label>
+                    <input
+                      type="text"
+                      value={startRoundData.roomPassword}
+                      onChange={(e) => setStartRoundData({ ...startRoundData, roomPassword: e.target.value })}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50 transition-all"
+                      placeholder="e.g. pass123"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-3 mt-6">
+                  <Button variant="secondary" className="flex-1" onClick={() => setStartRoundData(null)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    disabled={!startRoundData.roomId || !startRoundData.roomPassword}
+                    loading={updateRoundStatusMutation.isPending}
+                    onClick={() => {
+                      updateRoundStatusMutation.mutate(
+                        { roundId: startRoundData.round.id, status: 'LIVE', roomId: startRoundData.roomId, roomPassword: startRoundData.roomPassword },
+                        { onSuccess: () => setStartRoundData(null) }
+                      );
+                    }}
+                  >
+                    Start Match
+                  </Button>
+                </div>
               </Card>
             </motion.div>
           </div>

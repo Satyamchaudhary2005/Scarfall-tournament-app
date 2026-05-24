@@ -92,6 +92,8 @@ export interface Round {
   title: string;
   status: 'UPCOMING' | 'LIVE' | 'COMPLETED';
   startsAt?: string | null;
+  roomId?: string | null;
+  roomPassword?: string | null;
   scores?: RoundScore[];
   _count?: { scores: number };
 }

@@ -146,8 +146,8 @@ export const tournamentApi = {
   createRound: (id: string, data?: { title?: string; startsAt?: string }) =>
     request<{ message: string; round: Round }>(`/tournaments/${id}/rounds`, { method: 'POST', body: JSON.stringify(data || {}) }),
 
-  updateRoundStatus: (id: string, roundId: string, status: string) =>
-    request<{ message: string; round: Round }>(`/tournaments/${id}/rounds/${roundId}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  updateRoundStatus: (id: string, roundId: string, status: string, extra?: { roomId?: string; roomPassword?: string }) =>
+    request<{ message: string; round: Round }>(`/tournaments/${id}/rounds/${roundId}/status`, { method: 'PATCH', body: JSON.stringify({ status, ...extra }) }),
 
   updateRoundScores: (id: string, roundId: string, scores: { teamId: string; teamName: string; placement: number; kills: number }[]) =>
     request<{ message: string; scores: RoundScore[] }>(`/tournaments/${id}/rounds/${roundId}/scores`, { method: 'PATCH', body: JSON.stringify({ scores }) }),
