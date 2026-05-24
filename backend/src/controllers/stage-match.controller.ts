@@ -87,7 +87,14 @@ export const generateStageMatches = async (req: Request, res: Response): Promise
 
     const tournament = await prisma.tournament.findUnique({
       where: { id },
-      include: { registrations: true },
+      include: {
+        registrations: {
+          include: {
+            user: { select: { id: true, username: true, ign: true } },
+            clan: { select: { id: true, name: true } },
+          },
+        },
+      },
     });
     if (!tournament) {
       res.status(404).json({ error: 'Tournament not found' });
