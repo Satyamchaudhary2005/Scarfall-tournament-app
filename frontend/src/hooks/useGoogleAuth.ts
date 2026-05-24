@@ -9,7 +9,7 @@ export function useGoogleAuth() {
   const router = useRouter();
   const setAuth = useAuthStore((state) => state.setAuth);
 
-  const login = useGoogleLogin({
+  const googleLogin = useGoogleLogin({
     flow: 'implicit',
     onSuccess: async (response) => {
       try {
@@ -37,5 +37,14 @@ export function useGoogleAuth() {
     },
   });
 
-  return { signInWithGoogle: login };
+  const signInWithGoogle = useCallback(() => {
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      toast.error('Google OAuth not configured');
+      return;
+    }
+    googleLogin();
+  }, [googleLogin]);
+
+  return { signInWithGoogle };
 }

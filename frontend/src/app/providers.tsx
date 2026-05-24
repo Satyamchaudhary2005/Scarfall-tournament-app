@@ -41,36 +41,30 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
 export function Providers({ children }: { children: React.ReactNode }) {
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
 
-  const content = (
-    <QueryClientProvider client={queryClient}>
-      <AuthInitializer>
-        {children}
-      </AuthInitializer>
-      <Toaster
-        position="bottom-right"
-        toastOptions={{
-          style: {
-            background: '#151515',
-            color: '#fff',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '12px',
-          },
-          success: {
-            iconTheme: { primary: '#22c55e', secondary: '#fff' },
-          },
-          error: {
-            iconTheme: { primary: '#ff1f1f', secondary: '#fff' },
-          },
-        }}
-      />
-    </QueryClientProvider>
-  );
-
-  if (!googleClientId) return content;
-
   return (
     <GoogleOAuthProvider clientId={googleClientId}>
-      {content}
+      <QueryClientProvider client={queryClient}>
+        <AuthInitializer>
+          {children}
+        </AuthInitializer>
+        <Toaster
+          position="bottom-right"
+          toastOptions={{
+            style: {
+              background: '#151515',
+              color: '#fff',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '12px',
+            },
+            success: {
+              iconTheme: { primary: '#22c55e', secondary: '#fff' },
+            },
+            error: {
+              iconTheme: { primary: '#ff1f1f', secondary: '#fff' },
+            },
+          }}
+        />
+      </QueryClientProvider>
     </GoogleOAuthProvider>
   );
 }
