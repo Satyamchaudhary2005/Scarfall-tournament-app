@@ -87,7 +87,7 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
 
 export const banUser = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const user = await prisma.user.findUnique({ where: { id } });
     if (!user) {
@@ -153,7 +153,7 @@ export const getReports = async (req: Request, res: Response): Promise<void> => 
 
 export const resolveReport = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { status, action } = req.body;
 
     const validStatuses = ['REVIEWED', 'RESOLVED', 'DISMISSED'];
@@ -226,7 +226,7 @@ export const getClans = async (req: Request, res: Response): Promise<void> => {
 
 export const deleteClan = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const clan = await prisma.clan.findUnique({ where: { id } });
     if (!clan) {
@@ -258,7 +258,7 @@ export const deleteClan = async (req: Request, res: Response): Promise<void> => 
 
 export const updateTournamentStatus = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { status } = req.body;
 
     const validStatuses = ['UPCOMING', 'REGISTRATION_OPEN', 'LIVE', 'COMPLETED', 'CANCELLED'];
@@ -319,7 +319,7 @@ export const updateTournamentStatus = async (req: Request, res: Response): Promi
 
 export const deleteTournament = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const tournament = await prisma.tournament.findUnique({ where: { id } });
     if (!tournament) {
@@ -340,7 +340,7 @@ export const deleteTournament = async (req: Request, res: Response): Promise<voi
 
 export const getTournamentWithRegistrations = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const tournament = await prisma.tournament.findUnique({
       where: { id },
@@ -373,7 +373,7 @@ export const getTournamentWithRegistrations = async (req: Request, res: Response
 
 export const updateUserRole = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { role } = req.body;
 
     const validRoles = ['USER', 'MODERATOR', 'ORGANIZER', 'ADMIN'];
@@ -435,7 +435,7 @@ export const updateUserRole = async (req: Request, res: Response): Promise<void>
 
 export const deleteUser = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     if (id === req.user!.id) {
       res.status(400).json({ error: 'You cannot delete your own account via admin panel' });

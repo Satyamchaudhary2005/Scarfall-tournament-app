@@ -12,6 +12,7 @@ import Link from 'next/link';
 import {
   Trophy, Plus, Search, X, Trash2, Edit3,
   AlertTriangle, RefreshCw, PlayCircle, CheckCircle, Clock, Users, Key,
+  Crosshair, Skull, Target, Swords,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -73,18 +74,33 @@ function OrganizerContent() {
     description: '',
     mapName: '',
     rules: '',
+    format: 'SINGLE' as string,
+    totalRounds: 3,
+    killPoints: 1,
   });
 
   const resetForm = () => setForm({
     title: '', prizePool: '', entryFee: 'Free', mode: 'SOLO',
     slots: 100, startsAt: '', description: '', mapName: '', rules: '',
+    format: 'SINGLE', totalRounds: 3, killPoints: 1,
   });
 
+  const formatFormData = (data: any) => {
+    const payload: any = {
+      ...data,
+      startsAt: data.startsAt ? new Date(data.startsAt).toISOString() : undefined,
+    };
+    if (data.format === 'MULTI_ROUND') {
+      const defaultPlacement = [15, 12, 10, 8, 6, 4, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0];
+      payload.placementPoints = defaultPlacement;
+      payload.killPoints = data.killPoints || 1;
+      payload.totalRounds = data.totalRounds || 3;
+    }
+    return payload;
+  };
+
   const createMutation = useMutation({
-    mutationFn: () => tournamentApi.create({
-      ...form,
-      startsAt: new Date(form.startsAt).toISOString(),
-    }),
+    mutationFn: () => tournamentApi.create(formatFormData(form)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-tournaments'] });
       queryClient.invalidateQueries({ queryKey: ['tournaments'] });
@@ -96,10 +112,7 @@ function OrganizerContent() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: () => tournamentApi.update(editingId!, {
-      ...form,
-      ...(form.startsAt ? { startsAt: new Date(form.startsAt).toISOString() } : {}),
-    }),
+    mutationFn: () => tournamentApi.update(editingId!, formatFormData(form)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-tournaments'] });
       toast.success('Tournament updated!');
@@ -140,6 +153,80 @@ function OrganizerContent() {
     onError: (err: any) => toast.error(err.message || 'Cleanup failed'),
   });
 
+  // Round management
+  const [manageRoundsFor, setManageRoundsFor] = useState<any>(null);
+  const [newRoundTitle, setNewRoundTitle] = useState('');
+
+  const { data: roundData } = useQuery({
+    queryKey: ['tournament-rounds', manageRoundsFor?.id],
+    queryFn: () => tournamentApi.getScoreboard(manageRoundsFor.id),
+    enabled: !!manageRoundsFor,
+  });
+
+  const createRoundMutation = useMutation({
+    mutationFn: () => tournamentApi.createRound(manageRoundsFor.id, { title: newRoundTitle || undefined }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tournament-rounds', manageRoundsFor?.id] });
+      queryClient.invalidateQueries({ queryKey: ['my-tournaments'] });
+      toast.success('Round created!');
+      setNewRoundTitle('');
+    },
+    onError: (err: any) => toast.error(err.message || 'Failed to create round'),
+  });
+
+  const updateRoundStatusMutation = useMutation({
+    mutationFn: ({ roundId, status }: { roundId: string; status: string }) =>
+      tournamentApi.updateRoundStatus(manageRoundsFor.id, roundId, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tournament-rounds', manageRoundsFor?.id] });
+      toast.success('Round status updated');
+    },
+    onError: (err: any) => toast.error(err.message || 'Failed to update round'),
+  });
+
+  const deleteRoundMutation = useMutation({
+    mutationFn: (roundId: string) => tournamentApi.deleteRound(manageRoundsFor.id, roundId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tournament-rounds', manageRoundsFor?.id] });
+      toast.success('Round deleted');
+    },
+    onError: (err: any) => toast.error(err.message || 'Failed to delete round'),
+  });
+
+  // Score input for a round
+  const [scoringRound, setScoringRound] = useState<any>(null);
+  const [scoreEntries, setScoreEntries] = useState<{ teamId: string; teamName: string; placement: number; kills: number }[]>([]);
+
+  const openScoreInput = (round: any, scoreboard: any[]) => {
+    setScoringRound(round);
+    // Pre-fill from existing scores or create entries for all teams
+    if (round.scores && round.scores.length > 0) {
+      setScoreEntries(round.scores.map((s: any) => ({
+        teamId: s.teamId,
+        teamName: s.teamName,
+        placement: s.placement,
+        kills: s.kills,
+      })));
+    } else {
+      setScoreEntries(scoreboard.map((s: any) => ({
+        teamId: s.teamId,
+        teamName: s.teamName,
+        placement: 0,
+        kills: 0,
+      })));
+    }
+  };
+
+  const submitScoresMutation = useMutation({
+    mutationFn: () => tournamentApi.updateRoundScores(manageRoundsFor.id, scoringRound.id, scoreEntries),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tournament-rounds', manageRoundsFor?.id] });
+      toast.success('Scores saved!');
+      setScoringRound(null);
+    },
+    onError: (err: any) => toast.error(err.message || 'Failed to save scores'),
+  });
+
   const handleEdit = (t: any) => {
     setEditingId(t.id);
     setForm({
@@ -152,6 +239,9 @@ function OrganizerContent() {
       description: t.description || '',
       mapName: t.mapName || '',
       rules: t.rules || '',
+      format: t.format || 'SINGLE',
+      totalRounds: t.totalRounds || 3,
+      killPoints: t.killPoints || 1,
     });
   };
 
@@ -226,6 +316,23 @@ function OrganizerContent() {
                 <Input label="Slots" type="number" value={form.slots.toString()} onChange={(e) => setForm({ ...form, slots: parseInt(e.target.value) || 0 })} />
                 <Input label="Start Date" type="datetime-local" value={form.startsAt} onChange={(e) => setForm({ ...form, startsAt: e.target.value })} />
                 <Input label="Map Name" value={form.mapName} onChange={(e) => setForm({ ...form, mapName: e.target.value })} />
+                <div>
+                  <label className="block text-sm font-medium text-white/70 mb-1.5">Format</label>
+                  <select
+                    value={form.format}
+                    onChange={(e) => setForm({ ...form, format: e.target.value })}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-primary/50 transition-all"
+                  >
+                    <option value="SINGLE">Single Match</option>
+                    <option value="MULTI_ROUND">Multi-Round (BR)</option>
+                  </select>
+                </div>
+                {form.format === 'MULTI_ROUND' && (
+                  <>
+                    <Input label="Total Matches" type="number" value={form.totalRounds.toString()} onChange={(e) => setForm({ ...form, totalRounds: parseInt(e.target.value) || 1 })} />
+                    <Input label="Points per Kill" type="number" value={form.killPoints.toString()} onChange={(e) => setForm({ ...form, killPoints: parseInt(e.target.value) || 0 })} />
+                  </>
+                )}
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-white/70 mb-1.5">Description</label>
                   <textarea
@@ -320,6 +427,223 @@ function OrganizerContent() {
         )}
       </AnimatePresence>
 
+      {/* Round Management Modal */}
+      <AnimatePresence>
+        {manageRoundsFor && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-3xl max-h-[90vh] overflow-y-auto"
+            >
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <Swords className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-white">Rounds: {manageRoundsFor.title}</h3>
+                      <p className="text-sm text-white/50">{manageRoundsFor.totalRounds} matches • {manageRoundsFor.killPoints}pt per kill</p>
+                    </div>
+                  </div>
+                  <button onClick={() => { setManageRoundsFor(null); setScoringRound(null); }} className="p-1.5 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-all">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Rounds list */}
+                <div className="space-y-3 mb-6">
+                  {roundData?.rounds?.length === 0 ? (
+                    <div className="text-center py-8 text-white/40 text-sm">
+                      No rounds yet. Create one to get started.
+                    </div>
+                  ) : (
+                    roundData?.rounds?.map((round: any) => (
+                      <div key={round.id} className="flex items-center justify-between p-4 rounded-lg bg-white/[0.02] border border-white/5 hover:border-primary/20 transition-all">
+                        <div className="flex items-center gap-4">
+                          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <span className="text-sm font-bold text-primary">R{round.roundNumber}</span>
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-white">{round.title}</p>
+                            <p className="text-xs text-white/40">
+                              {round._count?.scores || 0} scores • {round.status}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => openScoreInput(round, roundData?.scoreboard || [])}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/5 hover:bg-primary/20 text-white/70 hover:text-primary transition-all"
+                          >
+                            <Target className="w-3.5 h-3.5 inline mr-1" />
+                            Scores
+                          </button>
+                          {round.status === 'UPCOMING' && (
+                            <button
+                              onClick={() => updateRoundStatusMutation.mutate({ roundId: round.id, status: 'LIVE' })}
+                              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-green-500/10 hover:bg-green-500/20 text-green-400 transition-all"
+                            >
+                              <PlayCircle className="w-3.5 h-3.5 inline mr-1" />
+                              Start
+                            </button>
+                          )}
+                          {round.status === 'LIVE' && (
+                            <button
+                              onClick={() => updateRoundStatusMutation.mutate({ roundId: round.id, status: 'COMPLETED' })}
+                              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 transition-all"
+                            >
+                              <CheckCircle className="w-3.5 h-3.5 inline mr-1" />
+                              Complete
+                            </button>
+                          )}
+                          {round.status === 'UPCOMING' && (
+                            <button
+                              onClick={() => { if (confirm(`Delete round ${round.roundNumber}?`)) deleteRoundMutation.mutate(round.id); }}
+                              className="p-1.5 rounded-lg hover:bg-red-500/10 text-white/40 hover:text-red-400 transition-all"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Create round */}
+                {(roundData?.rounds?.length || 0) < manageRoundsFor.totalRounds && (
+                  <div className="flex gap-3 items-end border-t border-white/5 pt-4">
+                    <div className="flex-1">
+                      <label className="block text-xs text-white/50 mb-1">Round Title (optional)</label>
+                      <input
+                        type="text"
+                        value={newRoundTitle}
+                        onChange={(e) => setNewRoundTitle(e.target.value)}
+                        placeholder={`Match ${(roundData?.rounds?.length || 0) + 1}`}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder:text-white/30 text-sm focus:outline-none focus:border-primary/50 transition-all"
+                      />
+                    </div>
+                    <Button onClick={() => createRoundMutation.mutate()} loading={createRoundMutation.isPending}>
+                      <Plus className="w-4 h-4" />
+                      Add Round
+                    </Button>
+                  </div>
+                )}
+              </Card>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Score Input Modal */}
+      <AnimatePresence>
+        {scoringRound && manageRoundsFor && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+            >
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <Target className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-white">Scores: {scoringRound.title}</h3>
+                      <p className="text-sm text-white/50">Enter placement and kills for each team</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setScoringRound(null)} className="p-1.5 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-all">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto mb-4">
+                  <table className="w-full min-w-[400px]">
+                    <thead>
+                      <tr className="border-b border-white/5">
+                        <th className="text-left px-3 py-2 text-xs text-white/40 font-medium uppercase">Team</th>
+                        <th className="text-center px-3 py-2 text-xs text-white/40 font-medium uppercase w-24">Placement</th>
+                        <th className="text-center px-3 py-2 text-xs text-white/40 font-medium uppercase w-20">Kills</th>
+                        <th className="text-center px-3 py-2 text-xs text-white/40 font-medium uppercase w-16">Pts</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {scoreEntries.map((entry, i) => {
+                        const placementConfig = [15, 12, 10, 8, 6, 4, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0];
+                        const killPts = manageRoundsFor.killPoints || 1;
+                        const pts = entry.placement > 0
+                          ? (placementConfig[Math.min(entry.placement - 1, 15)] || 0) + (entry.kills * killPts)
+                          : 0;
+                        return (
+                          <tr key={entry.teamId} className="border-b border-white/5 hover:bg-white/[0.02]">
+                            <td className="px-3 py-2">
+                              <span className="text-sm text-white font-medium">{entry.teamName}</span>
+                            </td>
+                            <td className="px-3 py-2">
+                              <input
+                                type="number"
+                                min={0}
+                                max={99}
+                                value={entry.placement || ''}
+                                onChange={(e) => {
+                                  const newEntries = [...scoreEntries];
+                                  newEntries[i] = { ...newEntries[i], placement: parseInt(e.target.value) || 0 };
+                                  setScoreEntries(newEntries);
+                                }}
+                                className="w-20 mx-auto block text-center bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-primary/50 transition-all"
+                                placeholder="#"
+                              />
+                            </td>
+                            <td className="px-3 py-2">
+                              <input
+                                type="number"
+                                min={0}
+                                max={99}
+                                value={entry.kills || ''}
+                                onChange={(e) => {
+                                  const newEntries = [...scoreEntries];
+                                  newEntries[i] = { ...newEntries[i], kills: parseInt(e.target.value) || 0 };
+                                  setScoreEntries(newEntries);
+                                }}
+                                className="w-16 mx-auto block text-center bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-primary/50 transition-all"
+                                placeholder="0"
+                              />
+                            </td>
+                            <td className="px-3 py-2 text-center">
+                              <span className="text-sm font-bold text-primary">{pts}</span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="flex gap-3">
+                  <Button variant="secondary" className="flex-1" onClick={() => setScoringRound(null)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    onClick={() => submitScoresMutation.mutate()}
+                    loading={submitScoresMutation.isPending}
+                  >
+                    Save Scores
+                  </Button>
+                </div>
+              </Card>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Tournaments Grid */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -360,6 +684,15 @@ function OrganizerContent() {
                   >
                     <Key className="w-4 h-4" />
                   </button>
+                  {t.format === 'MULTI_ROUND' && (
+                    <button
+                      onClick={() => setManageRoundsFor(t)}
+                      className="p-1.5 rounded-lg hover:bg-white/5 text-white/40 hover:text-yellow-400 transition-all"
+                      title="Manage Rounds"
+                    >
+                      <Swords className="w-4 h-4" />
+                    </button>
+                  )}
                   <button
                     onClick={() => handleEdit(t)}
                     className="p-1.5 rounded-lg hover:bg-white/5 text-white/40 hover:text-primary transition-all"

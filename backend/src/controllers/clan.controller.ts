@@ -20,7 +20,7 @@ async function createActivityLog(params: {
 
 export const getClans = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { search, page: pageStr, limit: limitStr } = req.query;
+    const search = req.query.search as string; const pageStr = req.query.page as string; const limitStr = req.query.limit as string;
     const { skip, take, page, limit } = paginate(
       pageStr ? parseInt(pageStr as string) : 1,
       Math.min(limitStr ? parseInt(limitStr as string) : 20, 50)
@@ -64,7 +64,7 @@ export const getClans = async (req: Request, res: Response): Promise<void> => {
 
 export const getClan = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const clan = await prisma.clan.findUnique({
       where: { id },
@@ -187,7 +187,7 @@ export const createClan = async (req: Request, res: Response): Promise<void> => 
 
 export const joinClan = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const clan = await prisma.clan.findUnique({
       where: { id },
@@ -315,7 +315,7 @@ export const leaveClan = async (req: Request, res: Response): Promise<void> => {
 
 export const updateClan = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { name, tag, description, logoUrl, bannerUrl, color } = req.body;
 
     const clan = await prisma.clan.findUnique({ where: { id } });
@@ -368,7 +368,7 @@ export const updateClan = async (req: Request, res: Response): Promise<void> => 
 
 export const deleteClan = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const clan = await prisma.clan.findUnique({ where: { id } });
     if (!clan) {
@@ -409,7 +409,7 @@ export const deleteClan = async (req: Request, res: Response): Promise<void> => 
 
 export const transferLeadership = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { newLeaderId } = req.body;
 
     if (!newLeaderId) {
@@ -474,7 +474,7 @@ export const transferLeadership = async (req: Request, res: Response): Promise<v
 
 export const kickMember = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { clanId, userId } = req.params;
+    const clanId = req.params.clanId as string; const userId = req.params.userId as string;
 
     const clan = await prisma.clan.findUnique({ where: { id: clanId } });
     if (!clan) {
@@ -573,7 +573,7 @@ export const getClanLeaderboard = async (_req: Request, res: Response): Promise<
 // User applies to join a clan
 export const applyToJoin = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id: clanId } = req.params;
+    const clanId = req.params.id as string;
 
     const clan = await prisma.clan.findUnique({ where: { id: clanId } });
     if (!clan) {
@@ -660,7 +660,7 @@ export const applyToJoin = async (req: Request, res: Response): Promise<void> =>
 // Get join requests for a clan (leader only)
 export const getJoinRequests = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id: clanId } = req.params;
+    const clanId = req.params.id as string;
 
     const clan = await prisma.clan.findUnique({ where: { id: clanId } });
     if (!clan) {
@@ -701,7 +701,7 @@ export const getJoinRequests = async (req: Request, res: Response): Promise<void
 // Approve a join request (leader only)
 export const approveJoinRequest = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { requestId } = req.params;
+    const requestId = req.params.requestId as string;
 
     const request = await prisma.clanJoinRequest.findUnique({
       where: { id: requestId },
@@ -786,7 +786,7 @@ export const approveJoinRequest = async (req: Request, res: Response): Promise<v
 // Reject a join request (leader only)
 export const rejectJoinRequest = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { requestId } = req.params;
+    const requestId = req.params.requestId as string;
 
     const request = await prisma.clanJoinRequest.findUnique({
       where: { id: requestId },
@@ -824,7 +824,7 @@ export const rejectJoinRequest = async (req: Request, res: Response): Promise<vo
 
 export const getClanActivityLogs = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id: clanId } = req.params;
+    const clanId = req.params.id as string;
 
     const clan = await prisma.clan.findUnique({ where: { id: clanId }, select: { id: true } });
     if (!clan) {
@@ -855,7 +855,7 @@ export const getClanActivityLogs = async (req: Request, res: Response): Promise<
 // Search users by username (for leader to find players to invite)
 export const searchUsers = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { q } = req.query;
+    const q = req.query.q as string;
     if (!q || (q as string).length < 2) {
       res.status(400).json({ error: 'Search query must be at least 2 characters' });
       return;
@@ -884,7 +884,7 @@ export const searchUsers = async (req: Request, res: Response): Promise<void> =>
 // Send a clan invite (leader only)
 export const sendInvite = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id: clanId } = req.params;
+    const clanId = req.params.id as string;
     const { username } = sendInviteSchema.parse(req.body);
 
     const clan = await prisma.clan.findUnique({ where: { id: clanId } });
@@ -1025,7 +1025,7 @@ export const getMyInvites = async (req: Request, res: Response): Promise<void> =
 // Get all invites for a clan (leader only)
 export const getClanInvites = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id: clanId } = req.params;
+    const clanId = req.params.id as string;
 
     const clan = await prisma.clan.findUnique({ where: { id: clanId } });
     if (!clan) {
@@ -1069,7 +1069,7 @@ export const getClanInvites = async (req: Request, res: Response): Promise<void>
 // Accept a clan invite
 export const acceptInvite = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { inviteId } = req.params;
+    const inviteId = req.params.inviteId as string;
 
     const invite = await prisma.clanInvite.findUnique({
       where: { id: inviteId },
@@ -1162,7 +1162,7 @@ export const acceptInvite = async (req: Request, res: Response): Promise<void> =
 // Decline a clan invite
 export const declineInvite = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { inviteId } = req.params;
+    const inviteId = req.params.inviteId as string;
 
     const invite = await prisma.clanInvite.findUnique({ where: { id: inviteId } });
     if (!invite) {

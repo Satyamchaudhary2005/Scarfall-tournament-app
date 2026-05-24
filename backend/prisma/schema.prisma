@@ -81,8 +81,8 @@ model Tournament {
   id                   String                   @id @default(uuid())
   title                String
   description          String?
-  bannerUrl               String?
-  ign                     String?
+  bannerUrl            String?
+  ign                  String?
   prizePool            String                   @default("0")
   entryFee             String                   @default("Free")
   mode                 String                   @default("SOLO")
@@ -99,14 +99,49 @@ model Tournament {
   roomId               String?
   roomPassword         String?
   hostId               String
+  // Battle Royale multi-round format
+  format               String                   @default("SINGLE") // SINGLE or MULTI_ROUND
+  totalRounds          Int                      @default(1)
+  killPoints           Int                      @default(1)
+  placementPoints      String?                  // JSON array: [15,12,10,8,6,4,2,1,0,0,0,0,0,0,0,0]
   createdAt            DateTime                 @default(now())
   updatedAt            DateTime                 @updatedAt
   host                 User                     @relation("TournamentHost", fields: [hostId], references: [id])
   registrations        TournamentRegistration[]
+  rounds               Round[]
 
   @@index([status])
   @@index([startsAt])
   @@index([hostId])
+}
+
+model Round {
+  id           String   @id @default(uuid())
+  tournamentId String
+  roundNumber  Int
+  title        String?  // e.g. "Match 1", "Group Stage"
+  status       String   @default("UPCOMING") // UPCOMING, LIVE, COMPLETED
+  startsAt     DateTime?
+  tournament   Tournament @relation(fields: [tournamentId], references: [id])
+  scores       RoundScore[]
+
+  @@unique([tournamentId, roundNumber])
+  @@index([tournamentId])
+}
+
+model RoundScore {
+  id        String @id @default(uuid())
+  roundId   String
+  teamId    String // userId for SOLO, clanId for DUO/SQUAD
+  teamName  String
+  placement Int    // 1st, 2nd, 3rd...
+  kills     Int    @default(0)
+  points    Int    @default(0)
+  confirmed Boolean @default(false)
+  round     Round  @relation(fields: [roundId], references: [id])
+
+  @@unique([roundId, teamId])
+  @@index([roundId])
 }
 
 model TournamentRegistration {

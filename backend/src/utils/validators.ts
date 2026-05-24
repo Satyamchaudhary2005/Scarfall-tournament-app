@@ -24,9 +24,27 @@ export const createTournamentSchema = z.object({
   registrationEndsAt: z.string().datetime().optional(),
   mapName: z.string().optional(),
   rules: z.string().optional(),
+  format: z.enum(['SINGLE', 'MULTI_ROUND']).optional(),
+  totalRounds: z.number().int().min(1).max(20).optional(),
+  killPoints: z.number().int().min(0).max(10).optional(),
+  placementPoints: z.array(z.number().int().min(0)).optional(),
 });
 
 export const updateTournamentSchema = createTournamentSchema.partial();
+
+export const createRoundSchema = z.object({
+  title: z.string().max(100).optional(),
+  startsAt: z.string().datetime().optional(),
+});
+
+export const updateRoundScoreSchema = z.object({
+  scores: z.array(z.object({
+    teamId: z.string(),
+    teamName: z.string(),
+    placement: z.number().int().min(1),
+    kills: z.number().int().min(0),
+  })),
+});
 
 export const createClanSchema = z.object({
   name: z.string().min(3).max(30).regex(/^[a-zA-Z0-9_ ]+$/),

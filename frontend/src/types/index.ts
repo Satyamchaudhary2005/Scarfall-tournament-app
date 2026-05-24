@@ -54,6 +54,7 @@ export interface ClanBrief {
 // Tournament Types
 export type TournamentStatus = 'UPCOMING' | 'REGISTRATION_OPEN' | 'LIVE' | 'COMPLETED' | 'CANCELLED';
 export type TournamentMode = 'SOLO' | 'DUO' | 'SQUAD';
+export type TournamentFormat = 'SINGLE' | 'MULTI_ROUND';
 
 export interface Tournament {
   id: string;
@@ -75,8 +76,46 @@ export interface Tournament {
   roomPassword?: string | null;
   host: UserBrief;
   registrations?: TournamentRegistration[];
+  rounds?: Round[];
+  format?: TournamentFormat;
+  totalRounds?: number;
+  killPoints?: number;
+  placementPoints?: number[];
   _count?: { registrations: number };
   createdAt: string;
+}
+
+export interface Round {
+  id: string;
+  tournamentId: string;
+  roundNumber: number;
+  title: string;
+  status: 'UPCOMING' | 'LIVE' | 'COMPLETED';
+  startsAt?: string | null;
+  scores?: RoundScore[];
+  _count?: { scores: number };
+}
+
+export interface RoundScore {
+  id: string;
+  roundId: string;
+  teamId: string;
+  teamName: string;
+  placement: number;
+  kills: number;
+  points: number;
+  confirmed: boolean;
+}
+
+export interface ScoreboardEntry {
+  rank: number;
+  teamId: string;
+  teamName: string;
+  totalPoints: number;
+  totalKills: number;
+  bestPlacement: number;
+  matchesPlayed: number;
+  roundScores: Record<number, { placement: number; kills: number; points: number }>;
 }
 
 export interface TournamentRegistration {

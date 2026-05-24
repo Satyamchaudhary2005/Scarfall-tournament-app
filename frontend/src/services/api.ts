@@ -15,6 +15,9 @@ import {
   Notification,
   Wallet,
   TransactionItem,
+  ScoreboardEntry,
+  Round,
+  RoundScore,
 } from '@/types';
 
 class ApiError extends Error {
@@ -135,6 +138,22 @@ export const tournamentApi = {
 
   setRoomCredentials: (id: string, data: { roomId: string; roomPassword: string }) =>
     request<{ message: string }>(`/tournaments/${id}/room`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  // BR Multi-Round
+  getScoreboard: (id: string) =>
+    request<{ scoreboard: ScoreboardEntry[]; rounds: Round[] }>(`/tournaments/${id}/scoreboard`),
+
+  createRound: (id: string, data?: { title?: string; startsAt?: string }) =>
+    request<{ message: string; round: Round }>(`/tournaments/${id}/rounds`, { method: 'POST', body: JSON.stringify(data || {}) }),
+
+  updateRoundStatus: (id: string, roundId: string, status: string) =>
+    request<{ message: string; round: Round }>(`/tournaments/${id}/rounds/${roundId}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+
+  updateRoundScores: (id: string, roundId: string, scores: { teamId: string; teamName: string; placement: number; kills: number }[]) =>
+    request<{ message: string; scores: RoundScore[] }>(`/tournaments/${id}/rounds/${roundId}/scores`, { method: 'PATCH', body: JSON.stringify({ scores }) }),
+
+  deleteRound: (id: string, roundId: string) =>
+    request<{ message: string }>(`/tournaments/${id}/rounds/${roundId}`, { method: 'DELETE' }),
 };
 
 // Clan API

@@ -8,9 +8,11 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button, Card, Badge } from '@/components/ui';
 import { useAuthStore } from '@/store/authStore';
+import type { Tournament } from '@/types';
 import {
   Trophy, Users, Clock, IndianRupee, Zap, Calendar,
   ChevronLeft, UserPlus, Check, AlertCircle, Swords, Key, Copy,
+  Crosshair, Skull,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
@@ -229,6 +231,11 @@ export default function TournamentDetailPage() {
                   <h3 className="text-lg font-semibold text-white mb-3">Rules</h3>
                   <p className="text-white/70 whitespace-pre-line leading-relaxed">{tournament.rules}</p>
                 </Card>
+              )}
+
+              {/* BR Scoreboard */}
+              {tournament.format === 'MULTI_ROUND' && (
+                <ScoreboardSection tournamentId={id as string} tournament={tournament} />
               )}
 
               {/* Participants */}
@@ -669,5 +676,121 @@ export default function TournamentDetailPage() {
 
       <Footer />
     </main>
+  );
+}
+
+function ScoreboardSection({ tournamentId, tournament }: { tournamentId: string; tournament: Tournament }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['scoreboard', tournamentId],
+    queryFn: () => tournamentApi.getScoreboard(tournamentId),
+    refetchInterval: tournament.status === 'LIVE' ? 10000 : false,
+  });
+
+  const isHost = useAuthStore.getState().user?.id === tournament.host.id;
+
+  const scoreboard = data?.scoreboard || [];
+  const rounds = data?.rounds || [];
+
+  return (
+    <Card className="p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+          <Swords className="w-5 h-5 text-primary" />
+          Scoreboard
+        </h3>
+        {tournament.format === 'MULTI_ROUND' && (
+          <span className="text-xs text-white/40">
+            {tournament.totalRounds} Match{Number(tournament.totalRounds) > 1 ? 'es' : ''} • {tournament.killPoints}pt per kill
+          </span>
+        )}
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-3">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="h-12 bg-white/5 rounded-lg animate-pulse" />
+          ))}
+        </div>
+      ) : scoreboard.length === 0 ? (
+        <p className="text-white/40 text-sm">
+          {tournament.status === 'LIVE' || tournament.status === 'COMPLETED'
+            ? 'No scores yet. The organizer will add match scores soon.'
+            : 'Scores will appear once matches start.'}
+        </p>
+      ) : (
+        <div className="overflow-x-auto -mx-6">
+          <table className="w-full min-w-[500px]">
+            <thead>
+              <tr className="border-b border-white/5">
+                <th className="text-left px-4 py-2 text-xs text-white/40 font-medium uppercase tracking-wider w-12">#</th>
+                <th className="text-left px-4 py-2 text-xs text-white/40 font-medium uppercase tracking-wider">Team</th>
+                {rounds.map((r) => (
+                  <th key={r.id} className="text-center px-3 py-2 text-xs text-white/40 font-medium uppercase tracking-wider">
+                    <div>R{r.roundNumber}</div>
+                    <div className="text-[10px] text-white/20 truncate max-w-[60px]">{r.title}</div>
+                  </th>
+                ))}
+                <th className="text-center px-4 py-2 text-xs text-white/40 font-medium uppercase tracking-wider">Kills</th>
+                <th className="text-center px-4 py-2 text-xs text-primary font-medium uppercase tracking-wider">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {scoreboard.map((entry, i) => (
+                <tr key={entry.teamId} className={`border-b border-white/5 hover:bg-white/[0.02] transition-colors ${i < 3 ? 'bg-primary/[0.03]' : ''}`}>
+                  <td className="px-4 py-3">
+                    <span className={`text-sm font-bold ${i === 0 ? 'text-yellow-400' : i === 1 ? 'text-gray-300' : i === 2 ? 'text-amber-600' : 'text-white/40'}`}>
+                      #{entry.rank}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="text-sm font-semibold text-white">{entry.teamName}</span>
+                    <span className="text-xs text-white/30 ml-2">{entry.matchesPlayed}m</span>
+                  </td>
+                  {rounds.map((r) => {
+                    const rs = entry.roundScores[r.roundNumber];
+                    return (
+                      <td key={r.id} className="text-center px-3 py-3">
+                        {rs ? (
+                          <div className="flex flex-col items-center">
+                            <span className={`text-sm font-bold ${rs.placement === 1 ? 'text-yellow-400' : rs.placement <= 3 ? 'text-primary' : 'text-white/70'}`}>
+                              #{rs.placement}
+                            </span>
+                            <span className="text-xs text-white/30">{rs.kills}k • {rs.points}pt</span>
+                          </div>
+                        ) : (
+                          <span className="text-white/10">—</span>
+                        )}
+                      </td>
+                    );
+                  })}
+                  <td className="text-center px-4 py-3">
+                    <span className="text-sm font-bold text-white/70">{entry.totalKills}</span>
+                  </td>
+                  <td className="text-center px-4 py-3">
+                    <span className="text-lg font-black text-primary">{entry.totalPoints}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Placement points legend */}
+      {tournament.placementPoints && tournament.placementPoints.length > 0 && (
+        <details className="mt-4">
+          <summary className="text-xs text-white/30 cursor-pointer hover:text-white/50 transition-colors">
+            Placement Points
+          </summary>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {tournament.placementPoints.map((pts, i) => (
+              <span key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-white/40">
+                #{i + 1}: {pts}pt
+              </span>
+            ))}
+          </div>
+        </details>
+      )}
+    </Card>
   );
 }

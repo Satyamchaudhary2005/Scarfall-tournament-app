@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../config/database';
-import { createTournamentSchema, updateTournamentSchema, clanTournamentRegistrationSchema, roomCredentialsSchema } from '../utils/validators';
+import { createTournamentSchema, updateTournamentSchema, clanTournamentRegistrationSchema, roomCredentialsSchema, createRoundSchema, updateRoundScoreSchema } from '../utils/validators';
 import { paginate } from '../utils/helpers';
 import { emitNotification, emitTournamentUpdate } from '../services/socket';
 
@@ -81,6 +81,12 @@ export const getTournament = async (req: Request, res: Response): Promise<void> 
           },
           orderBy: { createdAt: 'asc' },
         },
+        rounds: {
+          orderBy: { roundNumber: 'asc' },
+          include: {
+            _count: { select: { scores: true } },
+          },
+        },
         _count: {
           select: { registrations: true },
         },
@@ -100,6 +106,13 @@ export const getTournament = async (req: Request, res: Response): Promise<void> 
       (tournament as any).roomPassword = undefined;
     }
 
+    // Parse placementPoints JSON string to array for frontend
+    if (tournament.placementPoints) {
+      try {
+        (tournament as any).placementPoints = JSON.parse(tournament.placementPoints);
+      } catch { /* keep as string */ }
+    }
+
     res.json({ tournament });
   } catch (error) {
     console.error('Get tournament error:', error);
@@ -110,11 +123,13 @@ export const getTournament = async (req: Request, res: Response): Promise<void> 
 export const createTournament = async (req: Request, res: Response): Promise<void> => {
   try {
     const data = createTournamentSchema.parse(req.body);
+    const { placementPoints: pp, ...rest } = data;
 
     const tournament = await prisma.tournament.create({
       data: {
-        ...data,
+        ...rest,
         startsAt: new Date(data.startsAt),
+        placementPoints: pp ? JSON.stringify(pp) : undefined,
         registrationStartsAt: data.registrationStartsAt
           ? new Date(data.registrationStartsAt)
           : undefined,
@@ -145,6 +160,7 @@ export const updateTournament = async (req: Request, res: Response): Promise<voi
   try {
     const id = req.params.id as string;
     const data = updateTournamentSchema.parse(req.body);
+    const { placementPoints: pp, ...rest } = data;
 
     const tournament = await prisma.tournament.findUnique({ where: { id } });
     if (!tournament) {
@@ -160,8 +176,9 @@ export const updateTournament = async (req: Request, res: Response): Promise<voi
     const updated = await prisma.tournament.update({
       where: { id },
       data: {
-        ...data,
+        ...rest,
         ...(data.startsAt && { startsAt: new Date(data.startsAt) }),
+        ...(pp && { placementPoints: JSON.stringify(pp) }),
         ...(data.registrationStartsAt && { registrationStartsAt: new Date(data.registrationStartsAt) }),
         ...(data.registrationEndsAt && { registrationEndsAt: new Date(data.registrationEndsAt) }),
       },
@@ -513,7 +530,7 @@ export const getMyTournaments = async (req: Request, res: Response): Promise<voi
 
 export const deleteHostedTournament = async (req: Request, res: Response): Promise<void> => {
   try {
-    const id = req.params.id;
+    const id = req.params.id as string;
 
     const tournament = await prisma.tournament.findUnique({ where: { id } });
     if (!tournament) {
@@ -661,6 +678,298 @@ export const getLiveTournaments = async (_req: Request, res: Response): Promise<
     res.json({ tournaments });
   } catch (error) {
     console.error('Get live tournaments error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// ===== Battle Royale Multi-Round Functions =====
+
+export const createRound = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const id = req.params.id as string;
+    const data = createRoundSchema.parse(req.body);
+
+    const tournament = await prisma.tournament.findUnique({ where: { id } });
+    if (!tournament) {
+      res.status(404).json({ error: 'Tournament not found' });
+      return;
+    }
+    if (tournament.hostId !== req.user!.id && req.user!.role !== 'ADMIN') {
+      res.status(403).json({ error: 'Not authorized' });
+      return;
+    }
+    if (tournament.format !== 'MULTI_ROUND') {
+      res.status(400).json({ error: 'Tournament is not a multi-round format' });
+      return;
+    }
+
+    const lastRound = await prisma.round.findFirst({
+      where: { tournamentId: id },
+      orderBy: { roundNumber: 'desc' },
+    });
+    const roundNumber = (lastRound?.roundNumber || 0) + 1;
+
+    if (roundNumber > tournament.totalRounds) {
+      res.status(400).json({ error: `Maximum ${tournament.totalRounds} rounds reached` });
+      return;
+    }
+
+    const round = await prisma.round.create({
+      data: {
+        tournamentId: id,
+        roundNumber,
+        title: data.title || `Match ${roundNumber}`,
+        startsAt: data.startsAt ? new Date(data.startsAt) : undefined,
+      },
+    });
+
+    res.status(201).json({ message: 'Round created', round });
+  } catch (error: any) {
+    if (error?.issues) {
+      res.status(400).json({ error: 'Invalid input', details: error.issues });
+      return;
+    }
+    console.error('Create round error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const updateRoundStatus = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const roundId = req.params.roundId as string;
+    const { status } = req.body;
+
+    if (!['UPCOMING', 'LIVE', 'COMPLETED'].includes(status)) {
+      res.status(400).json({ error: 'Invalid status' });
+      return;
+    }
+
+    const round = await prisma.round.findUnique({ where: { id: roundId } });
+    if (!round) {
+      res.status(404).json({ error: 'Round not found' });
+      return;
+    }
+
+    const tournament = await prisma.tournament.findUnique({ where: { id: round.tournamentId } });
+    if (tournament?.hostId !== req.user!.id && req.user!.role !== 'ADMIN') {
+      res.status(403).json({ error: 'Not authorized' });
+      return;
+    }
+
+    const updated = await prisma.round.update({
+      where: { id: roundId },
+      data: { status },
+    });
+
+    // If completing a round and auto-calculate scores
+    if (status === 'COMPLETED') {
+      const scores = await prisma.roundScore.findMany({
+        where: { roundId },
+      });
+      // Calculate points based on placement
+      const placementConfig = tournament?.placementPoints
+        ? JSON.parse(tournament.placementPoints)
+        : [15, 12, 10, 8, 6, 4, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0];
+      const killPts = tournament?.killPoints || 1;
+
+      for (const score of scores) {
+        const placementIndex = Math.min(score.placement - 1, placementConfig.length - 1);
+        const placementPts = placementConfig[placementIndex] || 0;
+        const totalPts = placementPts + (score.kills * killPts);
+        await prisma.roundScore.update({
+          where: { id: score.id },
+          data: { points: totalPts, confirmed: true },
+        });
+      }
+    }
+
+    res.json({ message: 'Round status updated', round: updated });
+  } catch (error) {
+    console.error('Update round status error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const updateRoundScores = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const roundId = req.params.roundId as string;
+    const data = updateRoundScoreSchema.parse(req.body);
+
+    const round = await prisma.round.findUnique({ where: { id: roundId } });
+    if (!round) {
+      res.status(404).json({ error: 'Round not found' });
+      return;
+    }
+
+    const tournament = await prisma.tournament.findUnique({ where: { id: round.tournamentId } });
+    if (tournament?.hostId !== req.user!.id && req.user!.role !== 'ADMIN') {
+      res.status(403).json({ error: 'Not authorized' });
+      return;
+    }
+
+    // Delete existing scores for this round
+    await prisma.roundScore.deleteMany({ where: { roundId } });
+
+    // Calculate points
+    const placementConfig = tournament?.placementPoints
+      ? JSON.parse(tournament.placementPoints)
+      : [15, 12, 10, 8, 6, 4, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0];
+    const killPts = tournament?.killPoints || 1;
+
+    const scores = await Promise.all(
+      data.scores.map((s) => {
+        const placementIndex = Math.min(s.placement - 1, placementConfig.length - 1);
+        const placementPts = placementConfig[placementIndex] || 0;
+        const totalPts = placementPts + (s.kills * killPts);
+        return prisma.roundScore.create({
+          data: {
+            roundId,
+            teamId: s.teamId,
+            teamName: s.teamName,
+            placement: s.placement,
+            kills: s.kills,
+            points: totalPts,
+            confirmed: round.status === 'COMPLETED',
+          },
+        });
+      })
+    );
+
+    res.json({ message: 'Scores updated', scores });
+  } catch (error: any) {
+    if (error?.issues) {
+      res.status(400).json({ error: 'Invalid input', details: error.issues });
+      return;
+    }
+    console.error('Update round scores error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const deleteRound = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const roundId = req.params.roundId as string;
+
+    const round = await prisma.round.findUnique({ where: { id: roundId } });
+    if (!round) {
+      res.status(404).json({ error: 'Round not found' });
+      return;
+    }
+
+    const tournament = await prisma.tournament.findUnique({ where: { id: round.tournamentId } });
+    if (tournament?.hostId !== req.user!.id && req.user!.role !== 'ADMIN') {
+      res.status(403).json({ error: 'Not authorized' });
+      return;
+    }
+
+    await prisma.roundScore.deleteMany({ where: { roundId } });
+    await prisma.round.delete({ where: { id: roundId } });
+
+    res.json({ message: 'Round deleted' });
+  } catch (error) {
+    console.error('Delete round error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const getScoreboard = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const id = req.params.id as string;
+
+    const tournament = await prisma.tournament.findUnique({
+      where: { id },
+      include: {
+        rounds: {
+          orderBy: { roundNumber: 'asc' },
+          include: {
+            scores: {
+              orderBy: { placement: 'asc' },
+            },
+          },
+        },
+        registrations: {
+          include: {
+            user: { select: { id: true, username: true, avatarUrl: true, ign: true } },
+            clan: { select: { id: true, name: true, tag: true } },
+          },
+        },
+      },
+    });
+
+    if (!tournament) {
+      res.status(404).json({ error: 'Tournament not found' });
+      return;
+    }
+
+    // Build cumulative scoreboard
+    const teamScores: Record<string, { teamId: string; teamName: string; totalPoints: number; totalKills: number; bestPlacement: number; matchesPlayed: number; roundScores: Record<number, { placement: number; kills: number; points: number }> }> = {};
+
+    // Determine teams from registrations
+    if (tournament.mode === 'SOLO') {
+      for (const reg of tournament.registrations) {
+        const teamId = reg.user.id;
+        teamScores[teamId] = {
+          teamId,
+          teamName: reg.user.ign || reg.user.username,
+          totalPoints: 0,
+          totalKills: 0,
+          bestPlacement: 99,
+          matchesPlayed: 0,
+          roundScores: {},
+        };
+      }
+    } else {
+      // Group registrations by clanId or teamName
+      const teamMap: Record<string, { teamId: string; teamName: string }> = {};
+      for (const reg of tournament.registrations) {
+        const teamId = reg.clanId || reg.teamName || reg.user.id;
+        if (!teamMap[teamId]) {
+          const clan = reg.clan;
+          teamMap[teamId] = {
+            teamId,
+            teamName: clan?.name || reg.teamName || reg.user.username,
+          };
+        }
+      }
+      for (const [teamId, info] of Object.entries(teamMap)) {
+        teamScores[teamId] = {
+          teamId,
+          teamName: info.teamName,
+          totalPoints: 0,
+          totalKills: 0,
+          bestPlacement: 99,
+          matchesPlayed: 0,
+          roundScores: {},
+        };
+      }
+    }
+
+    // Apply round scores
+    for (const round of tournament.rounds) {
+      for (const score of round.scores) {
+        if (teamScores[score.teamId]) {
+          teamScores[score.teamId].totalPoints += score.points;
+          teamScores[score.teamId].totalKills += score.kills;
+          teamScores[score.teamId].bestPlacement = Math.min(teamScores[score.teamId].bestPlacement, score.placement);
+          teamScores[score.teamId].matchesPlayed += 1;
+          teamScores[score.teamId].roundScores[round.roundNumber] = {
+            placement: score.placement,
+            kills: score.kills,
+            points: score.points,
+          };
+        }
+      }
+    }
+
+    // Sort by total points descending
+    const sorted = Object.values(teamScores).sort((a, b) => b.totalPoints - a.totalPoints || a.bestPlacement - b.bestPlacement);
+
+    res.json({
+      scoreboard: sorted.map((s, i) => ({ ...s, rank: i + 1 })),
+      rounds: tournament.rounds,
+    });
+  } catch (error) {
+    console.error('Get scoreboard error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
