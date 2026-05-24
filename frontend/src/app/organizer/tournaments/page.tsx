@@ -16,6 +16,7 @@ import {
   Trophy, Plus, Search, X, Trash2, Edit3,
   AlertTriangle, RefreshCw, PlayCircle, CheckCircle, Clock, Users, Key,
   Crosshair, Skull, Target, Swords, Layers,
+  Upload, ChevronDown,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -89,6 +90,8 @@ function OrganizerContent() {
   const [manageParticipantsFor, setManageParticipantsFor] = useState<any>(null);
   const [guestIgn, setGuestIgn] = useState('');
   const [guestTeamName, setGuestTeamName] = useState('');
+  const [bulkIgns, setBulkIgns] = useState('');
+  const [showBulkImport, setShowBulkImport] = useState(false);
 
   const resetForm = () => setForm({
     title: '', prizePool: '', entryFee: 'Free', mode: 'SOLO',
@@ -210,6 +213,18 @@ function OrganizerContent() {
       toast.success('Participant removed');
     },
     onError: (err: any) => toast.error(err.message || 'Failed to remove participant'),
+  });
+
+  const bulkAddMutation = useMutation({
+    mutationFn: () => tournamentApi.bulkRegisterParticipants(manageParticipantsFor.id, { igns: bulkIgns }),
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries({ queryKey: ['tournament-participants', manageParticipantsFor?.id] });
+      queryClient.invalidateQueries({ queryKey: ['my-tournaments'] });
+      toast.success(res.message);
+      setBulkIgns('');
+      setShowBulkImport(false);
+    },
+    onError: (err: any) => toast.error(err.message || 'Failed to bulk add participants'),
   });
 
   // Round management
@@ -702,7 +717,7 @@ function OrganizerContent() {
                 </div>
 
                 {/* Add Participant Form */}
-                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 mb-6">
+                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 mb-4">
                   <h4 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
                     <Plus className="w-4 h-4 text-primary" />
                     Add Participant (by In-Game Name)
@@ -736,6 +751,64 @@ function OrganizerContent() {
                       Add
                     </Button>
                   </div>
+                </div>
+
+                {/* Bulk Import */}
+                <div className="p-4 rounded-xl bg-white/[0.02] border border-dashed border-primary/20 mb-6">
+                  <button
+                    onClick={() => setShowBulkImport(!showBulkImport)}
+                    className="w-full flex items-center justify-between text-sm font-semibold text-white mb-0"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Upload className="w-4 h-4 text-primary" />
+                      Bulk Import Participants
+                    </span>
+                    <ChevronDown className={cn("w-4 h-4 text-white/40 transition-transform", showBulkImport && "rotate-180")} />
+                  </button>
+                  <AnimatePresence>
+                    {showBulkImport && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="mt-3"
+                      >
+                        <p className="text-xs text-white/40 mb-2">
+                          Paste a list of in-game names separated by commas or new lines.
+                        </p>
+                        <textarea
+                          value={bulkIgns}
+                          onChange={(e) => setBulkIgns(e.target.value)}
+                          placeholder={`PlayerOne\nPlayerTwo\nPlayerThree\nPlayerFour\nPlayerFive`}
+                          rows={5}
+                          className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder:text-white/30 text-sm focus:outline-none focus:border-primary/50 transition-all resize-none font-mono"
+                        />
+                        <div className="flex items-center justify-between mt-3">
+                          <span className="text-xs text-white/30">
+                            {bulkIgns.trim() ? bulkIgns.split(/[,\n]/).map(s => s.trim()).filter(Boolean).length + ' IGNs detected' : 'Paste IGNs above'}
+                          </span>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => { setBulkIgns(''); setShowBulkImport(false); }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              size="sm"
+                              disabled={!bulkIgns.trim() || bulkAddMutation.isPending}
+                              onClick={() => bulkAddMutation.mutate()}
+                              loading={bulkAddMutation.isPending}
+                            >
+                              <Upload className="w-3.5 h-3.5" />
+                              Import All
+                            </Button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 {/* Participants List */}

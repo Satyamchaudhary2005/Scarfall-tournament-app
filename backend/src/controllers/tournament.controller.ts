@@ -534,6 +534,78 @@ export const manualRegisterParticipant = async (req: Request, res: Response): Pr
   }
 };
 
+export const bulkRegisterParticipants = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const id = req.params.id as string;
+    const { igns } = req.body;
+
+    if (!igns || typeof igns !== 'string' || igns.trim().length === 0) {
+      res.status(400).json({ error: 'List of IGNs is required' });
+      return;
+    }
+
+    // Parse comma/newline separated IGNs, trim whitespace, filter empty
+    const ignList = igns
+      .split(/[,\n]/)
+      .map((s: string) => s.trim())
+      .filter((s: string) => s.length > 0);
+
+    if (ignList.length === 0) {
+      res.status(400).json({ error: 'No valid IGNs found in input' });
+      return;
+    }
+
+    if (ignList.length > 100) {
+      res.status(400).json({ error: 'Maximum 100 participants per bulk import' });
+      return;
+    }
+
+    const tournament = await prisma.tournament.findUnique({
+      where: { id },
+      include: { _count: { select: { registrations: true } } },
+    });
+
+    if (!tournament) {
+      res.status(404).json({ error: 'Tournament not found' });
+      return;
+    }
+
+    // Check capacity
+    const availableSlots = tournament.slots - tournament._count.registrations;
+    if (availableSlots <= 0) {
+      res.status(400).json({ error: 'Tournament is full' });
+      return;
+    }
+
+    // Only add up to available slots
+    const toAdd = ignList.slice(0, availableSlots);
+
+    // Create all registrations in a transaction
+    const registrations = await prisma.$transaction(
+      toAdd.map((ign: string) =>
+        prisma.tournamentRegistration.create({
+          data: {
+            tournamentId: id,
+            guestIgn: ign,
+          },
+        })
+      )
+    );
+
+    const skipped = ignList.length - toAdd.length;
+
+    res.status(201).json({
+      message: `${toAdd.length} participant(s) added successfully${skipped > 0 ? ` (${skipped} skipped — tournament full)` : ''}`,
+      added: toAdd.length,
+      skipped,
+      registrations,
+    });
+  } catch (error) {
+    console.error('Bulk register error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 export const removeParticipant = async (req: Request, res: Response): Promise<void> => {
   try {
     const tournamentId = req.params.id as string;

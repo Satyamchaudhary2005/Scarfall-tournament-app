@@ -159,6 +159,9 @@ export const tournamentApi = {
   manualRegisterParticipant: (id: string, data: { guestIgn: string; teamName?: string }) =>
     request<{ message: string; registration: TournamentRegistration }>(`/tournaments/${id}/participants/manual`, { method: 'POST', body: JSON.stringify(data) }),
 
+  bulkRegisterParticipants: (id: string, data: { igns: string }) =>
+    request<{ message: string; added: number; skipped: number; registrations: TournamentRegistration[] }>(`/tournaments/${id}/participants/bulk`, { method: 'POST', body: JSON.stringify(data) }),
+
   removeParticipant: (id: string, registrationId: string) =>
     request<{ message: string }>(`/tournaments/${id}/participants/${registrationId}`, { method: 'DELETE' }),
 
