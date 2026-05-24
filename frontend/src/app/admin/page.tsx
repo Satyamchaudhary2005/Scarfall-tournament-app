@@ -664,11 +664,12 @@ function UsersTab() {
                         className="bg-transparent text-xs border border-white/10 rounded-lg px-2 py-1 cursor-pointer focus:border-primary/50 transition-all"
                         disabled={roleMutation.isPending}
                         style={{
-                          color: u.role === 'ADMIN' ? '#fbbf24' : u.role === 'MODERATOR' ? '#f59e0b' : '#94a3b8',
+                          color: u.role === 'ADMIN' ? '#fbbf24' : u.role === 'MODERATOR' ? '#f59e0b' : u.role === 'ORGANIZER' ? '#22c55e' : '#94a3b8',
                         }}
                       >
                         <option value="USER" style={{ color: '#94a3b8' }}>User</option>
                         <option value="MODERATOR" style={{ color: '#f59e0b' }}>Moderator</option>
+                        <option value="ORGANIZER" style={{ color: '#22c55e' }}>Organizer</option>
                         <option value="ADMIN" style={{ color: '#fbbf24' }}>Admin</option>
                       </select>
                     </td>

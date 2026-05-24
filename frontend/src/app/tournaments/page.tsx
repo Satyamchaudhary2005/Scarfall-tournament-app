@@ -6,7 +6,8 @@ import { tournamentApi } from '@/services/api';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Card, Badge, Button, Input } from '@/components/ui';
-import { Trophy, Users, Clock, Search, IndianRupee, Zap, Filter } from 'lucide-react';
+import { useAuthStore } from '@/store/authStore';
+import { Trophy, Users, Clock, Search, IndianRupee, Zap, Filter, CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
@@ -16,6 +17,7 @@ const statusFilters = ['ALL', 'REGISTRATION_OPEN', 'UPCOMING', 'LIVE', 'COMPLETE
 const modeFilters = ['ALL', 'SOLO', 'DUO', 'SQUAD'];
 
 export default function TournamentsPage() {
+  const { isAuthenticated } = useAuthStore();
   const [status, setStatus] = useState('ALL');
   const [mode, setMode] = useState('ALL');
   const [search, setSearch] = useState('');
@@ -26,8 +28,17 @@ export default function TournamentsPage() {
     queryFn: () => tournamentApi.getAll({ status, mode, search: search || undefined, page, limit: 12 }),
   });
 
+  const { data: regData } = useQuery({
+    queryKey: ['my-registrations'],
+    queryFn: () => tournamentApi.getMyRegistrations(),
+    enabled: isAuthenticated,
+  });
+
   const tournaments = data?.tournaments || [];
   const pagination = data?.pagination;
+  const registrations = regData?.registrations || [];
+  const joinedIds = new Set(registrations.map((r) => r.tournamentId));
+  const joinedTournaments = tournaments.filter((t) => joinedIds.has(t.id));
 
   return (
     <main className="min-h-screen bg-surface">
@@ -103,7 +114,6 @@ export default function TournamentsPage() {
           </div>
         </motion.div>
 
-        {/* Tournament Grid */}
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[...Array(6)].map((_, i) => (
@@ -118,59 +128,147 @@ export default function TournamentsPage() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {tournaments.map((tournament, index) => (
-                <motion.div
-                  key={tournament.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <Link href={`/tournaments/${tournament.id}`}>
-                    <Card hover className="h-full overflow-hidden group">
-                      {tournament.bannerUrl && (
-                        <div className="h-32 overflow-hidden">
-                          <img src={tournament.bannerUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                        </div>
-                      )}
-                      <div className="p-5">
-                        <div className="flex items-start justify-between mb-3">
-                          <h3 className="font-semibold text-white group-hover:text-primary transition-colors line-clamp-1">
-                            {tournament.title}
-                          </h3>
-                          <Badge className={getStatusBadgeVariant(tournament.status)} size="sm">
-                            {tournament.status === 'REGISTRATION_OPEN' ? 'OPEN' : tournament.status === 'UPCOMING' ? 'UPCOMING' : tournament.status}
-                          </Badge>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3 mb-4">
-                          <div className="flex items-center gap-2 text-sm">
-                            <IndianRupee className="w-4 h-4 text-primary" />
-                            <span className="text-white/70">{tournament.prizePool}</span>
+            {/* Joined Tournaments Section */}
+            {joinedTournaments.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-10"
+              >
+                <div className="flex items-center gap-2 mb-4">
+                  <CheckCircle className="w-5 h-5 text-green-400" />
+                  <h2 className="text-lg font-bold text-white">Joined Tournaments</h2>
+                  <span className="text-xs text-white/30 bg-white/5 px-2 py-0.5 rounded-full">
+                    {joinedTournaments.length}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {joinedTournaments.map((tournament, index) => (
+                    <motion.div
+                      key={tournament.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                    >
+                      <Link href={`/tournaments/${tournament.id}`}>
+                        <Card hover className="h-full overflow-hidden group border-green-500/20 hover:border-green-500/40">
+                          <div className="absolute top-3 right-3 z-10">
+                            <Badge variant="success" size="sm">Joined</Badge>
                           </div>
-                          <div className="flex items-center gap-2 text-sm">
-                            <Users className="w-4 h-4 text-white/40" />
-                            <span className="text-white/70">{tournament._count?.registrations || 0}/{tournament.slots}</span>
+                          {tournament.bannerUrl && (
+                            <div className="h-32 overflow-hidden">
+                              <img src={tournament.bannerUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                            </div>
+                          )}
+                          <div className="p-5">
+                            <div className="flex items-start justify-between mb-3">
+                              <h3 className="font-semibold text-white group-hover:text-primary transition-colors line-clamp-1">
+                                {tournament.title}
+                              </h3>
+                              <Badge className={getStatusBadgeVariant(tournament.status)} size="sm">
+                                {tournament.status === 'REGISTRATION_OPEN' ? 'OPEN' : tournament.status === 'UPCOMING' ? 'UPCOMING' : tournament.status}
+                              </Badge>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3 mb-4">
+                              <div className="flex items-center gap-2 text-sm">
+                                <IndianRupee className="w-4 h-4 text-primary" />
+                                <span className="text-white/70">{tournament.prizePool}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <Users className="w-4 h-4 text-white/40" />
+                                <span className="text-white/70">{tournament._count?.registrations || 0}/{tournament.slots}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <Zap className="w-4 h-4 text-white/40" />
+                                <span className="text-white/70">{tournament.mode}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <Clock className="w-4 h-4 text-white/40" />
+                                <span className="text-white/70">{formatDistanceToNow(new Date(tournament.startsAt), { addSuffix: true })}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between pt-3 border-t border-white/5">
+                              <span className="text-xs text-white/30">by {tournament.host.username}</span>
+                              <Badge variant={tournament.entryFee === 'Free' ? 'success' : 'warning'} size="sm">
+                                {tournament.entryFee}
+                              </Badge>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 text-sm">
-                            <Zap className="w-4 h-4 text-white/40" />
-                            <span className="text-white/70">{tournament.mode}</span>
+                        </Card>
+                      </Link>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
+            {/* All Tournaments Grid */}
+            <div>
+              {joinedTournaments.length > 0 && (
+                <div className="flex items-center gap-2 mb-4">
+                  <Trophy className="w-5 h-5 text-primary" />
+                  <h2 className="text-lg font-bold text-white">All Tournaments</h2>
+                </div>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {tournaments.map((tournament, index) => (
+                  <motion.div
+                    key={tournament.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                  >
+                    <Link href={`/tournaments/${tournament.id}`}>
+                      <Card hover className={`h-full overflow-hidden group ${joinedIds.has(tournament.id) ? 'border-green-500/20' : ''}`}>
+                        {tournament.bannerUrl && (
+                          <div className="h-32 overflow-hidden">
+                            <img src={tournament.bannerUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                           </div>
-                          <div className="flex items-center gap-2 text-sm">
-                            <Clock className="w-4 h-4 text-white/40" />
-                            <span className="text-white/70">{formatDistanceToNow(new Date(tournament.startsAt), { addSuffix: true })}</span>
+                        )}
+                        <div className="p-5">
+                          <div className="flex items-start justify-between mb-3">
+                            <h3 className="font-semibold text-white group-hover:text-primary transition-colors line-clamp-1">
+                              {tournament.title}
+                            </h3>
+                            <div className="flex items-center gap-1.5">
+                              {joinedIds.has(tournament.id) && (
+                                <Badge variant="success" size="sm">Joined</Badge>
+                              )}
+                              <Badge className={getStatusBadgeVariant(tournament.status)} size="sm">
+                                {tournament.status === 'REGISTRATION_OPEN' ? 'OPEN' : tournament.status === 'UPCOMING' ? 'UPCOMING' : tournament.status}
+                              </Badge>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3 mb-4">
+                            <div className="flex items-center gap-2 text-sm">
+                              <IndianRupee className="w-4 h-4 text-primary" />
+                              <span className="text-white/70">{tournament.prizePool}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm">
+                              <Users className="w-4 h-4 text-white/40" />
+                              <span className="text-white/70">{tournament._count?.registrations || 0}/{tournament.slots}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm">
+                              <Zap className="w-4 h-4 text-white/40" />
+                              <span className="text-white/70">{tournament.mode}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm">
+                              <Clock className="w-4 h-4 text-white/40" />
+                              <span className="text-white/70">{formatDistanceToNow(new Date(tournament.startsAt), { addSuffix: true })}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between pt-3 border-t border-white/5">
+                            <span className="text-xs text-white/30">by {tournament.host.username}</span>
+                            <Badge variant={tournament.entryFee === 'Free' ? 'success' : 'warning'} size="sm">
+                              {tournament.entryFee}
+                            </Badge>
                           </div>
                         </div>
-                        <div className="flex items-center justify-between pt-3 border-t border-white/5">
-                          <span className="text-xs text-white/30">by {tournament.host.username}</span>
-                          <Badge variant={tournament.entryFee === 'Free' ? 'success' : 'warning'} size="sm">
-                            {tournament.entryFee}
-                          </Badge>
-                        </div>
-                      </div>
-                    </Card>
-                  </Link>
-                </motion.div>
-              ))}
+                      </Card>
+                    </Link>
+                  </motion.div>
+                ))}
+              </div>
             </div>
 
             {/* Pagination */}

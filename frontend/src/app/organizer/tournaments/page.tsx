@@ -21,13 +21,13 @@ export default function OrganizerPage() {
   const { user, isAuthenticated } = useAuthStore();
   const router = useRouter();
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || (user?.role !== 'ORGANIZER' && user?.role !== 'ADMIN')) {
     return (
       <main className="min-h-screen bg-surface flex items-center justify-center">
         <div className="text-center">
           <AlertTriangle className="w-16 h-16 text-red-400 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-white mb-2">Access Denied</h2>
-          <p className="text-white/50">Please sign in to manage tournaments</p>
+          <p className="text-white/50">{!isAuthenticated ? 'Please sign in to manage tournaments' : 'Organizer access required'}</p>
         </div>
       </main>
     );

@@ -143,13 +143,15 @@ export function Navbar() {
                           <User className="w-4 h-4 text-white/50" />
                           <span className="text-sm">Profile</span>
                         </Link>
-                        <Link
-                          href="/organizer/tournaments"
-                          className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors"
-                        >
-                          <Trophy className="w-4 h-4 text-white/50" />
-                          <span className="text-sm">My Tournaments</span>
-                        </Link>
+                        {(user.role === 'ORGANIZER' || user.role === 'ADMIN') && (
+                          <Link
+                            href="/organizer/tournaments"
+                            className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors"
+                          >
+                            <Trophy className="w-4 h-4 text-white/50" />
+                            <span className="text-sm">My Tournaments</span>
+                          </Link>
+                        )}
                           <Link
                             href="/clans/invites"
                             className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors relative"

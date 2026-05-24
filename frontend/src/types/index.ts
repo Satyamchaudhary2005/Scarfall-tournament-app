@@ -5,7 +5,7 @@ export interface User {
   email: string;
   avatarUrl?: string | null;
   bannerUrl?: string | null;
-  role: 'USER' | 'ADMIN' | 'MODERATOR';
+  role: 'USER' | 'ADMIN' | 'MODERATOR' | 'ORGANIZER';
   points: number;
   kills: number;
   deaths: number;
@@ -78,6 +78,7 @@ export interface Tournament {
 
 export interface TournamentRegistration {
   id: string;
+  tournamentId: string;
   teamName?: string | null;
   teamSize: number;
   status: string;
