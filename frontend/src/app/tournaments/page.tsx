@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { tournamentApi } from '@/services/api';
 import { Navbar } from '@/components/layout/Navbar';
@@ -33,6 +33,28 @@ export default function TournamentsPage() {
   const [status, setStatus] = useState('ALL');
   const [mode, setMode] = useState('ALL');
   const [search, setSearch] = useState('');
+
+  const scrollRefs = useRef<Map<CategoryType, HTMLDivElement | null>>(new Map());
+  const [canScrollLeft, setCanScrollLeft] = useState<Record<string, boolean>>({});
+  const [canScrollRight, setCanScrollRight] = useState<Record<string, boolean>>({});
+
+  const updateScrollState = useCallback((type: CategoryType) => {
+    const el = scrollRefs.current.get(type);
+    if (!el) return;
+    setCanScrollLeft(prev => ({ ...prev, [type]: el.scrollLeft > 4 }));
+    setCanScrollRight(prev => ({ ...prev, [type]: el.scrollLeft < el.scrollWidth - el.clientWidth - 4 }));
+  }, []);
+
+  const scrollRow = useCallback((type: CategoryType, direction: 'left' | 'right') => {
+    const el = scrollRefs.current.get(type);
+    if (!el) return;
+    const cardWidth = 260 + 12; // card width + gap
+    el.scrollBy({ left: direction === 'left' ? -cardWidth : cardWidth, behavior: 'smooth' });
+  }, []);
+
+  const handleScroll = useCallback((type: CategoryType) => {
+    updateScrollState(type);
+  }, [updateScrollState]);
 
   const apiStatus = status === 'ENDED' ? 'COMPLETED' : status;
   const commonParams = { status: apiStatus, mode, search: search || undefined, limit: 8 };
@@ -182,25 +204,49 @@ export default function TournamentsPage() {
           </div>
         ) : (
           <>
-            <div
-              className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 snap-x snap-mandatory scrollbar-none"
-              style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
-            >
-              {tournaments.map((t: any) => (
-                <div key={t.id} className="min-w-[260px] w-[70vw] sm:w-[260px] shrink-0 snap-start">
-                  {renderTournamentCard(t)}
-                </div>
-              ))}
-              {total > 8 && (
-                <Link
-                  href={`/tournaments?type=${type}`}
-                  className={`min-w-[120px] w-[120px] shrink-0 flex flex-col items-center justify-center rounded-xl border border-dashed ${config.border} hover:bg-white/5 transition-all text-center px-3`}
+            <div className="relative group">
+              {/* Left scroll arrow */}
+              {canScrollLeft[type] && (
+                <button
+                  onClick={() => scrollRow(type, 'left')}
+                  className="hidden sm:flex absolute left-0 top-0 bottom-2 z-10 w-9 items-center justify-center bg-gradient-to-r from-surface via-surface/95 to-transparent text-white/60 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                  aria-label="Scroll left"
                 >
-                  <Icon className={`w-5 h-5 ${config.text} mb-1`} />
-                  <span className={`text-xs font-medium ${config.text}`}>View all {total}</span>
-                </Link>
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                </button>
               )}
-              <div className="w-2 shrink-0" />
+              {/* Right scroll arrow */}
+              {canScrollRight[type] && (
+                <button
+                  onClick={() => scrollRow(type, 'right')}
+                  className="hidden sm:flex absolute right-0 top-0 bottom-2 z-10 w-9 items-center justify-center bg-gradient-to-l from-surface via-surface/95 to-transparent text-white/60 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                  aria-label="Scroll right"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                </button>
+              )}
+              <div
+                ref={(el) => { scrollRefs.current.set(type, el); if (el) requestAnimationFrame(() => updateScrollState(type)); }}
+                onScroll={() => handleScroll(type)}
+                className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 snap-x snap-mandatory scrollbar-none"
+                style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+              >
+                {tournaments.map((t: any) => (
+                  <div key={t.id} className="min-w-[260px] w-[70vw] sm:w-[260px] shrink-0 snap-start">
+                    {renderTournamentCard(t)}
+                  </div>
+                ))}
+                {total > 8 && (
+                  <Link
+                    href={`/tournaments?type=${type}`}
+                    className={`min-w-[120px] w-[120px] shrink-0 flex flex-col items-center justify-center rounded-xl border border-dashed ${config.border} hover:bg-white/5 transition-all text-center px-3`}
+                  >
+                    <Icon className={`w-5 h-5 ${config.text} mb-1`} />
+                    <span className={`text-xs font-medium ${config.text}`}>View all {total}</span>
+                  </Link>
+                )}
+                <div className="w-2 shrink-0" />
+              </div>
             </div>
             {total > 8 && (
               <Link
