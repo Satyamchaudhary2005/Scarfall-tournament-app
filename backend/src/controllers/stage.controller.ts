@@ -439,7 +439,8 @@ export const generateFromStages = async (req: Request, res: Response): Promise<v
 // PUT /api/tournaments/:tournamentId/stages/:stageId
 export const updateStage = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { tournamentId, stageId } = req.params;
+    const tournamentId = req.params.tournamentId as string;
+    const stageId = req.params.stageId as string;
 
     const tournament = await prisma.tournament.findUnique({ where: { id: tournamentId } });
     if (!tournament) {
@@ -485,7 +486,8 @@ export const updateStage = async (req: Request, res: Response): Promise<void> =>
 // DELETE /api/tournaments/:tournamentId/stages/:stageId
 export const deleteStage = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { tournamentId, stageId } = req.params;
+    const tournamentId = req.params.tournamentId as string;
+    const stageId = req.params.stageId as string;
 
     const tournament = await prisma.tournament.findUnique({ where: { id: tournamentId } });
     if (!tournament) {

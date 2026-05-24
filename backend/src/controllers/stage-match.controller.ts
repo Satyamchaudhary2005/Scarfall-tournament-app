@@ -4,7 +4,8 @@ import { prisma } from '../config/database';
 // GET /api/tournaments/:id/stages/:stageId/matches
 export const getStageMatches = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id, stageId } = req.params;
+    const id = req.params.id as string;
+    const stageId = req.params.stageId as string;
 
     const tournament = await prisma.tournament.findUnique({ where: { id } });
     if (!tournament) {
@@ -36,7 +37,8 @@ export const getStageMatches = async (req: Request, res: Response): Promise<void
 // POST /api/tournaments/:id/stages/:stageId/matches
 export const createStageMatch = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id, stageId } = req.params;
+    const id = req.params.id as string;
+    const stageId = req.params.stageId as string;
     const { name, startDate } = req.body;
 
     const tournament = await prisma.tournament.findUnique({ where: { id } });
@@ -83,7 +85,8 @@ export const createStageMatch = async (req: Request, res: Response): Promise<voi
 // POST /api/tournaments/:id/stages/:stageId/matches/generate
 export const generateStageMatches = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id, stageId } = req.params;
+    const id = req.params.id as string;
+    const stageId = req.params.stageId as string;
 
     const tournament = await prisma.tournament.findUnique({
       where: { id },
@@ -116,9 +119,9 @@ export const generateStageMatches = async (req: Request, res: Response): Promise
 
     if (stage.stageNumber === 1) {
       // First stage: all registered teams
-      const regs = tournament.registrations;
+      const regs = (tournament as any).registrations;
       if (tournament.mode === 'SOLO') {
-        incomingTeams = regs.map((r) => ({
+        incomingTeams = regs.map((r: any) => ({
           teamId: r.userId || r.id,
           teamName: r.user?.ign || r.user?.username || r.guestIgn || 'Unknown',
         }));
@@ -218,7 +221,9 @@ export const generateStageMatches = async (req: Request, res: Response): Promise
 // PATCH /api/tournaments/:id/stages/:stageId/matches/:matchId
 export const updateStageMatch = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id, stageId, matchId } = req.params;
+    const id = req.params.id as string;
+    const stageId = req.params.stageId as string;
+    const matchId = req.params.matchId as string;
     const data = req.body;
 
     const tournament = await prisma.tournament.findUnique({ where: { id } });
@@ -255,7 +260,9 @@ export const updateStageMatch = async (req: Request, res: Response): Promise<voi
 // DELETE /api/tournaments/:id/stages/:stageId/matches/:matchId
 export const deleteStageMatch = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id, stageId, matchId } = req.params;
+    const id = req.params.id as string;
+    const stageId = req.params.stageId as string;
+    const matchId = req.params.matchId as string;
 
     const tournament = await prisma.tournament.findUnique({ where: { id } });
     if (!tournament) {
@@ -280,7 +287,9 @@ export const deleteStageMatch = async (req: Request, res: Response): Promise<voi
 // PATCH /api/tournaments/:id/stages/:stageId/matches/:matchId/scores
 export const updateStageScores = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id, stageId, matchId } = req.params;
+    const id = req.params.id as string;
+    const stageId = req.params.stageId as string;
+    const matchId = req.params.matchId as string;
     const { scores } = req.body; // Array of { teamId, placement, kills }
 
     const tournament = await prisma.tournament.findUnique({ where: { id } });
@@ -359,7 +368,8 @@ export const updateStageScores = async (req: Request, res: Response): Promise<vo
 // GET /api/tournaments/:id/stages/:stageId/bracket
 export const getStageBracket = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id, stageId } = req.params;
+    const id = req.params.id as string;
+    const stageId = req.params.stageId as string;
 
     const tournament = await prisma.tournament.findUnique({
       where: { id },
@@ -384,7 +394,7 @@ export const getStageBracket = async (req: Request, res: Response): Promise<void
       },
     });
 
-    const bracket = allStages.map((s) => ({
+    const bracket = allStages.map((s: any) => ({
       id: s.id,
       stageNumber: s.stageNumber,
       name: s.name,
@@ -394,12 +404,12 @@ export const getStageBracket = async (req: Request, res: Response): Promise<void
       qualifyingTeams: s.qualifyingTeams,
       eliminationCount: s.eliminationCount,
       lobbyCount: s.lobbyCount,
-      matches: s.matches.map((m) => ({
+      matches: s.matches.map((m: any) => ({
         id: m.id,
         matchNumber: m.matchNumber,
         name: m.name,
         status: m.status,
-        teams: m.teams.map((t) => ({
+        teams: m.teams.map((t: any) => ({
           teamId: t.teamId,
           teamName: t.teamName,
           placement: t.placement,
@@ -421,7 +431,8 @@ export const getStageBracket = async (req: Request, res: Response): Promise<void
 // POST /api/tournaments/:id/stages/:stageId/advance
 export const advanceTeams = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id, stageId } = req.params;
+    const id = req.params.id as string;
+    const stageId = req.params.stageId as string;
 
     const tournament = await prisma.tournament.findUnique({ where: { id } });
     if (!tournament) {
@@ -448,7 +459,7 @@ export const advanceTeams = async (req: Request, res: Response): Promise<void> =
 
     // Calculate qualified teams from this stage
     const qualifiedTeams: { teamId: string; teamName: string }[] = [];
-    for (const match of stage.matches) {
+    for (const match of (stage as any).matches) {
       for (const team of match.teams) {
         if (team.qualified) {
           qualifiedTeams.push({ teamId: team.teamId, teamName: team.teamName });
