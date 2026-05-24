@@ -46,6 +46,9 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Ensure webDir exists
+        run: mkdir -p capacitor-assets
+
       - name: Sync Capacitor
         run: npx cap sync android
 
