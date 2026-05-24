@@ -561,36 +561,50 @@ export const deleteHostedTournament = async (req: Request, res: Response): Promi
 
 export const cleanupOldTournaments = async (_req: Request, res: Response): Promise<void> => {
   try {
-    const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
-
-    const oldTournaments = await prisma.tournament.findMany({
-      where: {
-        status: 'COMPLETED',
-        endsAt: { lt: twoDaysAgo },
-      },
-      select: { id: true, title: true },
-    });
-
-    const ids = oldTournaments.map((t) => t.id);
-
-    if (ids.length > 0) {
-      await prisma.tournamentRegistration.deleteMany({
-        where: { tournamentId: { in: ids } },
-      });
-      await prisma.tournament.deleteMany({
-        where: { id: { in: ids } },
-      });
-    }
-
-    res.json({
-      message: `Cleaned up ${ids.length} old tournament(s)`,
-      deleted: oldTournaments.map((t) => t.title),
-    });
+    const result = await runCleanup();
+    res.json(result);
   } catch (error) {
     console.error('Cleanup old tournaments error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+// Reusable cleanup function for auto-scheduled runs
+export async function runCleanup() {
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+  const oldTournaments = await prisma.tournament.findMany({
+    where: {
+      status: 'COMPLETED',
+      endsAt: { lt: oneDayAgo },
+    },
+    select: { id: true, title: true },
+  });
+
+  const ids = oldTournaments.map((t) => t.id);
+
+  if (ids.length > 0) {
+    await prisma.tournamentRegistration.deleteMany({
+      where: { tournamentId: { in: ids } },
+    });
+    await prisma.roundScore.deleteMany({
+      where: {
+        round: { tournamentId: { in: ids } },
+      },
+    });
+    await prisma.round.deleteMany({
+      where: { tournamentId: { in: ids } },
+    });
+    await prisma.tournament.deleteMany({
+      where: { id: { in: ids } },
+    });
+  }
+
+  return {
+    message: `Cleaned up ${ids.length} old tournament(s)`,
+    deleted: oldTournaments.map((t) => t.title),
+  };
+}
 
 export const setRoomCredentials = async (req: Request, res: Response): Promise<void> => {
   try {

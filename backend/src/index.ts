@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import { createServer } from 'http';
 import { config } from './config';
 import { initializeSocket } from './services/socket';
+import { runCleanup } from './controllers/tournament.controller';
 
 // Route imports
 import authRoutes from './routes/auth.routes';
@@ -88,5 +89,11 @@ httpServer.listen(config.port, () => {
   console.log(`   Frontend URL: ${config.frontendUrl}`);
   console.log(`   Time: ${new Date().toISOString()}\n`);
 });
+
+// Auto-cleanup completed tournaments every hour
+runCleanup().catch((err) => console.error('Initial cleanup error:', err));
+setInterval(() => {
+  runCleanup().catch((err) => console.error('Auto cleanup error:', err));
+}, 60 * 60 * 1000);
 
 export default app;

@@ -13,7 +13,7 @@ import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { getStatusBadgeVariant } from '@/lib/utils';
 
-const statusFilters = ['ALL', 'REGISTRATION_OPEN', 'UPCOMING', 'LIVE', 'COMPLETED'];
+const statusFilters = ['ALL', 'REGISTRATION_OPEN', 'UPCOMING', 'LIVE', 'ENDED'];
 const modeFilters = ['ALL', 'SOLO', 'DUO', 'SQUAD'];
 
 export default function TournamentsPage() {
@@ -23,9 +23,11 @@ export default function TournamentsPage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
 
+  const apiStatus = status === 'ENDED' ? 'COMPLETED' : status;
+
   const { data, isLoading } = useQuery({
-    queryKey: ['tournaments', status, mode, search, page],
-    queryFn: () => tournamentApi.getAll({ status, mode, search: search || undefined, page, limit: 12 }),
+    queryKey: ['tournaments', apiStatus, mode, search, page],
+    queryFn: () => tournamentApi.getAll({ status: apiStatus, mode, search: search || undefined, page, limit: 12 }),
   });
 
   const { data: regData } = useQuery({
@@ -90,7 +92,7 @@ export default function TournamentsPage() {
                     : 'bg-white/5 text-white/50 hover:text-white hover:bg-white/10'
                 }`}
               >
-                {s === 'ALL' ? 'All' : s.replace('_', ' ')}
+                {s === 'ALL' ? 'All' : s === 'ENDED' ? 'Ended' : s.replace('_', ' ')}
               </button>
             ))}
             <div className="w-px h-6 bg-white/10 mx-2" />
@@ -151,7 +153,7 @@ export default function TournamentsPage() {
                       transition={{ delay: index * 0.05 }}
                     >
                       <Link href={`/tournaments/${tournament.id}`}>
-                        <Card hover className="h-full overflow-hidden group border-green-500/20 hover:border-green-500/40">
+                        <Card hover className={`h-full overflow-hidden group border-green-500/20 hover:border-green-500/40`}>
                           <div className="absolute top-3 right-3 z-10">
                             <Badge variant="success" size="sm">Joined</Badge>
                           </div>
@@ -166,7 +168,7 @@ export default function TournamentsPage() {
                                 {tournament.title}
                               </h3>
                               <Badge className={getStatusBadgeVariant(tournament.status)} size="sm">
-                                {tournament.status === 'REGISTRATION_OPEN' ? 'OPEN' : tournament.status === 'UPCOMING' ? 'UPCOMING' : tournament.status}
+                                {tournament.status === 'REGISTRATION_OPEN' ? 'OPEN' : tournament.status === 'UPCOMING' ? 'UPCOMING' : tournament.status === 'COMPLETED' ? 'Ended' : tournament.status}
                               </Badge>
                             </div>
                             <div className="grid grid-cols-2 gap-3 mb-4">
@@ -183,8 +185,17 @@ export default function TournamentsPage() {
                                 <span className="text-white/70">{tournament.mode}</span>
                               </div>
                               <div className="flex items-center gap-2 text-sm">
-                                <Clock className="w-4 h-4 text-white/40" />
-                                <span className="text-white/70">{formatDistanceToNow(new Date(tournament.startsAt), { addSuffix: true })}</span>
+                                {tournament.status === 'COMPLETED' ? (
+                                  <>
+                                    <Clock className="w-4 h-4 text-white/30" />
+                                    <span className="text-white/50">Ended {formatDistanceToNow(new Date(tournament.endsAt || tournament.startsAt), { addSuffix: true })}</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Clock className="w-4 h-4 text-white/40" />
+                                    <span className="text-white/70">{formatDistanceToNow(new Date(tournament.startsAt), { addSuffix: true })}</span>
+                                  </>
+                                )}
                               </div>
                             </div>
                             <div className="flex items-center justify-between pt-3 border-t border-white/5">
@@ -219,7 +230,11 @@ export default function TournamentsPage() {
                     transition={{ delay: index * 0.05 }}
                   >
                     <Link href={`/tournaments/${tournament.id}`}>
-                      <Card hover className={`h-full overflow-hidden group ${joinedIds.has(tournament.id) ? 'border-green-500/20' : ''}`}>
+                      <Card hover className={`h-full overflow-hidden group transition-all duration-300 ${
+                        tournament.status === 'COMPLETED'
+                          ? 'opacity-50 hover:opacity-80 border-white/5'
+                          : joinedIds.has(tournament.id) ? 'border-green-500/20' : ''
+                      }`}>
                         {tournament.bannerUrl && (
                           <div className="h-32 overflow-hidden">
                             <img src={tournament.bannerUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -227,7 +242,9 @@ export default function TournamentsPage() {
                         )}
                         <div className="p-5">
                           <div className="flex items-start justify-between mb-3">
-                            <h3 className="font-semibold text-white group-hover:text-primary transition-colors line-clamp-1">
+                            <h3 className={`font-semibold transition-colors line-clamp-1 ${
+                              tournament.status === 'COMPLETED' ? 'text-white/60 group-hover:text-white/80' : 'text-white group-hover:text-primary'
+                            }`}>
                               {tournament.title}
                             </h3>
                             <div className="flex items-center gap-1.5">
@@ -235,26 +252,35 @@ export default function TournamentsPage() {
                                 <Badge variant="success" size="sm">Joined</Badge>
                               )}
                               <Badge className={getStatusBadgeVariant(tournament.status)} size="sm">
-                                {tournament.status === 'REGISTRATION_OPEN' ? 'OPEN' : tournament.status === 'UPCOMING' ? 'UPCOMING' : tournament.status}
+                                {tournament.status === 'REGISTRATION_OPEN' ? 'OPEN' : tournament.status === 'UPCOMING' ? 'UPCOMING' : tournament.status === 'COMPLETED' ? 'Ended' : tournament.status}
                               </Badge>
                             </div>
                           </div>
                           <div className="grid grid-cols-2 gap-3 mb-4">
                             <div className="flex items-center gap-2 text-sm">
                               <IndianRupee className="w-4 h-4 text-primary" />
-                              <span className="text-white/70">{tournament.prizePool}</span>
+                              <span className={tournament.status === 'COMPLETED' ? 'text-white/50' : 'text-white/70'}>{tournament.prizePool}</span>
                             </div>
                             <div className="flex items-center gap-2 text-sm">
                               <Users className="w-4 h-4 text-white/40" />
-                              <span className="text-white/70">{tournament._count?.registrations || 0}/{tournament.slots}</span>
+                              <span className={tournament.status === 'COMPLETED' ? 'text-white/50' : 'text-white/70'}>{tournament._count?.registrations || 0}/{tournament.slots}</span>
                             </div>
                             <div className="flex items-center gap-2 text-sm">
                               <Zap className="w-4 h-4 text-white/40" />
-                              <span className="text-white/70">{tournament.mode}</span>
+                              <span className={tournament.status === 'COMPLETED' ? 'text-white/50' : 'text-white/70'}>{tournament.mode}</span>
                             </div>
                             <div className="flex items-center gap-2 text-sm">
-                              <Clock className="w-4 h-4 text-white/40" />
-                              <span className="text-white/70">{formatDistanceToNow(new Date(tournament.startsAt), { addSuffix: true })}</span>
+                              {tournament.status === 'COMPLETED' ? (
+                                <>
+                                  <Clock className="w-4 h-4 text-white/20" />
+                                  <span className="text-white/40">Ended {formatDistanceToNow(new Date(tournament.endsAt || tournament.startsAt), { addSuffix: true })}</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Clock className="w-4 h-4 text-white/40" />
+                                  <span className="text-white/70">{formatDistanceToNow(new Date(tournament.startsAt), { addSuffix: true })}</span>
+                                </>
+                              )}
                             </div>
                           </div>
                           <div className="flex items-center justify-between pt-3 border-t border-white/5">
