@@ -4,14 +4,20 @@ import { config } from '../config';
 import { prisma } from '../config/database';
 
 const RZP_API = 'https://api.razorpay.com/v1';
-const auth = Buffer.from(`${config.razorpay.keyId}:${config.razorpay.keySecret}`).toString('base64');
+
+function getAuth(): string {
+  if (!config.razorpay.keyId || !config.razorpay.keySecret) {
+    throw new Error('RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET must be set');
+  }
+  return Buffer.from(`${config.razorpay.keyId}:${config.razorpay.keySecret}`).toString('base64');
+}
 
 async function razorpayPost(path: string, body: any): Promise<any> {
   const res = await fetch(`${RZP_API}${path}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Basic ${auth}`,
+      Authorization: `Basic ${getAuth()}`,
     },
     body: JSON.stringify(body),
   });
@@ -34,7 +40,7 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
     const order = await razorpayPost('/orders', {
       amount: Math.round(amount),
       currency: 'INR',
-      receipt: `receipt_${req.user!.id}_${Date.now()}`,
+      receipt: `r_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
     });
 
     res.json({
@@ -68,7 +74,7 @@ export const verifyPayment = async (req: Request, res: Response): Promise<void> 
     }
 
     const orderRes = await fetch(`${RZP_API}/orders/${razorpay_order_id}`, {
-      headers: { Authorization: `Basic ${auth}` },
+      headers: { Authorization: `Basic ${getAuth()}` },
     });
     if (!orderRes.ok) {
       res.status(500).json({ error: 'Failed to fetch order details' });

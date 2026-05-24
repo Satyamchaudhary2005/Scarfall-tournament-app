@@ -74,6 +74,12 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   res.status(500).json({ error: 'Internal server error' });
 });
 
+// Validate required env vars
+if (!config.razorpay.keyId || !config.razorpay.keySecret) {
+  console.warn('\n⚠️  WARNING: RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET are not set.');
+  console.warn('   Wallet deposits via Razorpay will fail with 500 errors.\n');
+}
+
 // Start server
 httpServer.listen(config.port, () => {
   console.log(`\n🎮 ScarFall Esports API Server`);
