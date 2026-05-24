@@ -13,6 +13,12 @@ const config: CapacitorConfig = {
       keystorePath: undefined,
     },
   },
+  ios: {
+    contentInset: 'always',
+    preferredContentMode: 'mobile',
+    allowsLinkPreview: false,
+    scrollEnabled: true,
+  },
 };
 
 export default config;

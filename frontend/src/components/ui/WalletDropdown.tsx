@@ -169,7 +169,7 @@ export function WalletDropdown() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.96 }}
             transition={{ type: 'spring', duration: 0.35, bounce: 0.15 }}
-            className="absolute right-0 top-full mt-2 overflow-hidden z-50 w-[calc(100vw-2rem)] sm:w-[360px] max-sm:right-4 max-sm:left-4"
+            className="fixed left-4 right-4 top-24 z-50 overflow-hidden sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[360px]"
           >
             {/* Outer glass container */}
             <div className="relative bg-gradient-to-b from-[#0d0d1a]/95 to-[#111128]/95 backdrop-blur-2xl border border-white/[0.08] rounded-2xl shadow-2xl shadow-black/60 overflow-hidden">
