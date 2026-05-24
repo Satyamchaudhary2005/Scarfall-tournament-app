@@ -10,10 +10,12 @@ import { supabaseAuthService } from '@/services/supabase-auth';
 import { useAuthStore } from '@/store/authStore';
 import toast from 'react-hot-toast';
 import { UserPlus, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
+import { useGoogleAuth } from '@/hooks/useGoogleAuth';
 
 export default function SignupPage() {
   const router = useRouter();
   const setAuth = useAuthStore((state) => state.setAuth);
+  const { signInWithGoogle } = useGoogleAuth();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({ username: '', email: '', password: '' });
@@ -141,7 +143,7 @@ export default function SignupPage() {
             <div className="grid grid-cols-2 gap-3">
               <Button
                 variant="secondary"
-                onClick={() => toast.error('Google OAuth not configured yet')}
+                onClick={() => signInWithGoogle()}
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
                   <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />

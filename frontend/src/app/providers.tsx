@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from '@/store/authStore';
 
@@ -38,7 +39,9 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  return (
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
+
+  const content = (
     <QueryClientProvider client={queryClient}>
       <AuthInitializer>
         {children}
@@ -61,5 +64,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
         }}
       />
     </QueryClientProvider>
+  );
+
+  if (!googleClientId) return content;
+
+  return (
+    <GoogleOAuthProvider clientId={googleClientId}>
+      {content}
+    </GoogleOAuthProvider>
   );
 }
