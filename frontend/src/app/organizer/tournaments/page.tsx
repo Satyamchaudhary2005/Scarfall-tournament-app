@@ -96,6 +96,7 @@ function OrganizerContent() {
       payload.killPoints = data.killPoints || 1;
       payload.totalRounds = data.totalRounds || 3;
     }
+    console.log('Sending payload:', JSON.stringify(payload));
     return payload;
   };
 
@@ -108,7 +109,13 @@ function OrganizerContent() {
       setShowCreate(false);
       resetForm();
     },
-    onError: (err: any) => toast.error(err.message || 'Failed to create'),
+    onError: (err: any) => {
+      console.error('Create tournament error:', err, err.details);
+      const msg = err.details
+        ? err.details.map((d: any) => `${d.path?.join('.')}: ${d.message}`).join(', ')
+        : err.message || 'Failed to create';
+      toast.error(msg);
+    },
   });
 
   const updateMutation = useMutation({
