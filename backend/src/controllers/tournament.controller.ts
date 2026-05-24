@@ -100,7 +100,7 @@ export const getTournament = async (req: Request, res: Response): Promise<void> 
 
     // Only expose room credentials to the host or registered participants
     const isHost = req.user?.id === tournament.hostId;
-    const isRegistered = tournament.registrations?.some(r => r.user.id === req.user?.id);
+    const isRegistered = tournament.registrations?.some(r => r.user?.id === req.user?.id);
     if (!isHost && !isRegistered) {
       (tournament as any).roomId = undefined;
       (tournament as any).roomPassword = undefined;
@@ -234,12 +234,10 @@ export const registerForTournament = async (req: Request, res: Response): Promis
       return;
     }
 
-    const existingRegistration = await prisma.tournamentRegistration.findUnique({
+    const existingRegistration = await prisma.tournamentRegistration.findFirst({
       where: {
-        tournamentId_userId: {
-          tournamentId: id,
-          userId: req.user!.id,
-        },
+        tournamentId: id,
+        userId: req.user!.id,
       },
     });
 
@@ -471,12 +469,10 @@ export const unregisterFromTournament = async (req: Request, res: Response): Pro
       return;
     }
 
-    const registration = await prisma.tournamentRegistration.findUnique({
+    const registration = await prisma.tournamentRegistration.findFirst({
       where: {
-        tournamentId_userId: {
-          tournamentId: id,
-          userId: req.user!.id,
-        },
+        tournamentId: id,
+        userId: req.user!.id,
       },
     });
 
@@ -492,6 +488,85 @@ export const unregisterFromTournament = async (req: Request, res: Response): Pro
     res.json({ message: 'Unregistered successfully' });
   } catch (error) {
     console.error('Unregister error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const manualRegisterParticipant = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const id = req.params.id as string;
+    const { guestIgn, teamName } = req.body;
+
+    if (!guestIgn || typeof guestIgn !== 'string' || guestIgn.trim().length === 0) {
+      res.status(400).json({ error: 'In-game name is required' });
+      return;
+    }
+
+    const tournament = await prisma.tournament.findUnique({
+      where: { id },
+      include: { _count: { select: { registrations: true } } },
+    });
+
+    if (!tournament) {
+      res.status(404).json({ error: 'Tournament not found' });
+      return;
+    }
+
+    // Check capacity
+    if (tournament._count.registrations >= tournament.slots) {
+      res.status(400).json({ error: 'Tournament is full' });
+      return;
+    }
+
+    // Create registration without a userId link (guest registration)
+    const registration = await prisma.tournamentRegistration.create({
+      data: {
+        tournamentId: id,
+        guestIgn: guestIgn.trim(),
+        teamName: teamName?.trim() || null,
+      },
+    });
+
+    res.status(201).json({ message: 'Participant added successfully', registration });
+  } catch (error) {
+    console.error('Manual register error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const removeParticipant = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const tournamentId = req.params.id as string;
+    const registrationId = req.params.registrationId as string;
+
+    // Verify the tournament exists and the requester is the host or admin
+    const tournament = await prisma.tournament.findUnique({ where: { id: tournamentId } });
+    if (!tournament) {
+      res.status(404).json({ error: 'Tournament not found' });
+      return;
+    }
+
+    if (tournament.hostId !== req.user!.id && req.user!.role !== 'ADMIN') {
+      res.status(403).json({ error: 'Not authorized to remove participants' });
+      return;
+    }
+
+    const registration = await prisma.tournamentRegistration.findUnique({
+      where: { id: registrationId },
+    });
+
+    if (!registration || registration.tournamentId !== tournamentId) {
+      res.status(404).json({ error: 'Registration not found' });
+      return;
+    }
+
+    await prisma.tournamentRegistration.delete({
+      where: { id: registrationId },
+    });
+
+    res.json({ message: 'Participant removed successfully' });
+  } catch (error) {
+    console.error('Remove participant error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };

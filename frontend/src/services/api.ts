@@ -155,6 +155,13 @@ export const tournamentApi = {
   deleteRound: (id: string, roundId: string) =>
     request<{ message: string }>(`/tournaments/${id}/rounds/${roundId}`, { method: 'DELETE' }),
 
+  // Manual Participant Management (Organizer only)
+  manualRegisterParticipant: (id: string, data: { guestIgn: string; teamName?: string }) =>
+    request<{ message: string; registration: TournamentRegistration }>(`/tournaments/${id}/participants/manual`, { method: 'POST', body: JSON.stringify(data) }),
+
+  removeParticipant: (id: string, registrationId: string) =>
+    request<{ message: string }>(`/tournaments/${id}/participants/${registrationId}`, { method: 'DELETE' }),
+
   // Multi-Stage Tournament
   getStagePresets: () =>
     request<{ presets: import('@/types').StagePreset[] }>('/tournaments/presets'),

@@ -86,6 +86,9 @@ function OrganizerContent() {
   const [showStageMatches, setShowStageMatches] = useState(false);
   const [selectedStage, setSelectedStage] = useState<any>(null);
   const [stageListModal, setStageListModal] = useState<string | null>(null);
+  const [manageParticipantsFor, setManageParticipantsFor] = useState<any>(null);
+  const [guestIgn, setGuestIgn] = useState('');
+  const [guestTeamName, setGuestTeamName] = useState('');
 
   const resetForm = () => setForm({
     title: '', prizePool: '', entryFee: 'Free', mode: 'SOLO',
@@ -178,6 +181,35 @@ function OrganizerContent() {
       toast.success(data.message);
     },
     onError: (err: any) => toast.error(err.message || 'Cleanup failed'),
+  });
+
+  // Participant management
+  const { data: participantData, isLoading: participantsLoading, refetch: refetchParticipants } = useQuery({
+    queryKey: ['tournament-participants', manageParticipantsFor?.id],
+    queryFn: () => tournamentApi.getById(manageParticipantsFor.id),
+    enabled: !!manageParticipantsFor,
+  });
+
+  const addParticipantMutation = useMutation({
+    mutationFn: () => tournamentApi.manualRegisterParticipant(manageParticipantsFor.id, { guestIgn, teamName: guestTeamName || undefined }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tournament-participants', manageParticipantsFor?.id] });
+      queryClient.invalidateQueries({ queryKey: ['my-tournaments'] });
+      toast.success(`${guestIgn} added as participant!`);
+      setGuestIgn('');
+      setGuestTeamName('');
+    },
+    onError: (err: any) => toast.error(err.message || 'Failed to add participant'),
+  });
+
+  const removeParticipantMutation = useMutation({
+    mutationFn: (registrationId: string) => tournamentApi.removeParticipant(manageParticipantsFor.id, registrationId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tournament-participants', manageParticipantsFor?.id] });
+      queryClient.invalidateQueries({ queryKey: ['my-tournaments'] });
+      toast.success('Participant removed');
+    },
+    onError: (err: any) => toast.error(err.message || 'Failed to remove participant'),
   });
 
   // Round management
@@ -640,6 +672,139 @@ function OrganizerContent() {
         )}
       </AnimatePresence>
 
+      {/* Participant Management Modal */}
+      <AnimatePresence>
+        {manageParticipantsFor && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setManageParticipantsFor(null)}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-2xl max-h-[85vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <Users className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-white">Participants</h3>
+                      <p className="text-sm text-white/50">
+                        {manageParticipantsFor.title} — {participantData?.tournament?.registrations?.length || 0}/{manageParticipantsFor.slots} registered
+                      </p>
+                    </div>
+                  </div>
+                  <button onClick={() => setManageParticipantsFor(null)} className="p-1.5 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-all">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Add Participant Form */}
+                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 mb-6">
+                  <h4 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                    <Plus className="w-4 h-4 text-primary" />
+                    Add Participant (by In-Game Name)
+                  </h4>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        value={guestIgn}
+                        onChange={(e) => setGuestIgn(e.target.value)}
+                        placeholder="Enter in-game name..."
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50 transition-all text-sm"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        value={guestTeamName}
+                        onChange={(e) => setGuestTeamName(e.target.value)}
+                        placeholder="Team name (optional)"
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50 transition-all text-sm"
+                      />
+                    </div>
+                    <Button
+                      disabled={!guestIgn.trim() || addParticipantMutation.isPending}
+                      onClick={() => addParticipantMutation.mutate()}
+                      loading={addParticipantMutation.isPending}
+                      className="shrink-0"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Participants List */}
+                {participantsLoading ? (
+                  <div className="space-y-2">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="h-14 rounded-lg bg-white/[0.02] animate-pulse" />
+                    ))}
+                  </div>
+                ) : participantData?.tournament?.registrations?.length === 0 ? (
+                  <div className="text-center py-10">
+                    <Users className="w-12 h-12 text-white/10 mx-auto mb-3" />
+                    <p className="text-white/40 text-sm">No participants yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {participantData?.tournament?.registrations?.map((reg: any) => {
+                      const isGuest = !reg.user && reg.guestIgn;
+                      const displayName = isGuest ? reg.guestIgn : (reg.user?.ign || reg.user?.username || 'Unknown');
+                      const avatarUrl = reg.user?.avatarUrl;
+                      return (
+                        <div key={reg.id} className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all group">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center overflow-hidden shrink-0">
+                              {avatarUrl ? (
+                                <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+                              ) : (
+                                <span className="text-xs font-bold text-white/60">
+                                  {isGuest ? '?' : (reg.user?.username?.[0] || '?')}
+                                </span>
+                              )}
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold text-white flex items-center gap-2">
+                                {displayName}
+                                {isGuest && (
+                                  <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
+                                    Guest
+                                  </span>
+                                )}
+                              </p>
+                              {reg.teamName && (
+                                <p className="text-xs text-white/40">{reg.teamName}</p>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => {
+                              if (confirm(`Remove ${displayName} from this tournament?`)) {
+                                removeParticipantMutation.mutate(reg.id);
+                              }
+                            }}
+                            disabled={removeParticipantMutation.isPending}
+                            className="p-2 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-500/10 text-white/40 hover:text-red-400 transition-all disabled:opacity-30"
+                            title="Remove participant"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </Card>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Stage List Modal (for match management) */}
       <AnimatePresence>
         {stageListModal && (
@@ -863,6 +1028,13 @@ function OrganizerContent() {
                       <Swords className="w-4 h-4" />
                     </button>
                   )}
+                  <button
+                    onClick={() => setManageParticipantsFor(t)}
+                    className="p-1.5 rounded-lg hover:bg-white/5 text-white/40 hover:text-blue-400 transition-all"
+                    title="Participants"
+                  >
+                    <Users className="w-4 h-4" />
+                  </button>
                   {t.format === 'MULTI_STAGE' && (
                     <>
                       <button

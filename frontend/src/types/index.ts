@@ -126,7 +126,8 @@ export interface TournamentRegistration {
   teamName?: string | null;
   teamSize: number;
   status: string;
-  user: UserBrief;
+  user: UserBrief | null;
+  guestIgn?: string | null;
   tournament?: Tournament;
   clanId?: string | null;
   clan?: ClanBrief | null;

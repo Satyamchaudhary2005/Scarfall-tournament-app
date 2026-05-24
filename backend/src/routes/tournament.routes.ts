@@ -18,6 +18,8 @@ import {
   updateRoundScores,
   getScoreboard,
   deleteRound,
+  manualRegisterParticipant,
+  removeParticipant,
 } from '../controllers/tournament.controller';
 import { authenticate, optionalAuth, requireRole } from '../middleware/auth';
 
@@ -35,6 +37,8 @@ router.delete('/:id', authenticate, requireRole('ORGANIZER', 'ADMIN'), deleteHos
 router.post('/:id/register', authenticate, registerForTournament);
 router.post('/:id/clan-register', authenticate, registerClanForTournament);
 router.delete('/:id/register', authenticate, unregisterFromTournament);
+router.post('/:id/participants/manual', authenticate, requireRole('ORGANIZER', 'ADMIN'), manualRegisterParticipant);
+router.delete('/:id/participants/:registrationId', authenticate, requireRole('ORGANIZER', 'ADMIN'), removeParticipant);
 router.patch('/:id/room', authenticate, requireRole('ORGANIZER', 'ADMIN'), setRoomCredentials);
 router.post('/:id/rounds', authenticate, requireRole('ORGANIZER', 'ADMIN'), createRound);
 router.patch('/:id/rounds/:roundId/status', authenticate, requireRole('ORGANIZER', 'ADMIN'), updateRoundStatus);
