@@ -126,60 +126,93 @@ export default function TournamentsPage() {
     </Link>
   );
 
-  const renderColumn = (type: CategoryType) => {
+  const renderCategoryRow = (type: CategoryType, index: number = 0) => {
     const config = TYPE_CONFIG[type];
     const Icon = config.icon;
     const { data, isLoading } = queries[type];
     const tournaments = data?.tournaments || [];
+    const total = data?.pagination?.total || 0;
 
-    return (
-      <div key={type} className="flex flex-col min-w-0">
-        {/* Column Header */}
-        <div className={`flex items-center gap-2.5 mb-4 px-1`}>
-          <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${config.color} flex items-center justify-center`}>
-            <Icon className={`w-5 h-5 ${config.text}`} />
-          </div>
-          <div className="min-w-0">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              {config.label}
-              {!isLoading && (
-                <span className="text-[10px] font-medium text-white/30 bg-white/5 px-1.5 py-0.5 rounded-full">
-                  {data?.pagination?.total || 0}
-                </span>
-              )}
-            </h2>
-            <p className="text-[11px] text-white/40 truncate">{config.desc}</p>
-          </div>
-        </div>
-
-        {/* Column Content */}
-        <div className="flex-1 space-y-3">
-          {isLoading ? (
-            <>
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-44 rounded-xl bg-card border border-card-border animate-pulse" />
-              ))}
-            </>
-          ) : tournaments.length === 0 ? (
-            <div className="text-center py-8 px-4">
-              <Icon className={`w-10 h-10 mx-auto mb-2 ${config.text}/20`} />
-              <p className="text-white/30 text-xs">No tournaments</p>
+    return (        <motion.div
+        key={type}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 + index * 0.06 }}
+        className="mb-8"
+      >
+        {/* Row Header */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2.5">
+            <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${config.color} flex items-center justify-center shrink-0`}>
+              <Icon className={`w-5 h-5 ${config.text}`} />
             </div>
-          ) : (
-            tournaments.map(renderTournamentCard)
+            <div>
+              <h2 className="text-base font-bold text-white flex items-center gap-2">
+                {config.label}
+                {!isLoading && (
+                  <span className="text-[10px] font-medium text-white/30 bg-white/5 px-1.5 py-0.5 rounded-full">
+                    {total}
+                  </span>
+                )}
+              </h2>
+              <p className="text-[11px] text-white/40">{config.desc}</p>
+            </div>
+          </div>
+          {!isLoading && total > 8 && (
+            <Link
+              href={`/tournaments?type=${type}`}
+              className={`text-xs font-medium ${config.text} hover:underline hidden sm:block`}
+            >
+              View all {total} →
+            </Link>
           )}
         </div>
 
-        {/* View All Link */}
-        {!isLoading && tournaments.length > 0 && data?.pagination && data.pagination.total > 8 && (
-          <Link
-            href={`/tournaments?type=${type}`}
-            className={`mt-3 text-xs font-medium ${config.text} hover:underline text-center block py-2 rounded-lg hover:bg-white/5 transition-all`}
-          >
-            View all {data.pagination.total} →
-          </Link>
+        {/* Horizontal scrollable row */}
+        {isLoading ? (
+          <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="min-w-[260px] w-[70vw] sm:w-[260px] h-52 rounded-xl bg-card border border-card-border animate-pulse shrink-0" />
+            ))}
+          </div>
+        ) : tournaments.length === 0 ? (
+          <div className="flex items-center gap-3 py-6 px-4 rounded-xl bg-white/[0.02] border border-white/5">
+            <Icon className={`w-8 h-8 ${config.text}/20`} />
+            <p className="text-white/30 text-sm">No {config.label.toLowerCase()} available</p>
+          </div>
+        ) : (
+          <>
+            <div
+              className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 snap-x snap-mandatory scrollbar-none"
+              style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+            >
+              {tournaments.map((t: any) => (
+                <div key={t.id} className="min-w-[260px] w-[70vw] sm:w-[260px] shrink-0 snap-start">
+                  {renderTournamentCard(t)}
+                </div>
+              ))}
+              {total > 8 && (
+                <Link
+                  href={`/tournaments?type=${type}`}
+                  className={`min-w-[120px] w-[120px] shrink-0 flex flex-col items-center justify-center rounded-xl border border-dashed ${config.border} hover:bg-white/5 transition-all text-center px-3`}
+                >
+                  <Icon className={`w-5 h-5 ${config.text} mb-1`} />
+                  <span className={`text-xs font-medium ${config.text}`}>View all {total}</span>
+                </Link>
+              )}
+              <div className="w-2 shrink-0" />
+            </div>
+            {total > 8 && (
+              <Link
+                href={`/tournaments?type=${type}`}
+                className={`mt-2 text-xs font-medium ${config.text} hover:underline text-center block sm:hidden py-1.5 rounded-lg hover:bg-white/5 transition-all`}
+              >
+                View all {total} →
+              </Link>
+            )}
+          </>
         )}
-      </div>
+      </motion.div>
     );
   };
 
@@ -303,31 +336,10 @@ export default function TournamentsPage() {
           </motion.div>
         )}
 
-        {/* 4 Category Columns — swipeable on mobile */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
->
-          {/* Mobile: horizontal scroll wrapper */}
-          <div className="flex sm:hidden overflow-x-auto snap-x snap-mandatory gap-4 pb-4 -mx-4 px-4 scrollbar-none" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
-            {(Object.keys(TYPE_CONFIG) as CategoryType[]).map((type) => (
-              <div key={type} className="min-w-[280px] w-[80vw] snap-start shrink-0">
-                {renderColumn(type)}
-              </div>
-            ))}
-            {/* End padding for last card */}
-            <div className="w-2 shrink-0" />
-          </div>
-          {/* Tablet+ : grid columns */}
-          <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-6 lg:gap-4 col-span-full">
-            {(Object.keys(TYPE_CONFIG) as CategoryType[]).map((type) => (
-              <div key={type} className="min-w-0">
-                {renderColumn(type)}
-              </div>
-            ))}
-          </div>
-        </motion.div>
+        {/* 4 Category Rows — each is a horizontal carousel */}
+        {(Object.keys(TYPE_CONFIG) as CategoryType[]).map((type, i) =>
+          renderCategoryRow(type, i)
+        )}
       </div>
 
       <Footer />
