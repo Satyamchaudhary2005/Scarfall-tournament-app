@@ -12,6 +12,7 @@ import {
   getTournamentWithRegistrations,
   updateUserRole,
   deleteUser,
+  adjustWalletBalance,
   broadcastNotification,
 } from '../controllers/admin.controller';
 import { authenticate, requireRole } from '../middleware/auth';
@@ -41,6 +42,9 @@ router.delete('/clans/:id', deleteClan);
 // Reports
 router.get('/reports', getReports);
 router.patch('/reports/:id/resolve', resolveReport);
+
+// Wallet
+router.post('/wallet/adjust', adjustWalletBalance);
 
 // Notifications
 router.post('/notifications/broadcast', broadcastNotification);

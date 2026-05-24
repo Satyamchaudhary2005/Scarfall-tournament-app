@@ -14,6 +14,7 @@ import {
   Send, Activity, Bell,
   UserCheck, UserX, Clock,
   PlayCircle, CheckCircle,
+  Wallet, DollarSign, Minus,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -557,6 +558,9 @@ function TournamentRegistrationsViewer({ tournamentId, onClose }: { tournamentId
 function UsersTab() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [walletUser, setWalletUser] = useState<any>(null);
+  const [walletAmount, setWalletAmount] = useState('');
+  const [walletDesc, setWalletDesc] = useState('');
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -589,6 +593,22 @@ function UsersTab() {
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] });
       toast.success(data.message);
+    },
+    onError: (err: any) => toast.error(err.message || 'Failed'),
+  });
+
+  const walletMutation = useMutation({
+    mutationFn: (amount: number) => adminApi.adjustWalletBalance({
+      userId: walletUser.id,
+      amount,
+      description: walletDesc || undefined,
+    }),
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      toast.success(data.message);
+      setWalletUser(null);
+      setWalletAmount('');
+      setWalletDesc('');
     },
     onError: (err: any) => toast.error(err.message || 'Failed'),
   });
@@ -663,6 +683,13 @@ function UsersTab() {
                     <td className="p-4">
                       <div className="flex items-center justify-end gap-1">
                         <button
+                          onClick={() => { setWalletUser(u); setWalletAmount(''); setWalletDesc(''); }}
+                          className="p-1.5 rounded-lg hover:bg-white/5 text-white/40 hover:text-green-400 transition-all"
+                          title="Adjust wallet"
+                        >
+                          <Wallet className="w-4 h-4" />
+                        </button>
+                        <button
                           onClick={() => banMutation.mutate(u.id)}
                           className="p-1.5 rounded-lg hover:bg-white/5 text-white/40 hover:text-yellow-400 transition-all"
                           title={u.role === 'USER' ? 'Suspend user' : 'Reinstate user'}
@@ -724,6 +751,95 @@ function UsersTab() {
           </div>
         </div>
       )}
+
+      {/* Wallet Adjustment Modal */}
+      <AnimatePresence>
+        {walletUser && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            onClick={() => setWalletUser(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="w-full max-w-md"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
+                      <DollarSign className="w-5 h-5 text-green-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-white">Adjust Wallet</h3>
+                      <p className="text-sm text-white/50">{walletUser.username}</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setWalletUser(null)} className="p-1.5 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-all">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <Input
+                    label="Amount (₹)"
+                    type="number"
+                    placeholder="Enter amount"
+                    value={walletAmount}
+                    onChange={(e) => setWalletAmount(e.target.value)}
+                    min={1}
+                  />
+
+                  <div>
+                    <label className="block text-sm font-medium text-white/70 mb-1.5">Description (optional)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g., Tournament winnings bonus"
+                      value={walletDesc}
+                      onChange={(e) => setWalletDesc(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50 transition-all"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 pt-2">
+                    <Button
+                      variant="secondary"
+                      className="w-full h-11"
+                      onClick={() => {
+                        const amt = parseInt(walletAmount);
+                        if (isNaN(amt) || amt <= 0) { toast.error('Enter a valid amount'); return; }
+                        walletMutation.mutate(amt);
+                      }}
+                      loading={walletMutation.isPending}
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add Funds
+                    </Button>
+                    <Button
+                      variant="danger"
+                      className="w-full h-11"
+                      onClick={() => {
+                        const amt = parseInt(walletAmount);
+                        if (isNaN(amt) || amt <= 0) { toast.error('Enter a valid amount'); return; }
+                        walletMutation.mutate(-amt);
+                      }}
+                      loading={walletMutation.isPending}
+                    >
+                      <Minus className="w-4 h-4" />
+                      Deduct
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

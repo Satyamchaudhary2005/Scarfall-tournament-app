@@ -291,6 +291,10 @@ export const adminApi = {
   getAdminTournament: (id: string) =>
     request<{ tournament: Tournament & { registrations: any[]; _count: { registrations: number } } }>(`/admin/tournaments/${id}`),
 
+  // Wallet
+  adjustWalletBalance: (data: { userId: string; amount: number; description?: string }) =>
+    request<{ message: string; wallet: Wallet }>('/admin/wallet/adjust', { method: 'POST', body: JSON.stringify(data) }),
+
   // Broadcast
   broadcastNotification: (data: { title: string; message: string; type?: string; link?: string }) =>
     request<{ message: string; recipientCount: number }>('/admin/notifications/broadcast', { method: 'POST', body: JSON.stringify(data) }),

@@ -495,6 +495,78 @@ export const deleteUser = async (req: Request, res: Response): Promise<void> => 
   }
 };
 
+// ─── Wallet Management ────────────────────────────────────────────────────────
+
+export const adjustWalletBalance = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId, amount, description } = req.body;
+
+    if (!userId || typeof amount !== 'number' || amount === 0) {
+      res.status(400).json({ error: 'userId and a non-zero amount are required' });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    // Ensure wallet exists
+    let wallet = await prisma.wallet.findUnique({ where: { userId } });
+    if (!wallet) {
+      wallet = await prisma.wallet.create({
+        data: { userId, balance: 0 },
+      });
+    }
+
+    if (amount < 0 && wallet.balance + amount < 0) {
+      res.status(400).json({ error: 'Insufficient balance' });
+      return;
+    }
+
+    const [updatedWallet] = await prisma.$transaction([
+      prisma.wallet.update({
+        where: { userId },
+        data: { balance: { increment: amount } },
+      }),
+      prisma.transaction.create({
+        data: {
+          type: amount > 0 ? 'DEPOSIT' : 'WITHDRAW',
+          amount: Math.abs(amount),
+          description: description || `Admin ${amount > 0 ? 'deposit' : 'withdrawal'}`,
+          status: 'COMPLETED',
+          walletId: wallet.id,
+        },
+      }),
+    ]);
+
+    // Notify user
+    const notification = await prisma.notification.create({
+      data: {
+        type: 'SYSTEM',
+        title: amount > 0 ? 'Wallet Deposit' : 'Wallet Withdrawal',
+        message: `Admin ${amount > 0 ? 'added' : 'deducted'} ₹${Math.abs(amount).toLocaleString()} ${amount > 0 ? 'to' : 'from'} your wallet${description ? `: ${description}` : ''}`,
+        recipientId: userId,
+      },
+    });
+    try {
+      const { emitNotification } = await import('../services/socket');
+      emitNotification(userId, notification);
+    } catch {
+      // Socket may not be initialized
+    }
+
+    res.json({
+      message: `₹${Math.abs(amount).toLocaleString()} ${amount > 0 ? 'added to' : 'deducted from'} ${user.username}'s wallet`,
+      wallet: updatedWallet,
+    });
+  } catch (error) {
+    console.error('Adjust wallet error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 // ─── Broadcast Notifications ──────────────────────────────────────────────────
 
 export const broadcastNotification = async (req: Request, res: Response): Promise<void> => {
