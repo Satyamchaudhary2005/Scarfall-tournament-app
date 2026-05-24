@@ -25,7 +25,15 @@ initializeSocket(httpServer);
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: config.frontendUrl,
+  origin: (origin, callback) => {
+    const normalizeUrl = (url: string) => url.replace(/[.\/\s]+$/, '');
+    const allowed = normalizeUrl(config.frontendUrl);
+    if (!origin || normalizeUrl(origin) === allowed) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
 }));
