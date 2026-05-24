@@ -1,8 +1,8 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Button, Card, Input } from '@/components/ui';
-import { X, Crosshair, Trophy, Map, Settings2, Save } from 'lucide-react';
+import { Button, Card, Input, Select } from '@/components/ui';
+import { X, Crosshair, Trophy, Map, Settings2, Save, Layout, GitBranch, TrendingUp, Award, Grid3x3 } from 'lucide-react';
 import type { TournamentStage, StageTypeMeta } from '@/types';
 
 interface StageSettingsPanelProps {
@@ -78,17 +78,16 @@ export default function StageSettingsPanel({ stage, stageTypes, onSave, onClose 
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-white/50 mb-1.5">Stage Type</label>
-                  <select
+                  <Select
                     value={stage.type}
-                    onChange={(e) => onSave(stage.id, { type: e.target.value })}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-primary/50"
-                  >
-                    {stageTypes.map((type) => (
-                      <option key={type.value} value={type.value}>
-                        {type.icon} {type.label}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => onSave(stage.id, { type: v })}
+                    options={stageTypes.map((t) => ({
+                      value: t.value,
+                      label: t.label,
+                      icon: <span>{t.icon}</span>,
+                      description: t.description,
+                    }))}
+                  />
                 </div>
               </div>
             </div>
@@ -161,17 +160,17 @@ export default function StageSettingsPanel({ stage, stageTypes, onSave, onClose 
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-white/50 mb-1.5">Qualification Rule</label>
-                  <select
+                  <Select
                     value={scoring.qualificationRule}
-                    onChange={(e) => onSave(stage.id, {
-                      scoringRules: { ...scoring, qualificationRule: e.target.value as 'TOP_N' | 'POINTS_THRESHOLD' | 'WINS_REQUIRED' },
+                    onChange={(v) => onSave(stage.id, {
+                      scoringRules: { ...scoring, qualificationRule: v as 'TOP_N' | 'POINTS_THRESHOLD' | 'WINS_REQUIRED' },
                     })}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-primary/50"
-                  >
-                    <option value="TOP_N">Top N Qualify</option>
-                    <option value="POINTS_THRESHOLD">Points Threshold</option>
-                    <option value="WINS_REQUIRED">Wins Required</option>
-                  </select>
+                    options={[
+                      { value: 'TOP_N', label: 'Top N Qualify', icon: <Trophy className="w-full h-full" />, description: 'Top placing teams advance' },
+                      { value: 'POINTS_THRESHOLD', label: 'Points Threshold', icon: <TrendingUp className="w-full h-full" />, description: 'Reach a points target' },
+                      { value: 'WINS_REQUIRED', label: 'Wins Required', icon: <Award className="w-full h-full" />, description: 'Must win a minimum matches' },
+                    ]}
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-white/50 mb-1.5">Qualification Value</label>
@@ -219,16 +218,16 @@ export default function StageSettingsPanel({ stage, stageTypes, onSave, onClose 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-white/50 mb-1.5">Format Type</label>
-                  <select
+                  <Select
                     value={stage.formatType}
-                    onChange={(e) => onSave(stage.id, { formatType: e.target.value })}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-primary/50"
-                  >
-                    <option value="STANDARD">Standard</option>
-                    <option value="BATTLE_ROYALE">Battle Royale</option>
-                    <option value="SWISS">Swiss System</option>
-                    <option value="ROUND_ROBIN">Round Robin</option>
-                  </select>
+                    onChange={(v) => onSave(stage.id, { formatType: v })}
+                    options={[
+                      { value: 'STANDARD', label: 'Standard', icon: <Layout className="w-full h-full" />, description: 'Default elimination format' },
+                      { value: 'BATTLE_ROYALE', label: 'Battle Royale', icon: <Crosshair className="w-full h-full" />, description: 'BR scoring & match format' },
+                      { value: 'SWISS', label: 'Swiss System', icon: <GitBranch className="w-full h-full" />, description: 'Swiss system pairing' },
+                      { value: 'ROUND_ROBIN', label: 'Round Robin', icon: <Grid3x3 className="w-full h-full" />, description: 'All teams play each other' },
+                    ]}
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-white/50 mb-1.5">Lobby Count</label>

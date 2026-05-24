@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Settings, Copy, Trash2, ChevronDown, ChevronUp, Users, Crosshair, Zap, Swords } from 'lucide-react';
+import { GripVertical, Settings, Copy, Trash2, ChevronDown, ChevronUp, Users, Crosshair, Zap, Swords, Layout, GitBranch, RefreshCw, Trophy, TrendingUp, Award } from 'lucide-react';
+import { Select } from '@/components/ui/Select';
 import type { TournamentStage, StageTypeMeta } from '@/types';
 
 interface DraggableStageCardProps {
@@ -149,17 +150,19 @@ export default function DraggableStageCard({
           </div>
 
           {/* Stage type selector */}
-          <select
-            value={stage.type}
-            onChange={(e) => onUpdate(stage.id, { type: e.target.value })}
-            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-xs text-white/70 focus:outline-none focus:border-primary/50"
-          >
-            {stageTypes.map((type) => (
-              <option key={type.value} value={type.value}>
-                {type.icon} {type.label}
-              </option>
-            ))}
-          </select>
+          <div className="inline-block min-w-[140px]">
+            <Select
+              size="sm"
+              value={stage.type}
+              onChange={(v) => onUpdate(stage.id, { type: v })}
+              options={stageTypes.map((t) => ({
+                value: t.value,
+                label: t.label,
+                icon: <span className="text-xs">{t.icon}</span>,
+                description: t.description,
+              }))}
+            />
+          </div>
 
           {/* Status */}
           <span className={`
@@ -266,16 +269,17 @@ export default function DraggableStageCard({
               </div>
               <div>
                 <label className="block text-[10px] font-medium text-white/30 uppercase tracking-wider mb-1">Format</label>
-                <select
+                <Select
+                  size="sm"
                   value={stage.formatType}
-                  onChange={(e) => onUpdate(stage.id, { formatType: e.target.value })}
-                  className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-xs focus:outline-none focus:border-primary/50"
-                >
-                  <option value="STANDARD">Standard</option>
-                  <option value="BATTLE_ROYALE">Battle Royale</option>
-                  <option value="SWISS">Swiss</option>
-                  <option value="ROUND_ROBIN">Round Robin</option>
-                </select>
+                  onChange={(v) => onUpdate(stage.id, { formatType: v })}
+                  options={[
+                    { value: 'STANDARD', label: 'Standard', icon: <Layout className="w-full h-full" />, description: 'Default elimination format' },
+                    { value: 'BATTLE_ROYALE', label: 'Battle Royale', icon: <Crosshair className="w-full h-full" />, description: 'BR scoring & match format' },
+                    { value: 'SWISS', label: 'Swiss', icon: <GitBranch className="w-full h-full" />, description: 'Swiss system pairing' },
+                    { value: 'ROUND_ROBIN', label: 'Round Robin', icon: <RefreshCw className="w-full h-full" />, description: 'All teams play each other' },
+                  ]}
+                />
               </div>
               <div>
                 <label className="block text-[10px] font-medium text-white/30 uppercase tracking-wider mb-1">Start Date</label>
@@ -318,20 +322,21 @@ export default function DraggableStageCard({
                 </div>
                 <div className="flex-1">
                   <span className="text-xs text-white/40">Qualification Rule</span>
-                  <select
+                  <Select
+                    size="sm"
                     value={stage.scoringRules?.qualificationRule || 'TOP_N'}
-                    onChange={(e) => onUpdate(stage.id, {
+                    onChange={(v) => onUpdate(stage.id, {
                       scoringRules: {
                         ...(stage.scoringRules || { killPoints: 1, placementPoints: [15,12,10,8,6,4,2,1,0,0,0,0,0,0,0,0], qualificationRule: 'TOP_N' as const, qualificationValue: 0 }),
-                        qualificationRule: e.target.value as 'TOP_N' | 'POINTS_THRESHOLD' | 'WINS_REQUIRED',
+                        qualificationRule: v as 'TOP_N' | 'POINTS_THRESHOLD' | 'WINS_REQUIRED',
                       },
                     })}
-                    className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-xs focus:outline-none focus:border-primary/50"
-                  >
-                    <option value="TOP_N">Top N Qualify</option>
-                    <option value="POINTS_THRESHOLD">Points Threshold</option>
-                    <option value="WINS_REQUIRED">Wins Required</option>
-                  </select>
+                    options={[
+                      { value: 'TOP_N', label: 'Top N Qualify', icon: <Trophy className="w-full h-full" />, description: 'Top placing teams advance' },
+                      { value: 'POINTS_THRESHOLD', label: 'Points Threshold', icon: <TrendingUp className="w-full h-full" />, description: 'Reach a points target' },
+                      { value: 'WINS_REQUIRED', label: 'Wins Required', icon: <Award className="w-full h-full" />, description: 'Must win a minimum matches' },
+                    ]}
+                  />
                 </div>
               </div>
             </div>
