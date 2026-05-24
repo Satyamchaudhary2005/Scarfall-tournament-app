@@ -175,7 +175,12 @@ export const discordTokenProfile = async (req: Request, res: Response): Promise<
       return;
     }
 
-    const profile = await discordRes.json();
+    const profile = await discordRes.json() as {
+      id: string;
+      email: string;
+      username: string;
+      avatar: string | null;
+    };
 
     res.json({
       discordId: profile.id,
