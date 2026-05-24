@@ -24,15 +24,15 @@ export function Footer() {
           <div className="md:col-span-2">
             <Link href="/" className="flex items-center gap-2 mb-4">
               <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-white font-bold text-sm">SF</span>
+                <span className="text-white font-bold text-sm">TX</span>
               </div>
               <span className="text-white font-bold text-lg">
-                ScarFall<span className="text-primary">.gg</span>
+                Tourna<span className="text-primary">X</span>
               </span>
             </Link>
             <p className="text-white/40 text-sm max-w-md">
-              India&apos;s premier competitive gaming platform for ScarFall 2.0. 
-              Compete in tournaments, climb the leaderboards, and prove you&apos;re the best.
+              India&apos;s premier competitive gaming platform. 
+              Compete in tournaments across any game, climb the leaderboards, and prove you&apos;re the best.
             </p>
           </div>
 
@@ -75,10 +75,10 @@ export function Footer() {
 
         <div className="mt-10 pt-8 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-white/30 text-sm">
-            &copy; {new Date().getFullYear()} ScarFall Esports. All rights reserved.
+            &copy; {new Date().getFullYear()} TournaX. All rights reserved.
           </p>
           <div className="flex items-center gap-4 text-white/30 text-sm">
-            <span>Not affiliated with ScarFall 2.0</span>
+            <span>Multi-game tournament platform</span>
           </div>
         </div>
       </div>

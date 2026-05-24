@@ -72,7 +72,7 @@ export function WalletDropdown() {
             key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
             amount: order.amount,
             currency: order.currency,
-            name: 'ScarFall Esports',
+            name: 'TournaX',
             description: 'Wallet Deposit',
             order_id: order.order_id,
             handler: async (response: any) => {

@@ -1,4 +1,4 @@
-package com.scarfall.esports;
+package com.tournax.app;
 
 import com.getcapacitor.BridgeActivity;
 

@@ -41,7 +41,7 @@ export default function SignupPage() {
       try {
         const { user, token } = await authApi.signup({ username: form.username, email: form.email, password: form.password });
         setAuth(user, token);
-        toast.success('Account created! Welcome to ScarFall Esports.');
+        toast.success('Account created! Welcome to TournaX.');
         router.push('/');
         return;
       } catch (backendErr: any) {
@@ -50,7 +50,7 @@ export default function SignupPage() {
 
       const { user, token } = await supabaseAuthService.signup(form.email, form.password, form.username);
       setAuth(user, token);
-      toast.success('Account created! Welcome to ScarFall Esports.');
+      toast.success('Account created! Welcome to TournaX.');
       router.push('/');
     } catch (err: any) {
       toast.error(err.message || 'Signup failed');
@@ -72,10 +72,10 @@ export default function SignupPage() {
       >
         <Link href="/" className="flex items-center justify-center gap-2 mb-8">
           <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-            <span className="text-white font-bold text-lg">SF</span>
+            <span className="text-white font-bold text-lg">TX</span>
           </div>
           <span className="text-white font-bold text-2xl">
-            ScarFall<span className="text-primary">.gg</span>
+            Tourna<span className="text-primary">X</span>
           </span>
         </Link>
 

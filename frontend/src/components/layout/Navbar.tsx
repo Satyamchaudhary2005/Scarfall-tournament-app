@@ -73,10 +73,10 @@ export function Navbar() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group">
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-white font-bold text-sm">SF</span>
+              <span className="text-white font-bold text-sm">TX</span>
             </div>
             <span className="text-white font-bold text-lg hidden sm:block">
-              ScarFall<span className="text-primary">.gg</span>
+              Tourna<span className="text-primary">X</span>
             </span>
           </Link>
 

@@ -5,24 +5,25 @@ import { Providers } from './providers';
 
 export const metadata: Metadata = {
   title: {
-    default: 'ScarFall Esports - India\'s Competitive ScarFall Hub',
-    template: '%s | ScarFall Esports',
+    default: 'TournaX - India\'s Competitive Gaming Hub',
+    template: '%s | TournaX',
   },
   description:
-    'India\'s premier competitive gaming platform for ScarFall 2.0. Join tournaments, climb leaderboards, and compete with the best players in the country.',
+    'India\'s premier competitive gaming platform. Join tournaments across any game, climb leaderboards, and compete with the best players in the country.',
   keywords: [
-    'ScarFall',
-    'ScarFall 2.0',
+    'TournaX',
     'Esports',
+    'Gaming Tournaments',
     'Mobile Gaming',
-    'Battle Royale',
+    'PC Gaming',
+    'Console Gaming',
     'Tournaments',
     'India Gaming',
   ],
   openGraph: {
-    title: 'ScarFall Esports - India\'s Competitive ScarFall Hub',
+    title: 'TournaX - India\'s Competitive Gaming Hub',
     description:
-      'India\'s premier competitive gaming platform for ScarFall 2.0. Join tournaments, climb leaderboards, and compete with the best.',
+      'India\'s premier competitive gaming platform. Join tournaments across any game, climb leaderboards, and compete with the best.',
     type: 'website',
     locale: 'en_IN',
   },

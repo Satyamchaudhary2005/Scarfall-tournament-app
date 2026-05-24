@@ -26,7 +26,7 @@ export function TopClansSection() {
         <div className="flex items-center justify-between mb-10">
           <div>
             <h2 className="section-heading">Top Clans</h2>
-            <p className="section-subheading">The strongest clans in ScarFall</p>
+            <p className="section-subheading">The strongest clans on the platform</p>
           </div>
           <Link href="/clans">
             <Button variant="secondary" size="sm">View All</Button>

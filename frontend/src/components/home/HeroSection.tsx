@@ -51,7 +51,7 @@ export function HeroSection() {
           >
             India&apos;s Competitive
             <br />
-            <span className="text-gradient">ScarFall Hub</span>
+            <span className="text-gradient">Gaming Hub</span>
           </motion.h1>
 
           {/* Subtitle */}
@@ -61,8 +61,8 @@ export function HeroSection() {
             transition={{ delay: 0.4 }}
             className="text-lg sm:text-xl text-white/50 max-w-2xl mx-auto mb-10 leading-relaxed"
           >
-            Compete in high-stakes tournaments, climb the global leaderboard, 
-            and prove you&apos;re the best ScarFall 2.0 player in India.
+            Compete in high-stakes tournaments across every game, climb the global leaderboard, 
+            and prove you&apos;re the best.
           </motion.p>
 
           {/* CTAs */}

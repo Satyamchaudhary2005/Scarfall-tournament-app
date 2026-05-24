@@ -69,10 +69,10 @@ export default function ResetPasswordPage() {
       >
         <Link href="/" className="flex items-center justify-center gap-2 mb-8">
           <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-            <span className="text-white font-bold text-lg">SF</span>
+            <span className="text-white font-bold text-lg">TX</span>
           </div>
           <span className="text-white font-bold text-2xl">
-            ScarFall<span className="text-primary">.gg</span>
+            Tourna<span className="text-primary">X</span>
           </span>
         </Link>
 

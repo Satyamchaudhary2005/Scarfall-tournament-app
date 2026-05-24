@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ['localhost', 'scarfall.gg', 'avatars.githubusercontent.com', 'cdn.discordapp.com'],
+    domains: ['localhost', 'tournax.gg', 'avatars.githubusercontent.com', 'cdn.discordapp.com'],
     remotePatterns: [
       {
         protocol: 'https',

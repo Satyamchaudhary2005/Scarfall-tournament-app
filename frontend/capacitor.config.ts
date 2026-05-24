@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.scarfall.esports',
-  appName: 'ScarFall Esports',
+  appId: 'com.tournax.app',
+  appName: 'TournaX',
   webDir: 'capacitor-assets',
   server: {
     url: 'https://tournax.vercel.app',

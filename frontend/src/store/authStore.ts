@@ -87,7 +87,7 @@ export const useAuthStore = create<AuthState>()(
       },
     }),
     {
-      name: 'scarfall-auth',
+      name: 'tournax-auth',
       partialize: (state) => ({
         token: state.token,
         user: state.user,
