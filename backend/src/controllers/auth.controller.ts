@@ -1,7 +1,9 @@
+import crypto from 'crypto';
 import { Request, Response } from 'express';
 import { prisma } from '../config/database';
 import { generateToken, hashPassword, comparePassword } from '../utils/helpers';
-import { signupSchema, loginSchema } from '../utils/validators';
+import { signupSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema } from '../utils/validators';
+import { config } from '../config';
 
 export const signup = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -317,6 +319,87 @@ export const supabaseAuth = async (req: Request, res: Response): Promise<void> =
     });
   } catch (error) {
     console.error('Supabase auth error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const forgotPassword = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email } = forgotPasswordSchema.parse(req.body);
+
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      res.json({ message: 'If an account with that email exists, a reset link has been sent.' });
+      return;
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetExpires = new Date(Date.now() + 3600000);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordResetToken: resetToken,
+        passwordResetExpires: resetExpires,
+      },
+    });
+
+    const resetUrl = `${config.frontendUrl}/auth/reset-password?token=${resetToken}`;
+
+    if (config.isDev) {
+      console.log(`\n🔐 Password reset link for ${email}:`);
+      console.log(`   ${resetUrl}\n`);
+    }
+
+    res.json({
+      message: 'If an account with that email exists, a reset link has been sent.',
+      ...(config.isDev && { resetUrl }),
+    });
+  } catch (error: any) {
+    if (error?.issues) {
+      res.status(400).json({ error: 'Invalid input', details: error.issues });
+      return;
+    }
+    console.error('Forgot password error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const resetPassword = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { token, password } = resetPasswordSchema.parse(req.body);
+
+    const user = await prisma.user.findFirst({
+      where: {
+        passwordResetToken: token,
+        passwordResetExpires: { gt: new Date() },
+      },
+    });
+
+    if (!user) {
+      res.status(400).json({ error: 'Invalid or expired reset token' });
+      return;
+    }
+
+    const passwordHash = await hashPassword(password);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash,
+        passwordResetToken: null,
+        passwordResetExpires: null,
+      },
+    });
+
+    res.json({ message: 'Password reset successful. You can now sign in with your new password.' });
+  } catch (error: any) {
+    if (error?.issues) {
+      res.status(400).json({ error: 'Invalid input', details: error.issues });
+      return;
+    }
+    console.error('Reset password error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };

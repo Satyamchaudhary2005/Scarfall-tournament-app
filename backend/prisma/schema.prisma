@@ -18,6 +18,8 @@ model User {
   googleId                String?                  @unique
   discordId               String?                  @unique
   supabaseId              String?                  @unique
+  passwordResetToken      String?
+  passwordResetExpires    DateTime?
   points                  Int                      @default(0)
   kills                   Int                      @default(0)
   deaths                  Int                      @default(0)

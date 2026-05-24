@@ -71,6 +71,12 @@ export const authApi = {
   supabaseAuth: (data: { supabaseId: string; email: string; username: string; avatarUrl?: string }) =>
     request<AuthResponse>('/auth/supabase', { method: 'POST', body: JSON.stringify(data) }),
 
+  forgotPassword: (data: { email: string }) =>
+    request<{ message: string; resetUrl?: string }>('/auth/forgot-password', { method: 'POST', body: JSON.stringify(data) }),
+
+  resetPassword: (data: { token: string; password: string }) =>
+    request<{ message: string }>('/auth/reset-password', { method: 'POST', body: JSON.stringify(data) }),
+
   getProfile: () =>
     request<{ user: User }>('/auth/profile'),
 
