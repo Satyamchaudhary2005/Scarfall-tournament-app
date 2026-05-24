@@ -10,7 +10,7 @@ import { Button, Card, Badge } from '@/components/ui';
 import { useAuthStore } from '@/store/authStore';
 import {
   Trophy, Users, Clock, IndianRupee, Zap, Calendar,
-  ChevronLeft, UserPlus, Check, X, AlertCircle, Swords,
+  ChevronLeft, UserPlus, Check, AlertCircle, Swords,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
@@ -70,17 +70,6 @@ export default function TournamentDetailPage() {
     },
     onError: (err: any) => {
       toast.error(err.message || 'Clan registration failed');
-    },
-  });
-
-  const unregisterMutation = useMutation({
-    mutationFn: () => tournamentApi.unregister(id as string),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tournament', id] });
-      toast.success('Unregistered successfully');
-    },
-    onError: (err: any) => {
-      toast.error(err.message || 'Failed to unregister');
     },
   });
 
@@ -379,29 +368,9 @@ export default function TournamentDetailPage() {
                 </div>
 
                 {isRegistered ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-green-400 text-sm p-3 rounded-lg bg-green-500/10 border border-green-500/20">
-                      <Check className="w-4 h-4" />
-                      {isDuoOrSquad ? 'Your clan is registered' : 'You are registered'}
-                    </div>
-                    <Button
-                      variant="danger"
-                      className="w-full"
-                      onClick={() => {
-                        if (isDuoOrSquad && user?.clanId) {
-                          // Show confirm before unregistering entire clan
-                          if (window.confirm('Unregister your entire clan from this tournament?')) {
-                            unregisterMutation.mutate();
-                          }
-                        } else {
-                          unregisterMutation.mutate();
-                        }
-                      }}
-                      loading={unregisterMutation.isPending}
-                    >
-                      <X className="w-4 h-4" />
-                      Unregister
-                    </Button>
+                  <div className="flex items-center gap-2 text-green-400 text-sm p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                    <Check className="w-4 h-4" />
+                    {isDuoOrSquad ? 'Your clan is registered' : 'You are registered'}
                   </div>
                 ) : (
                   <>
