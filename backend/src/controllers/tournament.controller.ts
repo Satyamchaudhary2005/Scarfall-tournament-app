@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
 import { prisma } from '../config/database';
-import { createTournamentSchema, updateTournamentSchema, clanTournamentRegistrationSchema } from '../utils/validators';
+import { createTournamentSchema, updateTournamentSchema, clanTournamentRegistrationSchema, roomCredentialsSchema } from '../utils/validators';
 import { paginate } from '../utils/helpers';
+import { emitNotification, emitTournamentUpdate } from '../services/socket';
 
 export const getTournaments = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -89,6 +90,14 @@ export const getTournament = async (req: Request, res: Response): Promise<void> 
     if (!tournament) {
       res.status(404).json({ error: 'Tournament not found' });
       return;
+    }
+
+    // Only expose room credentials to the host or registered participants
+    const isHost = req.user?.id === tournament.hostId;
+    const isRegistered = tournament.registrations?.some(r => r.user.id === req.user?.id);
+    if (!isHost && !isRegistered) {
+      (tournament as any).roomId = undefined;
+      (tournament as any).roomPassword = undefined;
     }
 
     res.json({ tournament });
@@ -556,6 +565,81 @@ export const cleanupOldTournaments = async (_req: Request, res: Response): Promi
     });
   } catch (error) {
     console.error('Cleanup old tournaments error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const setRoomCredentials = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const id = req.params.id as string;
+    const data = roomCredentialsSchema.parse(req.body);
+
+    const tournament = await prisma.tournament.findUnique({ where: { id } });
+    if (!tournament) {
+      res.status(404).json({ error: 'Tournament not found' });
+      return;
+    }
+
+    if (tournament.hostId !== req.user!.id && req.user!.role !== 'ADMIN') {
+      res.status(403).json({ error: 'Not authorized to set room credentials for this tournament' });
+      return;
+    }
+
+    const updated = await prisma.tournament.update({
+      where: { id },
+      data: {
+        roomId: data.roomId,
+        roomPassword: data.roomPassword,
+      },
+    });
+
+    // Notify all registered participants
+    const registrations = await prisma.tournamentRegistration.findMany({
+      where: { tournamentId: id },
+      select: { userId: true },
+    });
+
+    const notification = await prisma.notification.create({
+      data: {
+        type: 'ROOM_CREDENTIALS',
+        title: 'Room credentials available',
+        message: `Room credentials for "${tournament.title}" have been shared. Check the tournament page.`,
+        link: `/tournaments/${id}`,
+        recipientId: req.user!.id,
+      },
+    });
+
+    // Create & emit notification for each participant
+    for (const reg of registrations) {
+      const userNotification = await prisma.notification.create({
+        data: {
+          type: 'ROOM_CREDENTIALS',
+          title: 'Room credentials available',
+          message: `Room credentials for "${tournament.title}" are now available. Check the tournament page.`,
+          link: `/tournaments/${id}`,
+          recipientId: reg.userId,
+        },
+      });
+      try {
+        emitNotification(reg.userId, userNotification);
+      } catch {
+        // Socket may not be initialized
+      }
+    }
+
+    try {
+      emitTournamentUpdate(id, { roomId: data.roomId });
+    } catch {
+      // Socket may not be initialized
+    }
+
+    res.json({ message: 'Room credentials saved and participants notified' });
+  } catch (error: any) {
+    if (error?.issues) {
+      res.status(400).json({ error: 'Invalid input', details: error.issues });
+      return;
+    }
+    console.error('Set room credentials error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };

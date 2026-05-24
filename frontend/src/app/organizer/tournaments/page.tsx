@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   Trophy, Plus, Search, X, Trash2, Edit3,
-  AlertTriangle, RefreshCw, PlayCircle, CheckCircle, Clock, Users,
+  AlertTriangle, RefreshCw, PlayCircle, CheckCircle, Clock, Users, Key,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -116,6 +116,19 @@ function OrganizerContent() {
       toast.success(data.message);
     },
     onError: (err: any) => toast.error(err.message || 'Failed to delete'),
+  });
+
+  const [roomCreds, setRoomCreds] = useState<{ id: string; roomId: string; roomPassword: string } | null>(null);
+
+  const roomCredsMutation = useMutation({
+    mutationFn: (data: { id: string; roomId: string; roomPassword: string }) =>
+      tournamentApi.setRoomCredentials(data.id, { roomId: data.roomId, roomPassword: data.roomPassword }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-tournaments'] });
+      toast.success('Room credentials sent to all participants!');
+      setRoomCreds(null);
+    },
+    onError: (err: any) => toast.error(err.message || 'Failed to set room credentials'),
   });
 
   const cleanupMutation = useMutation({
@@ -246,6 +259,67 @@ function OrganizerContent() {
         )}
       </AnimatePresence>
 
+      {/* Room Credentials Modal */}
+      <AnimatePresence>
+        {roomCreds && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md"
+            >
+              <Card className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <Key className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">Room Credentials</h3>
+                    <p className="text-sm text-white/50">Share with registered participants</p>
+                  </div>
+                </div>
+                <div className="space-y-4 mb-6">
+                  <div>
+                    <label className="block text-sm font-medium text-white/70 mb-1.5">Room ID</label>
+                    <input
+                      type="text"
+                      value={roomCreds.roomId}
+                      onChange={(e) => setRoomCreds({ ...roomCreds, roomId: e.target.value })}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all"
+                      placeholder="e.g. Room-1234"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-white/70 mb-1.5">Room Password</label>
+                    <input
+                      type="text"
+                      value={roomCreds.roomPassword}
+                      onChange={(e) => setRoomCreds({ ...roomCreds, roomPassword: e.target.value })}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all"
+                      placeholder="e.g. pass123"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <Button variant="secondary" className="flex-1" onClick={() => setRoomCreds(null)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    disabled={!roomCreds.roomId || !roomCreds.roomPassword}
+                    onClick={() => roomCredsMutation.mutate(roomCreds)}
+                    loading={roomCredsMutation.isPending}
+                  >
+                    Send to Participants
+                  </Button>
+                </div>
+              </Card>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Tournaments Grid */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -279,6 +353,13 @@ function OrganizerContent() {
                   {t.status === 'REGISTRATION_OPEN' ? 'Open' : t.status.charAt(0) + t.status.slice(1).toLowerCase()}
                 </Badge>
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={() => setRoomCreds({ id: t.id, roomId: t.roomId || '', roomPassword: t.roomPassword || '' })}
+                    className="p-1.5 rounded-lg hover:bg-white/5 text-white/40 hover:text-green-400 transition-all"
+                    title="Room Credentials"
+                  >
+                    <Key className="w-4 h-4" />
+                  </button>
                   <button
                     onClick={() => handleEdit(t)}
                     className="p-1.5 rounded-lg hover:bg-white/5 text-white/40 hover:text-primary transition-all"

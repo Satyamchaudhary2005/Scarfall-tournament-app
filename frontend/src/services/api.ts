@@ -132,6 +132,9 @@ export const tournamentApi = {
 
   unregister: (id: string) =>
     request<{ message: string }>(`/tournaments/${id}/register`, { method: 'DELETE' }),
+
+  setRoomCredentials: (id: string, data: { roomId: string; roomPassword: string }) =>
+    request<{ message: string }>(`/tournaments/${id}/room`, { method: 'PATCH', body: JSON.stringify(data) }),
 };
 
 // Clan API

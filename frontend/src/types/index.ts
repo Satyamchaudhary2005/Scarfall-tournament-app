@@ -71,6 +71,8 @@ export interface Tournament {
   endsAt?: string | null;
   mapName?: string | null;
   rules?: string | null;
+  roomId?: string | null;
+  roomPassword?: string | null;
   host: UserBrief;
   registrations?: TournamentRegistration[];
   _count?: { registrations: number };

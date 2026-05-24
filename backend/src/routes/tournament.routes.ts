@@ -12,6 +12,7 @@ import {
   deleteHostedTournament,
   cleanupOldTournaments,
   getLiveTournaments,
+  setRoomCredentials,
 } from '../controllers/tournament.controller';
 import { authenticate, optionalAuth, requireRole } from '../middleware/auth';
 
@@ -28,6 +29,7 @@ router.delete('/:id', authenticate, requireRole('ORGANIZER', 'ADMIN'), deleteHos
 router.post('/:id/register', authenticate, registerForTournament);
 router.post('/:id/clan-register', authenticate, registerClanForTournament);
 router.delete('/:id/register', authenticate, unregisterFromTournament);
+router.patch('/:id/room', authenticate, requireRole('ORGANIZER', 'ADMIN'), setRoomCredentials);
 router.post('/cleanup/old', authenticate, requireRole('ORGANIZER', 'ADMIN'), cleanupOldTournaments);
 
 export default router;

@@ -48,6 +48,11 @@ export const clanTournamentRegistrationSchema = z.object({
   teamName: z.string().max(100).optional(),
 });
 
+export const roomCredentialsSchema = z.object({
+  roomId: z.string().min(1).max(200),
+  roomPassword: z.string().min(1).max(200),
+});
+
 export const createReportSchema = z.object({
   reportedId: z.string().uuid(),
   reason: z.string().min(10).max(200),

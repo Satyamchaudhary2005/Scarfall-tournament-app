@@ -10,7 +10,7 @@ import { Button, Card, Badge } from '@/components/ui';
 import { useAuthStore } from '@/store/authStore';
 import {
   Trophy, Users, Clock, IndianRupee, Zap, Calendar,
-  ChevronLeft, UserPlus, Check, AlertCircle, Swords,
+  ChevronLeft, UserPlus, Check, AlertCircle, Swords, Key, Copy,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
@@ -316,6 +316,48 @@ export default function TournamentDetailPage() {
 
             {/* Sidebar */}
             <div className="space-y-4">
+              {/* Room Credentials - only show to registered users or host */}
+              {(isRegistered || user?.id === tournament.host.id) && tournament.roomId && (
+                <Card className="p-6 border-green-500/20">
+                  <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <Key className="w-4 h-4 text-green-400" />
+                    Room Credentials
+                  </h3>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-xs text-white/40 mb-1">Room ID</p>
+                      <div className="flex items-center gap-2 p-2.5 rounded-lg bg-green-500/5 border border-green-500/20">
+                        <code className="text-sm font-mono text-green-400 flex-1 select-all">{tournament.roomId}</code>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(tournament.roomId!);
+                            toast.success('Room ID copied!');
+                          }}
+                          className="p-1 rounded hover:bg-green-500/10 text-green-400/60 hover:text-green-400 transition-all"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs text-white/40 mb-1">Password</p>
+                      <div className="flex items-center gap-2 p-2.5 rounded-lg bg-green-500/5 border border-green-500/20">
+                        <code className="text-sm font-mono text-green-400 flex-1 select-all">{tournament.roomPassword}</code>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(tournament.roomPassword!);
+                            toast.success('Password copied!');
+                          }}
+                          className="p-1 rounded hover:bg-green-500/10 text-green-400/60 hover:text-green-400 transition-all"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              )}
+
               <Card className="p-6 sticky top-24">
                 <h3 className="text-lg font-semibold text-white mb-4">Registration</h3>
 
