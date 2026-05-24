@@ -83,7 +83,7 @@ export const authApi = {
   getProfile: () =>
     request<{ user: User }>('/auth/profile'),
 
-  updateProfile: (data: Partial<{ username: string; avatarUrl: string; bannerUrl: string }>) =>
+  updateProfile: (data: Partial<{ username: string; avatarUrl: string; bannerUrl: string; ign: string }>) =>
     request<{ message: string; user: User }>('/auth/profile', { method: 'PATCH', body: JSON.stringify(data) }),
 };
 

@@ -5,6 +5,7 @@ export interface User {
   email: string;
   avatarUrl?: string | null;
   bannerUrl?: string | null;
+  ign?: string | null;
   role: 'USER' | 'ADMIN' | 'MODERATOR' | 'ORGANIZER';
   points: number;
   kills: number;

@@ -1,18 +1,34 @@
 'use client';
 
+import { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/authStore';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Card, Button } from '@/components/ui';
-import { Trophy, Swords, Users, Skull, Crosshair, Activity, LogOut } from 'lucide-react';
+import { authApi } from '@/services/api';
+import { Trophy, Swords, Users, Skull, Crosshair, Activity, LogOut, Gamepad2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { calculateKd, calculateWinRate } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 
 export default function ProfilePage() {
-  const { user, isAuthenticated, logout } = useAuthStore();
+  const { user, isAuthenticated, updateUser, logout } = useAuthStore();
   const router = useRouter();
+  const [ignValue, setIgnValue] = useState(user?.ign || '');
+
+  const updateIgnMutation = useMutation({
+    mutationFn: (ign: string) => authApi.updateProfile({ ign }),
+    onSuccess: (res) => {
+      updateUser(res.user);
+      toast.success('In-game name updated');
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Failed to update');
+    },
+  });
 
   if (!isAuthenticated || !user) {
     router.push('/auth/login');
@@ -61,6 +77,33 @@ export default function ProfilePage() {
               <Button variant="ghost" onClick={logout} className="text-red-400 hover:text-red-300">
                 <LogOut className="w-4 h-4" />
                 Logout
+              </Button>
+            </div>
+          </Card>
+
+          {/* In-Game Name */}
+          <Card className="p-6 mb-8">
+            <div className="flex items-center gap-3 mb-4">
+              <Gamepad2 className="w-5 h-5 text-primary" />
+              <h2 className="text-lg font-semibold text-white">In-Game Name</h2>
+            </div>
+            <p className="text-xs text-white/40 mb-3">
+              Set your in-game name so tournament organizers can identify you in the lobby.
+            </p>
+            <div className="flex items-center gap-3">
+              <input
+                type="text"
+                value={ignValue}
+                onChange={(e) => setIgnValue(e.target.value)}
+                placeholder="Enter your in-game name..."
+                className="input-base flex-1"
+              />
+              <Button
+                onClick={() => updateIgnMutation.mutate(ignValue)}
+                loading={updateIgnMutation.isPending}
+                disabled={ignValue === (user.ign || '')}
+              >
+                Save
               </Button>
             </div>
           </Card>

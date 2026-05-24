@@ -274,6 +274,7 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
         wins: true,
         clanId: true,
         clanRole: true,
+        ign: true,
         clan: {
           select: {
             id: true,
@@ -445,7 +446,7 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
 
 export const updateProfile = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { username, avatarUrl, bannerUrl } = req.body;
+    const { username, avatarUrl, bannerUrl, ign } = req.body;
 
     if (username) {
       const existing = await prisma.user.findFirst({
@@ -466,6 +467,7 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
         ...(username && { username }),
         ...(avatarUrl !== undefined && { avatarUrl }),
         ...(bannerUrl !== undefined && { bannerUrl }),
+        ...(ign !== undefined && { ign }),
       },
       select: {
         id: true,
@@ -474,6 +476,7 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
         avatarUrl: true,
         bannerUrl: true,
         role: true,
+        ign: true,
       },
     });
 

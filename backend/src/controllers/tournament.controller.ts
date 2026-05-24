@@ -72,7 +72,7 @@ export const getTournament = async (req: Request, res: Response): Promise<void> 
         registrations: {
           include: {
             user: {
-              select: { id: true, username: true, avatarUrl: true, clanId: true, clanRole: true },
+              select: { id: true, username: true, avatarUrl: true, clanId: true, clanRole: true, ign: true },
             },
             clan: {
               select: { id: true, name: true, tag: true },
@@ -225,7 +225,7 @@ export const registerForTournament = async (req: Request, res: Response): Promis
       },
       include: {
         user: {
-          select: { id: true, username: true, avatarUrl: true },
+          select: { id: true, username: true, avatarUrl: true, ign: true },
         },
         tournament: {
           select: { id: true, title: true },

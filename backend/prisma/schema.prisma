@@ -80,7 +80,8 @@ model Tournament {
   id                   String                   @id @default(uuid())
   title                String
   description          String?
-  bannerUrl            String?
+  bannerUrl               String?
+  ign                     String?
   prizePool            String                   @default("0")
   entryFee             String                   @default("Free")
   mode                 String                   @default("SOLO")

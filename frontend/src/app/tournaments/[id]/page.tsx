@@ -290,10 +290,10 @@ export default function TournamentDetailPage() {
                                   <div key={reg.user.id} className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-white/5">
                                     <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
                                       <span className="text-[10px] font-bold text-primary">
-                                        {reg.user.username[0].toUpperCase()}
+                                        {(reg.user.ign || reg.user.username)[0].toUpperCase()}
                                       </span>
                                     </div>
-                                    <span className="text-xs text-white/80">{reg.user.username}</span>
+                                    <span className="text-xs text-white/80">{reg.user.ign || reg.user.username}</span>
                                   </div>
                                 ))}
                               </div>
@@ -304,11 +304,11 @@ export default function TournamentDetailPage() {
                             <div key={reg.id} className="flex items-center gap-3 p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
                               <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
                                 <span className="text-xs font-bold text-primary">
-                                  {reg.user.username[0].toUpperCase()}
+                                  {(reg.user.ign || reg.user.username)[0].toUpperCase()}
                                 </span>
                               </div>
                               <div>
-                                <p className="text-sm font-medium text-white">{reg.user.username}</p>
+                                <p className="text-sm font-medium text-white">{reg.user.ign || reg.user.username}</p>
                                 {reg.teamName && (
                                   <p className="text-xs text-white/40">{reg.teamName}</p>
                                 )}
@@ -329,6 +329,17 @@ export default function TournamentDetailPage() {
             <div className="space-y-4">
               <Card className="p-6 sticky top-24">
                 <h3 className="text-lg font-semibold text-white mb-4">Registration</h3>
+
+                {isAuthenticated && user && !user.ign && (
+                  <div className="mb-4 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-yellow-400 shrink-0 mt-0.5" />
+                    <div className="text-xs text-yellow-300">
+                      Set your{' '}
+                      <Link href="/profile" className="underline hover:text-yellow-200">in-game name</Link>
+                      {' '}so the host can identify you.
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between text-sm">
