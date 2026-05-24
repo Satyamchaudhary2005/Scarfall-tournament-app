@@ -24,9 +24,10 @@ export default function TeamFlowCalculator({
   generating,
 }: TeamFlowCalculatorProps) {
   const [showCalculator, setShowCalculator] = useState(false);
-  const [baseTeams, setBaseTeams] = useState(totalTeams || 1024);
+  // Defaults aligned with real Free Fire & BGMI tournament formats
+  const [baseTeams, setBaseTeams] = useState(totalTeams || 100);
   const [qualifyPercent, setQualifyPercent] = useState(25);
-  const [teamsPerLobby, setTeamsPerLobby] = useState(16);
+  const [teamsPerLobby, setTeamsPerLobby] = useState(12);
 
   const calculatedFlow = useMemo(() => {
     if (stages.length === 0) return [];

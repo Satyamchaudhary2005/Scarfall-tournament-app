@@ -1,152 +1,135 @@
 import { Request, Response } from 'express';
 import { prisma } from '../config/database';
 
-// Stage presets configuration
+// Stage presets configuration — designed after official Free Fire (FFWS) & BGMI tournament formats
+// Free Fire uses 12 teams/lobby, BGMI uses 16 teams/lobby
 export const STAGE_PRESETS = [
   {
     id: '1-stage',
-    name: 'Single Match Cup',
+    name: '🏆 Single Match Cup',
     description: 'One-stage tournament — winner takes all',
     stages: [
-      { name: 'Grand Finals', type: 'GRAND_FINALS', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
+      { name: 'Grand Finals', type: 'GRAND_FINALS', teamsCount: 0, qualifyingTeams: 1, eliminationCount: 0, teamsPerLobby: 16 },
     ],
     recommendedTeams: '8–100',
     complexity: 'Beginner',
   },
   {
-    id: '2-stage',
-    name: 'Qualifier → Grand Finals',
-    description: 'Classic two-stage bracket',
+    id: '2-stage-ff',
+    name: '🔥 Free Fire Standard',
+    description: 'Qualifier → Grand Finals (12 teams/lobby) — classic Free Fire format',
     stages: [
-      { name: 'Qualifier', type: 'OPEN_QUALIFIER', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Grand Finals', type: 'GRAND_FINALS', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
+      { name: 'Qualifier', type: 'OPEN_QUALIFIER', teamsCount: 0, qualifyingTeams: 12, eliminationCount: 0, teamsPerLobby: 12 },
+      { name: 'Grand Finals', type: 'GRAND_FINALS', teamsCount: 0, qualifyingTeams: 1, eliminationCount: 0, teamsPerLobby: 12 },
     ],
-    recommendedTeams: '16–200',
+    recommendedTeams: '24–120',
     complexity: 'Easy',
   },
   {
-    id: '3-stage',
-    name: 'Qualifier → Semi Finals → Grand Finals',
-    description: 'Three-stage with a semi-finals round',
+    id: '2-stage-bgmi',
+    name: '🔫 BGMI Standard',
+    description: 'Qualifier → Grand Finals (16 teams/lobby) — classic BGMI format',
     stages: [
-      { name: 'Qualifier', type: 'OPEN_QUALIFIER', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Semi Finals', type: 'SEMI_FINALS', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Grand Finals', type: 'GRAND_FINALS', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
+      { name: 'Qualifier', type: 'OPEN_QUALIFIER', teamsCount: 0, qualifyingTeams: 16, eliminationCount: 0, teamsPerLobby: 16 },
+      { name: 'Grand Finals', type: 'GRAND_FINALS', teamsCount: 0, qualifyingTeams: 1, eliminationCount: 0, teamsPerLobby: 16 },
     ],
-    recommendedTeams: '32–500',
+    recommendedTeams: '32–200',
     complexity: 'Easy',
   },
   {
-    id: '4-stage',
-    name: 'Qualifier → Round 1 → Semi Finals → Grand Finals',
-    description: 'Four-stage with an extra elimination round',
+    id: '3-stage-ff',
+    name: '🔥 Free Fire Pro Circuit',
+    description: 'Qualifier → Semi Finals → Grand Finals — 3-stage with semi-finals',
     stages: [
-      { name: 'Qualifier', type: 'OPEN_QUALIFIER', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Round 1', type: 'ROUND_1', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Semi Finals', type: 'SEMI_FINALS', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Grand Finals', type: 'GRAND_FINALS', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
+      { name: 'Qualifier', type: 'OPEN_QUALIFIER', teamsCount: 0, qualifyingTeams: 24, eliminationCount: 0, teamsPerLobby: 12 },
+      { name: 'Semi Finals', type: 'SEMI_FINALS', teamsCount: 0, qualifyingTeams: 12, eliminationCount: 0, teamsPerLobby: 12 },
+      { name: 'Grand Finals', type: 'GRAND_FINALS', teamsCount: 0, qualifyingTeams: 1, eliminationCount: 0, teamsPerLobby: 12 },
     ],
-    recommendedTeams: '64–1000',
+    recommendedTeams: '48–300',
     complexity: 'Moderate',
   },
   {
-    id: '5-stage',
-    name: 'Open Qualifier → Round 1 → Round 2 → Semi Finals → Grand Finals',
-    description: 'Five-stage competitive circuit',
+    id: '3-stage-bgmi',
+    name: '🔫 BGMI Pro Circuit',
+    description: 'Qualifier → Semi Finals → Grand Finals — competitive BGMI bracket',
     stages: [
-      { name: 'Open Qualifier', type: 'OPEN_QUALIFIER', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Round 1', type: 'ROUND_1', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Round 2', type: 'ROUND_2', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Semi Finals', type: 'SEMI_FINALS', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Grand Finals', type: 'GRAND_FINALS', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
+      { name: 'Qualifier', type: 'OPEN_QUALIFIER', teamsCount: 0, qualifyingTeams: 32, eliminationCount: 0, teamsPerLobby: 16 },
+      { name: 'Semi Finals', type: 'SEMI_FINALS', teamsCount: 0, qualifyingTeams: 16, eliminationCount: 0, teamsPerLobby: 16 },
+      { name: 'Grand Finals', type: 'GRAND_FINALS', teamsCount: 0, qualifyingTeams: 1, eliminationCount: 0, teamsPerLobby: 16 },
     ],
-    recommendedTeams: '64–1000',
+    recommendedTeams: '64–500',
     complexity: 'Moderate',
   },
   {
-    id: '6-stage',
-    name: 'Open Qualifier → Round 1 → Round 2 → Wildcard → Semi Finals → Grand Finals',
-    description: 'Six-stage with a wildcard survival round',
+    id: '4-stage-ff',
+    name: '🔥 Free Fire Championship',
+    description: 'Round 1 → Round 2 → Semi Finals → Grand Finals — full FFWS-style circuit',
     stages: [
-      { name: 'Open Qualifier', type: 'OPEN_QUALIFIER', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Round 1', type: 'ROUND_1', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Round 2', type: 'ROUND_2', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Wildcard', type: 'WILDCARD', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Semi Finals', type: 'SEMI_FINALS', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Grand Finals', type: 'GRAND_FINALS', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
+      { name: 'Round 1', type: 'ROUND_1', teamsCount: 0, qualifyingTeams: 36, eliminationCount: 0, teamsPerLobby: 12 },
+      { name: 'Round 2', type: 'ROUND_2', teamsCount: 0, qualifyingTeams: 18, eliminationCount: 0, teamsPerLobby: 12 },
+      { name: 'Semi Finals', type: 'SEMI_FINALS', teamsCount: 0, qualifyingTeams: 12, eliminationCount: 0, teamsPerLobby: 12 },
+      { name: 'Grand Finals', type: 'GRAND_FINALS', teamsCount: 0, qualifyingTeams: 1, eliminationCount: 0, teamsPerLobby: 12 },
+    ],
+    recommendedTeams: '72–500',
+    complexity: 'Advanced',
+  },
+  {
+    id: '4-stage-bgmi',
+    name: '🔫 BGMI Championship',
+    description: 'Round 1 → Round 2 → Semi Finals → Grand Finals — BGIS-style bracket',
+    stages: [
+      { name: 'Round 1', type: 'ROUND_1', teamsCount: 0, qualifyingTeams: 48, eliminationCount: 0, teamsPerLobby: 16 },
+      { name: 'Round 2', type: 'ROUND_2', teamsCount: 0, qualifyingTeams: 32, eliminationCount: 0, teamsPerLobby: 16 },
+      { name: 'Semi Finals', type: 'SEMI_FINALS', teamsCount: 0, qualifyingTeams: 16, eliminationCount: 0, teamsPerLobby: 16 },
+      { name: 'Grand Finals', type: 'GRAND_FINALS', teamsCount: 0, qualifyingTeams: 1, eliminationCount: 0, teamsPerLobby: 16 },
+    ],
+    recommendedTeams: '128–1000',
+    complexity: 'Advanced',
+  },
+  {
+    id: '5-stage-wildcard',
+    name: '🃏 Wildcard Pro Circuit',
+    description: 'Open Qualifier → Round 1 → Round 2 → Wildcard → Grand Finals — includes last-chance survival round',
+    stages: [
+      { name: 'Open Qualifier', type: 'OPEN_QUALIFIER', teamsCount: 0, qualifyingTeams: 48, eliminationCount: 0, teamsPerLobby: 16 },
+      { name: 'Round 1', type: 'ROUND_1', teamsCount: 0, qualifyingTeams: 24, eliminationCount: 0, teamsPerLobby: 16 },
+      { name: 'Round 2', type: 'ROUND_2', teamsCount: 0, qualifyingTeams: 16, eliminationCount: 0, teamsPerLobby: 16 },
+      { name: 'Wildcard', type: 'WILDCARD', teamsCount: 0, qualifyingTeams: 12, eliminationCount: 0, teamsPerLobby: 16 },
+      { name: 'Grand Finals', type: 'GRAND_FINALS', teamsCount: 0, qualifyingTeams: 1, eliminationCount: 0, teamsPerLobby: 16 },
     ],
     recommendedTeams: '128–2000',
     complexity: 'Advanced',
   },
   {
-    id: '7-stage',
-    name: 'Open Qualifier → Round 1 → Round 2 → Round 3 → Wildcard → Semi Finals → Grand Finals',
-    description: 'Seven-stage professional circuit',
+    id: '6-stage-esports',
+    name: '🏅 Esports League Circuit',
+    description: 'In-Game Qualifier → League Stage → Survival Stage → Playoffs → Semi Finals → Grand Finals — full professional league format',
     stages: [
-      { name: 'Open Qualifier', type: 'OPEN_QUALIFIER', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Round 1', type: 'ROUND_1', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Round 2', type: 'ROUND_2', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Round 3', type: 'ROUND_3', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Wildcard', type: 'WILDCARD', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Semi Finals', type: 'SEMI_FINALS', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Grand Finals', type: 'GRAND_FINALS', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
+      { name: 'In-Game Qualifier', type: 'IN_GAME_QUALIFIER', teamsCount: 0, qualifyingTeams: 48, eliminationCount: 0, teamsPerLobby: 12 },
+      { name: 'League Stage', type: 'LEAGUE_STAGE', teamsCount: 0, qualifyingTeams: 24, eliminationCount: 0, teamsPerLobby: 12 },
+      { name: 'Survival Stage', type: 'SURVIVAL_STAGE', teamsCount: 0, qualifyingTeams: 16, eliminationCount: 0, teamsPerLobby: 12 },
+      { name: 'Playoffs', type: 'PLAYOFFS', teamsCount: 0, qualifyingTeams: 12, eliminationCount: 0, teamsPerLobby: 12 },
+      { name: 'Semi Finals', type: 'SEMI_FINALS', teamsCount: 0, qualifyingTeams: 6, eliminationCount: 0, teamsPerLobby: 12 },
+      { name: 'Grand Finals', type: 'GRAND_FINALS', teamsCount: 0, qualifyingTeams: 1, eliminationCount: 0, teamsPerLobby: 12 },
     ],
-    recommendedTeams: '128–4000',
-    complexity: 'Advanced',
-  },
-  {
-    id: '8-stage',
-    name: 'Open Qualifier → Round 1 → Round 2 → League Stage → Survival Stage → Playoffs → Semi Finals → Grand Finals',
-    description: 'Full esports league format with group stages',
-    stages: [
-      { name: 'Open Qualifier', type: 'OPEN_QUALIFIER', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Round 1', type: 'ROUND_1', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Round 2', type: 'ROUND_2', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'League Stage', type: 'LEAGUE_STAGE', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Survival Stage', type: 'SURVIVAL_STAGE', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Playoffs', type: 'PLAYOFFS', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Semi Finals', type: 'SEMI_FINALS', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Grand Finals', type: 'GRAND_FINALS', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-    ],
-    recommendedTeams: '256–8000',
+    recommendedTeams: '96–1000',
     complexity: 'Professional',
   },
   {
-    id: '9-stage',
-    name: 'In-Game Qualifier → Online Qualifier → Round 1 → Round 2 → Wildcard → League Stage → Survival Stage → Playoffs → Grand Finals',
-    description: 'Professional esports league — multiple qualifier phases',
+    id: '7-stage-pro',
+    name: '👑 Ultimate Pro League',
+    description: 'In-Game Qualifier → Online Qualifier → Round 1 → Round 2 → Wildcard → Semi Finals → Grand Finals — maximum competitive depth',
     stages: [
-      { name: 'In-Game Qualifier', type: 'IN_GAME_QUALIFIER', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Online Qualifier', type: 'ONLINE_QUALIFIER', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Round 1', type: 'ROUND_1', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Round 2', type: 'ROUND_2', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Wildcard', type: 'WILDCARD', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'League Stage', type: 'LEAGUE_STAGE', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Survival Stage', type: 'SURVIVAL_STAGE', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Playoffs', type: 'PLAYOFFS', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Grand Finals', type: 'GRAND_FINALS', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
+      { name: 'In-Game Qualifier', type: 'IN_GAME_QUALIFIER', teamsCount: 0, qualifyingTeams: 128, eliminationCount: 0, teamsPerLobby: 16 },
+      { name: 'Online Qualifier', type: 'ONLINE_QUALIFIER', teamsCount: 0, qualifyingTeams: 64, eliminationCount: 0, teamsPerLobby: 16 },
+      { name: 'Round 1', type: 'ROUND_1', teamsCount: 0, qualifyingTeams: 32, eliminationCount: 0, teamsPerLobby: 16 },
+      { name: 'Round 2', type: 'ROUND_2', teamsCount: 0, qualifyingTeams: 16, eliminationCount: 0, teamsPerLobby: 16 },
+      { name: 'Wildcard', type: 'WILDCARD', teamsCount: 0, qualifyingTeams: 12, eliminationCount: 0, teamsPerLobby: 16 },
+      { name: 'Semi Finals', type: 'SEMI_FINALS', teamsCount: 0, qualifyingTeams: 6, eliminationCount: 0, teamsPerLobby: 16 },
+      { name: 'Grand Finals', type: 'GRAND_FINALS', teamsCount: 0, qualifyingTeams: 1, eliminationCount: 0, teamsPerLobby: 16 },
     ],
-    recommendedTeams: '512–10000+',
+    recommendedTeams: '256–5000+',
     complexity: 'Professional',
-  },
-  {
-    id: '10-stage',
-    name: 'In-Game Qualifier → Open Qualifier → Round 1 → Round 2 → Round 3 → Wildcard → League Stage → Survival Stage → Playoffs → Grand Finals',
-    description: 'Ultimate professional esports infrastructure',
-    stages: [
-      { name: 'In-Game Qualifier', type: 'IN_GAME_QUALIFIER', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Open Qualifier', type: 'OPEN_QUALIFIER', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Round 1', type: 'ROUND_1', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Round 2', type: 'ROUND_2', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Round 3', type: 'ROUND_3', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Wildcard', type: 'WILDCARD', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'League Stage', type: 'LEAGUE_STAGE', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Survival Stage', type: 'SURVIVAL_STAGE', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Playoffs', type: 'PLAYOFFS', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-      { name: 'Grand Finals', type: 'GRAND_FINALS', teamsCount: 0, qualifyingTeams: 0, eliminationCount: 0, teamsPerLobby: 16 },
-    ],
-    recommendedTeams: '1024–10000+',
-    complexity: 'Ultimate',
   },
 ];
 
@@ -311,25 +294,32 @@ export const generateFromStages = async (req: Request, res: Response): Promise<v
       return;
     }
 
-    // Auto-calculate team flow through stages
+    // Auto-calculate team flow through stages (Free Fire & BGMI style progression)
     const generated = stages.map((stage, index) => {
       const prevStage = index > 0 ? stages[index - 1] : null;
       const incomingTeams = prevStage ? prevStage.qualifyingTeams : (tournament.totalRegisteredTeams || 0);
       const isLastStage = index === stages.length - 1;
 
-      // Calculate optimal lobby count
+      // Teams per lobby (default 16 for BGMI, 12 for Free Fire)
       const teamsPerLobby = stage.teamsPerLobby || 16;
-      let lobbyCount = Math.max(1, Math.ceil(incomingTeams / teamsPerLobby));
+      const lobbyCount = Math.max(1, Math.ceil(incomingTeams / teamsPerLobby));
 
-      // Calculate qualifying teams (reduce by ~75% each stage, or keep specified)
-      let qualifyingTeams = stage.qualifyingTeams || Math.max(1, Math.round(incomingTeams * 0.25));
-      // For grand finals, override to 1 winner
+      // Calculate how many teams advance to the next stage
+      let qualifyingTeams: number;
       if (isLastStage) {
+        // Grand Finals: 1 champion is crowned from match scores
+        // The number of teams IN the finals = incomingTeams (from previous stage's qualifyingTeams)
         qualifyingTeams = 1;
+      } else {
+        // Use preset qualifying count (e.g., 12 for FF finals, 16 for BGMI finals)
+        // or auto-calculate ~25% reduction each stage
+        qualifyingTeams = stage.qualifyingTeams || Math.max(1, Math.round(incomingTeams * 0.25));
+        // Ensure we never claim more teams advance than entered
+        qualifyingTeams = Math.min(qualifyingTeams, incomingTeams);
       }
 
-      const eliminationCount = incomingTeams - qualifyingTeams;
-      const matchesCount = lobbyCount;
+      // Calculate eliminations
+      const eliminationCount = Math.max(0, incomingTeams - qualifyingTeams);
 
       return {
         id: stage.id,
@@ -339,7 +329,7 @@ export const generateFromStages = async (req: Request, res: Response): Promise<v
         incomingTeams,
         lobbyCount,
         teamsPerLobby,
-        matchesCount,
+        matchesCount: lobbyCount,
         qualifyingTeams,
         eliminationCount,
         formatType: stage.formatType,
