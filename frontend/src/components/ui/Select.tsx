@@ -19,19 +19,11 @@ interface SelectProps {
   options: SelectOption[];
   className?: string;
   error?: string;
-}
-
-interface SelectProps {
-  label?: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: SelectOption[];
-  className?: string;
-  error?: string;
   size?: 'sm' | 'md' | 'lg';
+  disabled?: boolean;
 }
 
-export function Select({ label, value, onChange, options, className, error, size = 'md' }: SelectProps) {
+export function Select({ label, value, onChange, options, className, error, size = 'md', disabled }: SelectProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const selected = options.find((o) => o.value === value);
@@ -61,12 +53,15 @@ export function Select({ label, value, onChange, options, className, error, size
       )}
       <button
         type="button"
-        onClick={() => setOpen(!open)}
+        onClick={() => !disabled && setOpen(!open)}
         className={cn(
-          'flex items-center bg-white/5 border rounded-lg text-white text-left',
+          'flex items-center border rounded-lg text-white text-left',
           'focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30',
-          'transition-all duration-200 hover:bg-white/[0.07] hover:border-white/20',
-          open && 'border-primary/50 ring-1 ring-primary/30',
+          'transition-all duration-200',
+          disabled
+            ? 'bg-white/[0.02] border-white/5 text-white/30 cursor-not-allowed'
+            : 'bg-white/5 border-white/10 hover:bg-white/[0.07] hover:border-white/20 cursor-pointer',
+          open && !disabled && 'border-primary/50 ring-1 ring-primary/30',
           error && 'border-red-500/50',
           s.button,
           className
@@ -86,59 +81,83 @@ export function Select({ label, value, onChange, options, className, error, size
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: -4, scale: 0.97 }}
+            initial={{ opacity: 0, y: -8, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -4, scale: 0.97 }}
-            transition={{ duration: 0.15 }}
+            exit={{ opacity: 0, y: -8, scale: 0.95 }}
+            transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
             className="relative z-50"
           >
-            <div className="absolute top-1 left-0 right-0 mt-1 bg-surface-50 border border-white/10 rounded-xl overflow-hidden shadow-2xl shadow-black/50 backdrop-blur-xl">
-              {options.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => { onChange(option.value); setOpen(false); }}
-                  className={cn(
-                    'w-full flex items-center text-left transition-all duration-150',
-                    'hover:bg-white/[0.06]',
-                    option.value === value && 'bg-primary/[0.08] text-primary',
-                    s.option
-                  )}
-                >
-                  {option.icon && (
-                    <span className={cn(
-                      'flex-shrink-0',
-                      s.optionIcon,
-                      option.value === value ? 'text-primary' : 'text-white/40'
-                    )}>
-                      {option.icon}
-                    </span>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <span className={cn(
-                      'font-medium block',
-                      s.label,
-                      option.value === value ? 'text-primary' : 'text-white'
-                    )}>
-                      {option.label}
-                    </span>
-                    {option.description && (
+            <div
+              className={cn(
+                'absolute top-1 left-0 right-0 mt-1 overflow-hidden',
+                'bg-surface-50/80 backdrop-blur-2xl',
+                'border border-white/[0.08]',
+                'rounded-xl',
+                'shadow-2xl shadow-black/60',
+                size === 'sm' ? 'min-w-[180px]' : 'min-w-[240px]'
+              )}
+            >
+              {/* Glass shine overlay */}
+              <div className="absolute inset-0 bg-gradient-to-b from-white/[0.04] to-transparent pointer-events-none" />
+
+              <div className="relative">
+                {options.map((option, idx) => (
+                  <motion.button
+                    key={option.value}
+                    type="button"
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.18, delay: idx * 0.03, ease: 'easeOut' }}
+                    onClick={() => { onChange(option.value); setOpen(false); }}
+                    className={cn(
+                      'w-full flex items-center text-left transition-all duration-150',
+                      'hover:bg-white/[0.08] hover:backdrop-blur-sm',
+                      'active:scale-[0.98]',
+                      option.value === value && 'bg-primary/[0.10] text-primary',
+                      s.option,
+                      idx > 0 && 'border-t border-white/[0.03]'
+                    )}
+                  >
+                    {option.icon && (
                       <span className={cn(
-                        'text-white/40 mt-0.5 block',
-                        size === 'sm' ? 'text-[10px]' : 'text-xs'
+                        'flex-shrink-0',
+                        s.optionIcon,
+                        option.value === value ? 'text-primary' : 'text-white/40',
+                        'transition-colors duration-200'
                       )}>
-                        {option.description}
+                        {option.icon}
                       </span>
                     )}
-                  </div>
-                  {option.value === value && (
-                    <motion.div
-                      layoutId="selectCheck"
-                      className={cn('rounded-full bg-primary flex-shrink-0', size === 'sm' ? 'w-1.5 h-1.5' : 'w-2 h-2')}
-                    />
-                  )}
-                </button>
-              ))}
+                    <div className="flex-1 min-w-0">
+                      <span className={cn(
+                        'block',
+                        s.label,
+                        option.value === value ? 'text-primary' : 'text-white/90',
+                        'transition-colors duration-200'
+                      )}>
+                        {option.label}
+                      </span>
+                      {option.description && (
+                        <span className={cn(
+                          'text-white/40 mt-0.5 block',
+                          size === 'sm' ? 'text-[10px]' : 'text-xs'
+                        )}>
+                          {option.description}
+                        </span>
+                      )}
+                    </div>
+                    {option.value === value && (
+                      <motion.div
+                        layoutId="selectCheck"
+                        className={cn(
+                          'rounded-full bg-primary flex-shrink-0',
+                          size === 'sm' ? 'w-1.5 h-1.5' : 'w-2 h-2'
+                        )}
+                      />
+                    )}
+                  </motion.button>
+                ))}
+              </div>
             </div>
           </motion.div>
         )}

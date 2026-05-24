@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi, tournamentApi } from '@/services/api';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
-import { Card, Button, Input, Badge } from '@/components/ui';
+import { Card, Button, Input, Badge, Select } from '@/components/ui';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
 import {
@@ -15,6 +15,7 @@ import {
   UserCheck, UserX, Clock,
   PlayCircle, CheckCircle,
   Wallet, DollarSign, Minus,
+  Crosshair, UserPlus, XCircle, Shield, Star, User,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -323,16 +324,16 @@ function TournamentsTab() {
                 <Input label="Prize Pool" value={form.prizePool} onChange={(e) => setForm({ ...form, prizePool: e.target.value })} />
                 <Input label="Entry Fee" value={form.entryFee} onChange={(e) => setForm({ ...form, entryFee: e.target.value })} />
                 <div>
-                  <label className="block text-sm font-medium text-white/70 mb-1.5">Mode</label>
-                  <select
+                  <Select
+                    label="Mode"
                     value={form.mode}
-                    onChange={(e) => setForm({ ...form, mode: e.target.value })}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-primary/50 transition-all"
-                  >
-                    <option value="SOLO">Solo</option>
-                    <option value="DUO">Duo</option>
-                    <option value="SQUAD">Squad</option>
-                  </select>
+                    onChange={(v) => setForm({ ...form, mode: v })}
+                    options={[
+                      { value: 'SOLO', label: 'Solo', icon: <Crosshair className="w-full h-full" />, description: '1 player per team' },
+                      { value: 'DUO', label: 'Duo', icon: <Users className="w-full h-full" />, description: '2 players per team' },
+                      { value: 'SQUAD', label: 'Squad', icon: <Swords className="w-full h-full" />, description: '4 players per team' },
+                    ]}
+                  />
                 </div>
                 <Input label="Slots" type="number" value={form.slots.toString()} onChange={(e) => setForm({ ...form, slots: parseInt(e.target.value) || 0 })} />
                 <Input label="Start Date" type="datetime-local" value={form.startsAt} onChange={(e) => setForm({ ...form, startsAt: e.target.value })} />
@@ -397,22 +398,25 @@ function TournamentsTab() {
                       <span className="text-sm text-white font-medium">{t.title}</span>
                     </td>
                     <td className="p-4">
-                      <select
-                        value={t.status}
-                        onChange={(e) => {
-                          if (confirm(`Change "${t.title}" status to ${e.target.value}?`)) {
-                            statusMutation.mutate({ id: t.id, status: e.target.value });
-                          }
-                        }}
-                        className="bg-transparent text-xs border border-white/10 rounded-lg px-2 py-1 text-white/70 cursor-pointer focus:border-primary/50 transition-all"
-                        disabled={statusMutation.isPending}
-                      >
-                        <option value="UPCOMING">Upcoming</option>
-                        <option value="REGISTRATION_OPEN">Registration Open</option>
-                        <option value="LIVE">Live</option>
-                        <option value="COMPLETED">Completed</option>
-                        <option value="CANCELLED">Cancelled</option>
-                      </select>
+                      <div className="inline-block min-w-[140px]">
+                        <Select
+                          size="sm"
+                          value={t.status}
+                          onChange={(v) => {
+                            if (confirm(`Change "${t.title}" status to ${v}?`)) {
+                              statusMutation.mutate({ id: t.id, status: v });
+                            }
+                          }}
+                          disabled={statusMutation.isPending}
+                          options={[
+                            { value: 'UPCOMING', label: 'Upcoming', icon: <Clock className="w-full h-full" /> },
+                            { value: 'REGISTRATION_OPEN', label: 'Registration Open', icon: <UserPlus className="w-full h-full" /> },
+                            { value: 'LIVE', label: 'Live', icon: <PlayCircle className="w-full h-full" /> },
+                            { value: 'COMPLETED', label: 'Completed', icon: <CheckCircle className="w-full h-full" /> },
+                            { value: 'CANCELLED', label: 'Cancelled', icon: <XCircle className="w-full h-full" /> },
+                          ]}
+                        />
+                      </div>
                     </td>
                     <td className="p-4 text-sm text-white/70">{t.prizePool}</td>
                     <td className="p-4">
@@ -654,24 +658,30 @@ function UsersTab() {
                     </td>
                     <td className="p-4 text-sm text-white/50">{u.email}</td>
                     <td className="p-4">
-                      <select
-                        value={u.role}
-                        onChange={(e) => {
-                          if (confirm(`Change ${u.username}'s role to ${e.target.value}?`)) {
-                            roleMutation.mutate({ id: u.id, role: e.target.value });
+                      <div className="inline-block min-w-[120px]">
+                        <Select
+                          size="sm"
+                          value={u.role}
+                          onChange={(v) => {
+                            if (confirm(`Change ${u.username}'s role to ${v}?`)) {
+                              roleMutation.mutate({ id: u.id, role: v });
+                            }
+                          }}
+                          disabled={roleMutation.isPending}
+                          className={
+                            u.role === 'ADMIN' ? 'text-amber-400' :
+                            u.role === 'MODERATOR' ? 'text-orange-400' :
+                            u.role === 'ORGANIZER' ? 'text-green-400' :
+                            'text-slate-400'
                           }
-                        }}
-                        className="bg-transparent text-xs border border-white/10 rounded-lg px-2 py-1 cursor-pointer focus:border-primary/50 transition-all"
-                        disabled={roleMutation.isPending}
-                        style={{
-                          color: u.role === 'ADMIN' ? '#fbbf24' : u.role === 'MODERATOR' ? '#f59e0b' : u.role === 'ORGANIZER' ? '#22c55e' : '#94a3b8',
-                        }}
-                      >
-                        <option value="USER" style={{ color: '#94a3b8' }}>User</option>
-                        <option value="MODERATOR" style={{ color: '#f59e0b' }}>Moderator</option>
-                        <option value="ORGANIZER" style={{ color: '#22c55e' }}>Organizer</option>
-                        <option value="ADMIN" style={{ color: '#fbbf24' }}>Admin</option>
-                      </select>
+                          options={[
+                            { value: 'USER', label: 'User', icon: <User className="w-full h-full" /> },
+                            { value: 'MODERATOR', label: 'Moderator', icon: <Shield className="w-full h-full" /> },
+                            { value: 'ORGANIZER', label: 'Organizer', icon: <Trophy className="w-full h-full" /> },
+                            { value: 'ADMIN', label: 'Admin', icon: <Star className="w-full h-full" /> },
+                          ]}
+                        />
+                      </div>
                     </td>
                     <td className="p-4 text-sm text-white/70">{u.points.toLocaleString()}</td>
                     <td className="p-4 text-sm text-white/70">
@@ -1219,16 +1229,16 @@ function BroadcastTab() {
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-white/70 mb-1.5">Notification Type</label>
-            <select
+            <Select
+              label="Notification Type"
               value={type}
-              onChange={(e) => setType(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-primary/50 transition-all"
-            >
-              <option value="SYSTEM">System Announcement</option>
-              <option value="TOURNAMENT_UPDATE">Tournament Update</option>
-              <option value="CLAN_INVITE">Clan Related</option>
-            </select>
+              onChange={(v) => setType(v)}
+              options={[
+                { value: 'SYSTEM', label: 'System Announcement', icon: <Bell className="w-full h-full" />, description: 'General platform-wide announcement' },
+                { value: 'TOURNAMENT_UPDATE', label: 'Tournament Update', icon: <Trophy className="w-full h-full" />, description: 'Tournament-related notifications' },
+                { value: 'CLAN_INVITE', label: 'Clan Related', icon: <Swords className="w-full h-full" />, description: 'Clan and team announcements' },
+              ]}
+            />
           </div>
 
           <Input
