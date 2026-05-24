@@ -26,6 +26,9 @@ export default function StagePresetSelector({ onSelect, onBack }: StagePresetSel
   const { data, isLoading } = useQuery({
     queryKey: ['stage-presets'],
     queryFn: () => tournamentApi.getStagePresets(),
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: true,
   });
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
