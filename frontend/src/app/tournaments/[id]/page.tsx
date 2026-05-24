@@ -249,13 +249,9 @@ export default function TournamentDetailPage() {
                       // Group by clan for DUO/SQUAD, show individual for SOLO
                       const clanGroups: Record<string, any[]> = {};
                       const soloPlayers: any[] = [];
-                      const guestPlayers: any[] = [];
 
                       tournament.registrations.forEach((reg: any) => {
-                        const isGuest = !reg.user && reg.guestIgn;
-                        if (isGuest) {
-                          guestPlayers.push(reg);
-                        } else if (reg.clanId) {
+                        if (reg.clanId) {
                           if (!clanGroups[reg.clanId]) clanGroups[reg.clanId] = [];
                           // Only show each member once (they appear multiple times)
                           if (!clanGroups[reg.clanId].find((r: any) => r.user?.id === reg.user?.id)) {
@@ -290,50 +286,34 @@ export default function TournamentDetailPage() {
                                   <div key={reg.user?.id || reg.id} className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-white/5">
                                     <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
                                       <span className="text-[10px] font-bold text-primary">
-                                        {((reg.user?.ign || reg.user?.username)?.[0] || '?').toUpperCase()}
+                                        {((reg.user?.ign || reg.user?.username || reg.guestIgn || '?')[0]).toUpperCase()}
                                       </span>
                                     </div>
-                                    <span className="text-xs text-white/80">{reg.user?.ign || reg.user?.username}</span>
+                                    <span className="text-xs text-white/80">{reg.user?.ign || reg.user?.username || reg.guestIgn}</span>
                                   </div>
                                 ))}
                               </div>
                             </div>
                           ))}
-                          {/* Guest players */}
-                          {guestPlayers.map((reg: any) => (
-                            <div key={reg.id} className="flex items-center gap-3 p-3 rounded-lg bg-yellow-500/[0.03] border border-yellow-500/10 hover:bg-yellow-500/[0.05] transition-colors">
-                              <div className="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center">
-                                <span className="text-xs font-bold text-yellow-400">?</span>
-                              </div>
-                              <div className="flex-1">
-                                <p className="text-sm font-medium text-white flex items-center gap-2">
-                                  {reg.guestIgn}
-                                  <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
-                                    Guest
+                          {/* Solo & IGN-added players */}
+                          {soloPlayers.map((reg: any) => {
+                            const displayName = reg.user?.ign || reg.user?.username || reg.guestIgn || 'Unknown';
+                            return (
+                              <div key={reg.id} className="flex items-center gap-3 p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center">
+                                  <span className="text-xs font-bold text-primary">
+                                    {displayName[0].toUpperCase()}
                                   </span>
-                                </p>
-                                {reg.teamName && (
-                                  <p className="text-xs text-white/40">{reg.teamName}</p>
-                                )}
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-white">{displayName}</p>
+                                  {reg.teamName && (
+                                    <p className="text-xs text-white/40">{reg.teamName}</p>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          ))}
-                          {/* Solo players */}
-                          {soloPlayers.map((reg: any) => (
-                            <div key={reg.id} className="flex items-center gap-3 p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
-                              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                                <span className="text-xs font-bold text-primary">
-                                  {((reg.user?.ign || reg.user?.username)?.[0] || '?').toUpperCase()}
-                                </span>
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-white">{reg.user?.ign || reg.user?.username}</p>
-                                {reg.teamName && (
-                                  <p className="text-xs text-white/40">{reg.teamName}</p>
-                                )}
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </>
                       );
                     })()}

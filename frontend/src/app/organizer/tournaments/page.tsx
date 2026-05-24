@@ -826,9 +826,9 @@ function OrganizerContent() {
                 ) : (
                   <div className="space-y-2">
                     {participantData?.tournament?.registrations?.map((reg: any) => {
-                      const isGuest = !reg.user && reg.guestIgn;
-                      const displayName = isGuest ? reg.guestIgn : (reg.user?.ign || reg.user?.username || 'Unknown');
+                      const displayName = reg.user?.ign || reg.user?.username || reg.guestIgn || 'Unknown';
                       const avatarUrl = reg.user?.avatarUrl;
+                      const avatarLetter = (reg.user?.ign || reg.user?.username || reg.guestIgn || '?')[0].toUpperCase();
                       return (
                         <div key={reg.id} className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all group">
                           <div className="flex items-center gap-3">
@@ -837,18 +837,13 @@ function OrganizerContent() {
                                 <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
                               ) : (
                                 <span className="text-xs font-bold text-white/60">
-                                  {isGuest ? '?' : (reg.user?.username?.[0] || '?')}
+                                  {avatarLetter}
                                 </span>
                               )}
                             </div>
                             <div>
-                              <p className="text-sm font-semibold text-white flex items-center gap-2">
+                              <p className="text-sm font-semibold text-white">
                                 {displayName}
-                                {isGuest && (
-                                  <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
-                                    Guest
-                                  </span>
-                                )}
                               </p>
                               {reg.teamName && (
                                 <p className="text-xs text-white/40">{reg.teamName}</p>
