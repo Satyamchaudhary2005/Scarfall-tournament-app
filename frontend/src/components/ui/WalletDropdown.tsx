@@ -131,8 +131,7 @@ export function WalletDropdown() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.96 }}
             transition={{ type: 'spring', duration: 0.35, bounce: 0.15 }}
-            className="absolute right-0 top-full mt-2 overflow-hidden z-50"
-            style={{ width: '360px' }}
+            className="absolute right-0 top-full mt-2 overflow-hidden z-50 w-[calc(100vw-2rem)] sm:w-[360px] max-sm:right-4 max-sm:left-4"
           >
             {/* Outer glass container */}
             <div className="relative bg-gradient-to-b from-[#0d0d1a]/95 to-[#111128]/95 backdrop-blur-2xl border border-white/[0.08] rounded-2xl shadow-2xl shadow-black/60 overflow-hidden">
@@ -142,9 +141,9 @@ export function WalletDropdown() {
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-60 h-60 bg-red-500/3 rounded-full blur-3xl" />
 
               {/* Header section */}
-              <div className="relative px-5 pt-5 pb-4">
+              <div className="relative px-3 sm:px-5 pt-4 sm:pt-5 pb-4">
                 {/* Tabs */}
-                <div className="flex items-center gap-1 bg-white/[0.04] rounded-xl p-1 mb-4">
+                <div className="flex items-center gap-1 bg-white/[0.04] rounded-xl p-1 mb-4 overflow-x-auto">
                   {(['balance', 'deposit', 'withdraw', 'history'] as const).map((tab) => {
                     const Icon = tabIcons[tab];
                     return (
@@ -182,7 +181,7 @@ export function WalletDropdown() {
                   >
                     <p className="text-xs text-white/30 font-medium tracking-[0.2em] uppercase mb-3">Total Balance</p>
                     <div className="flex items-center justify-center gap-2">
-                      <span className="text-5xl font-black text-white tracking-tight">
+                      <span className="text-4xl sm:text-5xl font-black text-white tracking-tight">
                         ₹<AnimatedNumber value={balance} />
                       </span>
                     </div>
@@ -212,7 +211,7 @@ export function WalletDropdown() {
                     animate={{ opacity: 1, y: 0 }}
                     className="relative"
                   >
-                    <div className="flex items-center gap-3 mb-4">
+                    <div className="flex items-center gap-2 sm:gap-3 mb-4">
                       <div className={cn(
                         'w-10 h-10 rounded-xl flex items-center justify-center shadow-lg',
                         activeTab === 'deposit'
@@ -249,7 +248,7 @@ export function WalletDropdown() {
                       />
                     </div>
 
-                    <div className="flex gap-2 mb-3">
+                    <div className="grid grid-cols-4 gap-2 mb-3">
                       {[100, 500, 1000, 5000].map((amt) => (
                         <button
                           key={amt}
@@ -307,7 +306,7 @@ export function WalletDropdown() {
                       </div>
                     </div>
 
-                    <div className="space-y-0.5 max-h-60 overflow-y-auto -mx-1 pr-1 scrollbar-thin">
+                    <div className="space-y-0.5 max-h-48 sm:max-h-60 overflow-y-auto -mx-1 pr-1 scrollbar-thin">
                       {transactions.length === 0 ? (
                         <div className="text-center py-8">
                           <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-white/[0.03] border border-white/[0.05] flex items-center justify-center">
