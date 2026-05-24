@@ -109,6 +109,15 @@ export const tournamentApi = {
   getMyRegistrations: () =>
     request<{ registrations: TournamentRegistration[] }>('/tournaments/my-registrations'),
 
+  getMyTournaments: () =>
+    request<{ tournaments: Tournament[] }>('/tournaments/my-tournaments'),
+
+  deleteHosted: (id: string) =>
+    request<{ message: string }>(`/tournaments/${id}`, { method: 'DELETE' }),
+
+  cleanupOld: () =>
+    request<{ message: string; deleted: string[] }>('/tournaments/cleanup/old', { method: 'POST' }),
+
   create: (data: any) =>
     request<{ message: string; tournament: Tournament }>('/tournaments', { method: 'POST', body: JSON.stringify(data) }),
 

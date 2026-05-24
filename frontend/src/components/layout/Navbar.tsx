@@ -144,24 +144,24 @@ export function Navbar() {
                           <span className="text-sm">Profile</span>
                         </Link>
                         <Link
-                          href="/profile/tournaments"
+                          href="/organizer/tournaments"
                           className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors"
                         >
                           <Trophy className="w-4 h-4 text-white/50" />
                           <span className="text-sm">My Tournaments</span>
                         </Link>
-                        <Link
-                          href="/clans/invites"
-                          className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors relative"
-                        >
-                          <Mail className="w-4 h-4 text-white/50" />
-                          <span className="text-sm">Clan Invites</span>
-                          {pendingInvitesCount > 0 && (
-                            <span className="ml-auto px-1.5 py-0.5 text-[10px] font-bold bg-primary text-white rounded-full min-w-[18px] text-center">
-                              {pendingInvitesCount}
-                            </span>
-                          )}
-                        </Link>
+                          <Link
+                            href="/clans/invites"
+                            className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors relative"
+                          >
+                            <Mail className="w-4 h-4 text-white/50" />
+                            <span className="text-sm">Clan Invites</span>
+                            {pendingInvitesCount > 0 && (
+                              <span className="ml-auto px-1.5 py-0.5 text-[10px] font-bold bg-primary text-white rounded-full min-w-[18px] text-center">
+                                {pendingInvitesCount}
+                              </span>
+                            )}
+                          </Link>
                         {user.role === 'ADMIN' && (
                           <Link
                             href="/admin"

@@ -485,6 +485,81 @@ export const getMyRegistrations = async (req: Request, res: Response): Promise<v
   }
 };
 
+export const getMyTournaments = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const tournaments = await prisma.tournament.findMany({
+      where: { hostId: req.user!.id },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        _count: { select: { registrations: true } },
+      },
+    });
+
+    res.json({ tournaments });
+  } catch (error) {
+    console.error('Get my tournaments error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const deleteHostedTournament = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const id = req.params.id;
+
+    const tournament = await prisma.tournament.findUnique({ where: { id } });
+    if (!tournament) {
+      res.status(404).json({ error: 'Tournament not found' });
+      return;
+    }
+
+    if (tournament.hostId !== req.user!.id && req.user!.role !== 'ADMIN') {
+      res.status(403).json({ error: 'Not authorized to delete this tournament' });
+      return;
+    }
+
+    await prisma.tournamentRegistration.deleteMany({ where: { tournamentId: id } });
+    await prisma.tournament.delete({ where: { id } });
+
+    res.json({ message: 'Tournament deleted successfully' });
+  } catch (error) {
+    console.error('Delete hosted tournament error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const cleanupOldTournaments = async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+
+    const oldTournaments = await prisma.tournament.findMany({
+      where: {
+        status: 'COMPLETED',
+        endsAt: { lt: twoDaysAgo },
+      },
+      select: { id: true, title: true },
+    });
+
+    const ids = oldTournaments.map((t) => t.id);
+
+    if (ids.length > 0) {
+      await prisma.tournamentRegistration.deleteMany({
+        where: { tournamentId: { in: ids } },
+      });
+      await prisma.tournament.deleteMany({
+        where: { id: { in: ids } },
+      });
+    }
+
+    res.json({
+      message: `Cleaned up ${ids.length} old tournament(s)`,
+      deleted: oldTournaments.map((t) => t.title),
+    });
+  } catch (error) {
+    console.error('Cleanup old tournaments error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 export const getLiveTournaments = async (_req: Request, res: Response): Promise<void> => {
   try {
     const tournaments = await prisma.tournament.findMany({
