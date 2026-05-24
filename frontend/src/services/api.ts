@@ -92,10 +92,11 @@ export const authApi = {
 
 // Tournament API
 export const tournamentApi = {
-  getAll: (params?: { status?: string; mode?: string; search?: string; page?: number; limit?: number }) => {
+  getAll: (params?: { status?: string; mode?: string; search?: string; type?: string; page?: number; limit?: number }) => {
     const searchParams = new URLSearchParams();
     if (params?.status && params.status !== 'ALL') searchParams.set('status', params.status);
     if (params?.mode && params.mode !== 'ALL') searchParams.set('mode', params.mode);
+    if (params?.type) searchParams.set('type', params.type);
     if (params?.search) searchParams.set('search', params.search);
     if (params?.page) searchParams.set('page', params.page.toString());
     if (params?.limit) searchParams.set('limit', params.limit.toString());

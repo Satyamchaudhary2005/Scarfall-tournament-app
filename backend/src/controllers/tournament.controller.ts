@@ -9,6 +9,7 @@ export const getTournaments = async (req: Request, res: Response): Promise<void>
     const status = req.query.status as string | undefined;
     const mode = req.query.mode as string | undefined;
     const search = req.query.search as string | undefined;
+    const type = req.query.type as string | undefined;
     const pageStr = req.query.page as string | undefined;
     const limitStr = req.query.limit as string | undefined;
     const { skip, take, page, limit } = paginate(
@@ -20,6 +21,22 @@ export const getTournaments = async (req: Request, res: Response): Promise<void>
 
     if (status && status !== 'ALL') where.status = status;
     if (mode && mode !== 'ALL') where.mode = mode;
+    if (type) {
+      switch (type) {
+        case 'multi':
+          where.format = { in: ['MULTI_ROUND', 'MULTI_STAGE'] };
+          break;
+        case 'single':
+          where.format = 'SINGLE';
+          break;
+        case 'free':
+          where.entryFee = 'Free';
+          break;
+        case 'earn-per-kill':
+          where.killPoints = { gt: 0 };
+          break;
+      }
+    }
     if (search) {
       where.OR = [
         { title: { contains: search as string, mode: 'insensitive' } },

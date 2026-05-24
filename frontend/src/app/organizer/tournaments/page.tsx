@@ -15,7 +15,7 @@ import Link from 'next/link';
 import {
   Trophy, Plus, Search, X, Trash2, Edit3,
   AlertTriangle, RefreshCw, PlayCircle, CheckCircle, Clock, Users, Key,
-  Crosshair, Skull, Target, Swords, Layers,
+  Crosshair, Skull, Target, Swords, Layers, Crown,
   Upload, ChevronDown,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -322,14 +322,24 @@ function OrganizerContent() {
     });
   };
 
-  const filtered = data?.tournaments?.filter((t) =>
-    !search || t.title.toLowerCase().includes(search.toLowerCase())
-  );
+  const [typeFilter, setTypeFilter] = useState<string>('ALL');
+
+  const filtered = data?.tournaments?.filter((t) => {
+    if (search && !t.title.toLowerCase().includes(search.toLowerCase())) return false;
+    if (typeFilter === 'ALL') return true;
+    switch (typeFilter) {
+      case 'multi': return t.format === 'MULTI_ROUND' || t.format === 'MULTI_STAGE';
+      case 'single': return t.format === 'SINGLE';
+      case 'free': return t.entryFee === 'Free';
+      case 'earn-per-kill': return (t.killPoints || 0) > 0;
+      default: return true;
+    }
+  });
 
   return (
     <div>
       {/* Action bar */}
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between mb-4">
         <div className="relative flex-1 max-w-md w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
           <input
@@ -355,6 +365,54 @@ function OrganizerContent() {
             Create
           </Button>
         </div>
+      </div>
+
+      {/* Category Filter Tabs */}
+      <div className="flex flex-wrap gap-1.5 mb-6">
+        <button
+          onClick={() => setTypeFilter('ALL')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            typeFilter === 'ALL' ? 'bg-primary text-white' : 'bg-white/5 text-white/50 hover:text-white hover:bg-white/10'
+          }`}
+        >
+          All Categories
+        </button>
+        <button
+          onClick={() => setTypeFilter('multi')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            typeFilter === 'multi' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'bg-white/5 text-white/50 hover:text-white hover:bg-white/10'
+          }`}
+        >
+          <Layers className="w-3 h-3 inline mr-1" />
+          Multi Tournament
+        </button>
+        <button
+          onClick={() => setTypeFilter('single')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            typeFilter === 'single' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-white/5 text-white/50 hover:text-white hover:bg-white/10'
+          }`}
+        >
+          <Target className="w-3 h-3 inline mr-1" />
+          Single Match
+        </button>
+        <button
+          onClick={() => setTypeFilter('free')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            typeFilter === 'free' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-white/5 text-white/50 hover:text-white hover:bg-white/10'
+          }`}
+        >
+          <Crown className="w-3 h-3 inline mr-1" />
+          Free Entry
+        </button>
+        <button
+          onClick={() => setTypeFilter('earn-per-kill')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            typeFilter === 'earn-per-kill' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' : 'bg-white/5 text-white/50 hover:text-white hover:bg-white/10'
+          }`}
+        >
+          <Crosshair className="w-3 h-3 inline mr-1" />
+          Earn Per Kill
+        </button>
       </div>
 
       {/* Create/Edit Form */}
