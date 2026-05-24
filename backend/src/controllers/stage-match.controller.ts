@@ -119,16 +119,16 @@ export const generateStageMatches = async (req: Request, res: Response): Promise
       const regs = tournament.registrations;
       if (tournament.mode === 'SOLO') {
         incomingTeams = regs.map((r) => ({
-          teamId: r.userId,
-          teamName: r.user.ign || r.user.username,
+          teamId: r.userId || r.id,
+          teamName: r.user?.ign || r.user?.username || r.guestIgn || 'Unknown',
         }));
       } else {
         // Group by clan/team
         const teamMap = new Map<string, string>();
         for (const r of regs) {
-          const tid = r.clanId || r.teamName || r.userId;
+          const tid = r.clanId || r.teamName || r.userId || r.id;
           if (!teamMap.has(tid)) {
-            teamMap.set(tid, r.clan?.name || r.teamName || r.user.username);
+            teamMap.set(tid, r.clan?.name || r.teamName || r.user?.username || r.guestIgn || 'Unknown');
           }
         }
         incomingTeams = Array.from(teamMap.entries()).map(([id, name]) => ({

@@ -285,14 +285,15 @@ export const updateTournamentStatus = async (req: Request, res: Response): Promi
       },
     });
 
-    // Notify all registrants about status change
+    // Notify all registered users about status change (skip guests with no userId)
     if (['LIVE', 'COMPLETED', 'CANCELLED'].includes(status)) {
       const registrations = await prisma.tournamentRegistration.findMany({
-        where: { tournamentId: id },
+        where: { tournamentId: id, userId: { not: null } },
         select: { userId: true },
       });
 
       for (const reg of registrations) {
+        if (!reg.userId) continue;
         const notification = await prisma.notification.create({
           data: {
             type: 'TOURNAMENT_UPDATE',
@@ -589,7 +590,7 @@ export const broadcastNotification = async (req: Request, res: Response): Promis
       type: notificationType,
       title,
       message,
-      link: link || null,
+      link: link ?? undefined,
       recipientId: user.id,
       senderId: req.user!.id,
     }));
@@ -609,7 +610,7 @@ export const broadcastNotification = async (req: Request, res: Response): Promis
           type: notificationType,
           title,
           message,
-          link: link || null,
+          link: link ?? undefined,
           read: false,
           createdAt: new Date().toISOString(),
         });

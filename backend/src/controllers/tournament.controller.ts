@@ -777,13 +777,13 @@ export const setRoomCredentials = async (req: Request, res: Response): Promise<v
       },
     });
 
-    // Notify all registered participants
+    // Notify all registered participants (skip guests with no userId)
     const registrations = await prisma.tournamentRegistration.findMany({
-      where: { tournamentId: id },
+      where: { tournamentId: id, userId: { not: null } },
       select: { userId: true },
     });
 
-    const notification = await prisma.notification.create({
+    await prisma.notification.create({
       data: {
         type: 'ROOM_CREDENTIALS',
         title: 'Room credentials available',
@@ -793,8 +793,9 @@ export const setRoomCredentials = async (req: Request, res: Response): Promise<v
       },
     });
 
-    // Create & emit notification for each participant
+    // Create & emit notification for each registered user participant
     for (const reg of registrations) {
+      if (!reg.userId) continue;
       const userNotification = await prisma.notification.create({
         data: {
           type: 'ROOM_CREDENTIALS',
@@ -1084,10 +1085,10 @@ export const getScoreboard = async (req: Request, res: Response): Promise<void> 
     // Determine teams from registrations
     if (tournament.mode === 'SOLO') {
       for (const reg of tournament.registrations) {
-        const teamId = reg.user.id;
+        const teamId = reg.user?.id || reg.id;
         teamScores[teamId] = {
           teamId,
-          teamName: reg.user.ign || reg.user.username,
+          teamName: reg.user?.ign || reg.user?.username || reg.guestIgn || 'Unknown',
           totalPoints: 0,
           totalKills: 0,
           bestPlacement: 99,
@@ -1099,12 +1100,12 @@ export const getScoreboard = async (req: Request, res: Response): Promise<void> 
       // Group registrations by clanId or teamName
       const teamMap: Record<string, { teamId: string; teamName: string }> = {};
       for (const reg of tournament.registrations) {
-        const teamId = reg.clanId || reg.teamName || reg.user.id;
+        const teamId = reg.clanId || reg.teamName || reg.user?.id || reg.id;
         if (!teamMap[teamId]) {
           const clan = reg.clan;
           teamMap[teamId] = {
             teamId,
-            teamName: clan?.name || reg.teamName || reg.user.username,
+            teamName: clan?.name || reg.teamName || reg.user?.username || reg.guestIgn || 'Unknown',
           };
         }
       }
