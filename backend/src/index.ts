@@ -57,6 +57,7 @@ app.get('/api/health', (_req, res) => {
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/tournaments', stageRoutes);
 app.use('/api/tournaments', tournamentRoutes);
 app.use('/api/clans', clanRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
@@ -64,7 +65,6 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/wallet', walletRoutes);
-app.use('/api/tournaments', stageRoutes);
 
 // 404 handler
 app.use((_req, res) => {
