@@ -303,18 +303,30 @@ export default function TournamentsPage() {
           </motion.div>
         )}
 
-        {/* 4 Category Columns */}
+        {/* 4 Category Columns — swipeable on mobile */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-4"
-        >
-          {(Object.keys(TYPE_CONFIG) as CategoryType[]).map((type) => (
-            <div key={type} className="min-w-0">
-              {renderColumn(type)}
-            </div>
-          ))}
+>
+          {/* Mobile: horizontal scroll wrapper */}
+          <div className="flex sm:hidden overflow-x-auto snap-x snap-mandatory gap-4 pb-4 -mx-4 px-4 scrollbar-none" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+            {(Object.keys(TYPE_CONFIG) as CategoryType[]).map((type) => (
+              <div key={type} className="min-w-[280px] w-[80vw] snap-start shrink-0">
+                {renderColumn(type)}
+              </div>
+            ))}
+            {/* End padding for last card */}
+            <div className="w-2 shrink-0" />
+          </div>
+          {/* Tablet+ : grid columns */}
+          <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-6 lg:gap-4 col-span-full">
+            {(Object.keys(TYPE_CONFIG) as CategoryType[]).map((type) => (
+              <div key={type} className="min-w-0">
+                {renderColumn(type)}
+              </div>
+            ))}
+          </div>
         </motion.div>
       </div>
 
