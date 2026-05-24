@@ -54,7 +54,7 @@ export interface ClanBrief {
 // Tournament Types
 export type TournamentStatus = 'UPCOMING' | 'REGISTRATION_OPEN' | 'LIVE' | 'COMPLETED' | 'CANCELLED';
 export type TournamentMode = 'SOLO' | 'DUO' | 'SQUAD';
-export type TournamentFormat = 'SINGLE' | 'MULTI_ROUND';
+export type TournamentFormat = 'SINGLE' | 'MULTI_ROUND' | 'MULTI_STAGE';
 
 export interface Tournament {
   id: string;
@@ -243,6 +243,152 @@ export interface Report {
   reported: UserBrief & { email: string };
   createdAt: string;
   updatedAt: string;
+}
+
+// ===== Multi-Stage Tournament Types =====
+
+export type StageType =
+  | 'IN_GAME_QUALIFIER'
+  | 'OPEN_QUALIFIER'
+  | 'ONLINE_QUALIFIER'
+  | 'KNOCKOUT'
+  | 'ROUND_1'
+  | 'ROUND_2'
+  | 'ROUND_3'
+  | 'WILDCARD'
+  | 'SURVIVAL_STAGE'
+  | 'LEAGUE_STAGE'
+  | 'PLAYOFFS'
+  | 'SEMI_FINALS'
+  | 'GRAND_FINALS'
+  | 'LAST_CHANCE_QUALIFIER'
+  | (string & {});
+
+export interface TournamentStage {
+  id: string;
+  tournamentId: string;
+  stageNumber: number;
+  name: string;
+  type: StageType;
+  status: 'PENDING' | 'ACTIVE' | 'COMPLETED';
+  teamsCount: number;
+  qualifyingTeams: number;
+  eliminationCount: number;
+  lobbyCount: number;
+  teamsPerLobby: number;
+  matchesCount: number;
+  formatType: string;
+  scoringRules: StageScoringRules | null;
+  mapRotation: string[] | null;
+  roomSettings: any | null;
+  startDate: string | null;
+  endDate: string | null;
+}
+
+export interface StageScoringRules {
+  killPoints: number;
+  placementPoints: number[];
+  qualificationRule: 'TOP_N' | 'POINTS_THRESHOLD' | 'WINS_REQUIRED';
+  qualificationValue: number;
+}
+
+export interface StagePreset {
+  id: string;
+  name: string;
+  description: string;
+  stages: StagePresetStage[];
+  recommendedTeams: string;
+  complexity: string;
+}
+
+export interface StagePresetStage {
+  name: string;
+  type: StageType;
+  teamsCount: number;
+  qualifyingTeams: number;
+  eliminationCount: number;
+  teamsPerLobby: number;
+}
+
+export interface StageTypeMeta {
+  value: string;
+  label: string;
+  icon: string;
+  description: string;
+}
+
+export interface StageGenerationResult {
+  stageNumber: number;
+  name: string;
+  type: string;
+  incomingTeams: number;
+  lobbyCount: number;
+  teamsPerLobby: number;
+  matchesCount: number;
+  qualifyingTeams: number;
+  eliminationCount: number;
+}
+
+// ===== Stage Match Types =====
+
+export interface StageMatch {
+  id: string;
+  stageId: string;
+  tournamentId: string;
+  matchNumber: number;
+  name: string;
+  status: 'PENDING' | 'LIVE' | 'COMPLETED';
+  teamsCount: number;
+  roomId: string | null;
+  roomPassword: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  teams: StageMatchTeam[];
+  createdAt: string;
+}
+
+export interface StageMatchTeam {
+  id: string;
+  matchId: string;
+  teamId: string;
+  teamName: string;
+  placement: number;
+  kills: number;
+  points: number;
+  eliminated: boolean;
+  qualified: boolean;
+  confirmed: boolean;
+}
+
+export interface StageBracketEntry {
+  id: string;
+  stageNumber: number;
+  name: string;
+  type: string;
+  status: string;
+  teamsCount: number;
+  qualifyingTeams: number;
+  eliminationCount: number;
+  lobbyCount: number;
+  matches: StageBracketMatch[];
+}
+
+export interface StageBracketMatch {
+  id: string;
+  matchNumber: number;
+  name: string;
+  status: string;
+  teams: StageBracketTeam[];
+}
+
+export interface StageBracketTeam {
+  teamId: string;
+  teamName: string;
+  placement: number;
+  kills: number;
+  points: number;
+  qualified: boolean;
+  eliminated: boolean;
 }
 
 // Wallet Types

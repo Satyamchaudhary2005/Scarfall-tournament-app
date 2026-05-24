@@ -6,13 +6,16 @@ import { tournamentApi } from '@/services/api';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Card, Button, Input, Badge, Select } from '@/components/ui';
+import StageBuilder from '@/components/tournaments/StageBuilder';
+import StageDetailView from '@/components/tournaments/StageDetailView';
+import StageListModal from '@/components/tournaments/StageListModal';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   Trophy, Plus, Search, X, Trash2, Edit3,
   AlertTriangle, RefreshCw, PlayCircle, CheckCircle, Clock, Users, Key,
-  Crosshair, Skull, Target, Swords,
+  Crosshair, Skull, Target, Swords, Layers,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -78,6 +81,11 @@ function OrganizerContent() {
     totalRounds: 3,
     killPoints: 1,
   });
+  const [showStageBuilder, setShowStageBuilder] = useState(false);
+  const [currentTournamentId, setCurrentTournamentId] = useState<string | null>(null);
+  const [showStageMatches, setShowStageMatches] = useState(false);
+  const [selectedStage, setSelectedStage] = useState<any>(null);
+  const [stageListModal, setStageListModal] = useState<string | null>(null);
 
   const resetForm = () => setForm({
     title: '', prizePool: '', entryFee: 'Free', mode: 'SOLO',
@@ -96,18 +104,30 @@ function OrganizerContent() {
       payload.killPoints = data.killPoints || 1;
       payload.totalRounds = data.totalRounds || 3;
     }
+    if (data.format === 'MULTI_STAGE') {
+      // Multi-stage uses the stage builder config, simplified form
+      payload.slots = Math.max(data.slots || 100, 100);
+      payload.totalRounds = undefined;
+      payload.killPoints = undefined;
+      payload.placementPoints = undefined;
+    }
     console.log('Sending payload:', JSON.stringify(payload));
     return payload;
   };
 
   const createMutation = useMutation({
     mutationFn: () => tournamentApi.create(formatFormData(form)),
-    onSuccess: () => {
+    onSuccess: (res: any) => {
       queryClient.invalidateQueries({ queryKey: ['my-tournaments'] });
       queryClient.invalidateQueries({ queryKey: ['tournaments'] });
       toast.success('Tournament created!');
       setShowCreate(false);
       resetForm();
+      // If multi-stage, open the stage builder
+      if (form.format === 'MULTI_STAGE' && res?.tournament?.id) {
+        setCurrentTournamentId(res.tournament.id);
+        setShowStageBuilder(true);
+      }
     },
     onError: (err: any) => {
       console.error('Create tournament error:', err, err.details);
@@ -330,10 +350,11 @@ function OrganizerContent() {
                   <Select
                     label="Format"
                     value={form.format}
-                    onChange={(v) => setForm({ ...form, format: v })}
+                    onChange={(v) => { setForm({ ...form, format: v }); if (v === 'MULTI_STAGE') setShowStageBuilder(true); }}
                     options={[
                       { value: 'SINGLE', label: 'Single Match', icon: <Target className="w-full h-full" />, description: 'One match, winner takes all' },
                       { value: 'MULTI_ROUND', label: 'Multi-Round (BR)', icon: <RefreshCw className="w-full h-full" />, description: 'Multiple matches with cumulative scoring' },
+                      { value: 'MULTI_STAGE', label: 'Multi-Stage Tournament', icon: <Layers className="w-full h-full" />, description: 'Professional multi-stage esports format with eliminations' },
                     ]}
                   />
                 </div>
@@ -619,6 +640,74 @@ function OrganizerContent() {
         )}
       </AnimatePresence>
 
+      {/* Stage List Modal (for match management) */}
+      <AnimatePresence>
+        {stageListModal && (
+          <StageListModal
+            tournamentId={stageListModal}
+            onSelectStage={(stage) => {
+              setSelectedStage(stage);
+              setCurrentTournamentId(stageListModal);
+              setShowStageMatches(true);
+              setStageListModal(null);
+            }}
+            onClose={() => setStageListModal(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Stage Match Management Modal */}
+      <AnimatePresence>
+        {showStageMatches && selectedStage && currentTournamentId && (
+          <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-16 bg-black/70 backdrop-blur-sm overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="w-full max-w-5xl"
+            >
+              <Card className="p-6">
+                <StageDetailView
+                  tournamentId={currentTournamentId}
+                  stage={selectedStage}
+                  onClose={() => {
+                    setShowStageMatches(false);
+                    setSelectedStage(null);
+                  }}
+                />
+              </Card>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Stage Builder Modal */}
+      <AnimatePresence>
+        {showStageBuilder && currentTournamentId && (
+          <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-16 bg-black/70 backdrop-blur-sm overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="w-full max-w-6xl"
+            >
+              <Card className="p-6">
+                <StageBuilder
+                  tournamentId={currentTournamentId}
+                  onClose={() => {
+                    setShowStageBuilder(false);
+                    setCurrentTournamentId(null);
+                  }}
+                  onSaved={() => {
+                    queryClient.invalidateQueries({ queryKey: ['my-tournaments'] });
+                  }}
+                />
+              </Card>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Score Input Modal */}
       <AnimatePresence>
         {scoringRound && manageRoundsFor && (
@@ -773,6 +862,24 @@ function OrganizerContent() {
                     >
                       <Swords className="w-4 h-4" />
                     </button>
+                  )}
+                  {t.format === 'MULTI_STAGE' && (
+                    <>
+                      <button
+                        onClick={() => { setCurrentTournamentId(t.id); setShowStageBuilder(true); }}
+                        className="p-1.5 rounded-lg hover:bg-white/5 text-white/40 hover:text-purple-400 transition-all"
+                        title="Manage Stages"
+                      >
+                        <Layers className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setStageListModal(t.id)}
+                        className="p-1.5 rounded-lg hover:bg-white/5 text-white/40 hover:text-green-400 transition-all"
+                        title="Manage Matches"
+                      >
+                        <Swords className="w-4 h-4" />
+                      </button>
+                    </>
                   )}
                   <button
                     onClick={() => handleEdit(t)}

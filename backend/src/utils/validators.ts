@@ -24,7 +24,7 @@ export const createTournamentSchema = z.object({
   registrationEndsAt: z.string().datetime().optional(),
   mapName: z.string().optional(),
   rules: z.string().optional(),
-  format: z.enum(['SINGLE', 'MULTI_ROUND']).optional(),
+  format: z.enum(['SINGLE', 'MULTI_ROUND', 'MULTI_STAGE']).optional(),
   totalRounds: z.number().int().min(1).max(20).optional(),
   killPoints: z.number().int().min(0).max(10).optional(),
   placementPoints: z.array(z.number().int().min(0)).optional(),

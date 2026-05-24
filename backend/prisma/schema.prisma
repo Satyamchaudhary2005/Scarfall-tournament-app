@@ -100,19 +100,92 @@ model Tournament {
   roomPassword         String?
   hostId               String
   // Battle Royale multi-round format
-  format               String                   @default("SINGLE") // SINGLE or MULTI_ROUND
+  format               String                   @default("SINGLE") // SINGLE, MULTI_ROUND, or MULTI_STAGE
   totalRounds          Int                      @default(1)
   killPoints           Int                      @default(1)
   placementPoints      String?                  // JSON array: [15,12,10,8,6,4,2,1,0,0,0,0,0,0,0,0]
+  // Multi-Stage Tournament fields
+  stageConfig          String?                  // JSON: full stage configuration
+  totalRegisteredTeams Int?                     // Total teams registered for multi-stage
   createdAt            DateTime                 @default(now())
   updatedAt            DateTime                 @updatedAt
   host                 User                     @relation("TournamentHost", fields: [hostId], references: [id])
   registrations        TournamentRegistration[]
   rounds               Round[]
+  stages               TournamentStage[]
 
   @@index([status])
   @@index([startsAt])
   @@index([hostId])
+}
+
+model TournamentStage {
+  id                 String          @id @default(uuid())
+  tournamentId       String
+  stageNumber        Int
+  name               String           // e.g. "Open Qualifier", "Semi Finals"
+  type               String           // e.g. "OPEN_QUALIFIER", "ROUND_1", "WILDCARD", "SEMI_FINALS", "GRAND_FINALS"
+  status             String           @default("PENDING") // PENDING, ACTIVE, COMPLETED
+  teamsCount         Int              @default(0)
+  qualifyingTeams    Int              @default(0)
+  eliminationCount   Int              @default(0)
+  lobbyCount         Int              @default(0)
+  teamsPerLobby      Int              @default(16)
+  matchesCount       Int              @default(0)
+  formatType         String           @default("STANDARD") // STANDARD, BATTLE_ROYALE, SWISS, ROUND_ROBIN
+  scoringRules       String?          // JSON: per-stage scoring config
+  mapRotation        String?          // JSON: map list for this stage
+  roomSettings       String?          // JSON: room configuration
+  startDate          DateTime?
+  endDate            DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  tournament         Tournament       @relation(fields: [tournamentId], references: [id])
+
+  @@unique([tournamentId, stageNumber])
+  @@index([tournamentId])
+  matches          StageMatch[]
+}
+
+model StageMatch {
+  id                 String           @id @default(uuid())
+  stageId            String
+  tournamentId       String
+  matchNumber        Int              // lobby/count number
+  name               String           // e.g. "Lobby A", "Match 1"
+  status             String           @default("PENDING") // PENDING, LIVE, COMPLETED
+  teamsCount         Int              @default(0)
+  roomId             String?
+  roomPassword       String?
+  startDate          DateTime?
+  endDate            DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  stage              TournamentStage  @relation(fields: [stageId], references: [id])
+  teams              StageMatchTeam[]
+
+  @@unique([stageId, matchNumber])
+  @@index([stageId])
+  @@index([tournamentId])
+}
+
+model StageMatchTeam {
+  id             String       @id @default(uuid())
+  matchId        String
+  teamId         String       // userId for SOLO, clanId for DUO/SQUAD
+  teamName       String
+  placement      Int          @default(0)
+  kills          Int          @default(0)
+  points         Int          @default(0)
+  eliminated     Boolean      @default(false)
+  qualified      Boolean      @default(false)
+  confirmed      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  match          StageMatch   @relation(fields: [matchId], references: [id])
+
+  @@unique([matchId, teamId])
+  @@index([matchId])
 }
 
 model Round {

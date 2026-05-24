@@ -154,6 +154,53 @@ export const tournamentApi = {
 
   deleteRound: (id: string, roundId: string) =>
     request<{ message: string }>(`/tournaments/${id}/rounds/${roundId}`, { method: 'DELETE' }),
+
+  // Multi-Stage Tournament
+  getStagePresets: () =>
+    request<{ presets: import('@/types').StagePreset[] }>('/tournaments/presets'),
+
+  getStageTypes: () =>
+    request<{ stageTypes: import('@/types').StageTypeMeta[] }>('/tournaments/types'),
+
+  getStages: (id: string) =>
+    request<{ stages: import('@/types').TournamentStage[] }>(`/tournaments/${id}/stages`),
+
+  saveStages: (id: string, data: { stages: any[]; totalRegisteredTeams?: number }) =>
+    request<{ message: string; stages: import('@/types').TournamentStage[] }>(`/tournaments/${id}/stages`, { method: 'POST', body: JSON.stringify(data) }),
+
+  generateFromStages: (id: string) =>
+    request<{ message: string; stages: import('@/types').StageGenerationResult[]; totalTeams: number; progression: any[] }>(`/tournaments/${id}/stages/generate`, { method: 'POST' }),
+
+  updateStage: (tournamentId: string, stageId: string, data: any) =>
+    request<{ message: string; stage: import('@/types').TournamentStage }>(`/tournaments/${tournamentId}/stages/${stageId}`, { method: 'PUT', body: JSON.stringify(data) }),
+
+  deleteStage: (tournamentId: string, stageId: string) =>
+    request<{ message: string }>(`/tournaments/${tournamentId}/stages/${stageId}`, { method: 'DELETE' }),
+
+  // Stage Match APIs
+  getStageMatches: (id: string, stageId: string) =>
+    request<{ matches: import('@/types').StageMatch[] }>(`/tournaments/${id}/stages/${stageId}/matches`),
+
+  createStageMatch: (id: string, stageId: string, data?: { name?: string; startDate?: string }) =>
+    request<{ message: string; match: import('@/types').StageMatch }>(`/tournaments/${id}/stages/${stageId}/matches`, { method: 'POST', body: JSON.stringify(data || {}) }),
+
+  generateStageMatches: (id: string, stageId: string) =>
+    request<{ message: string; matches: import('@/types').StageMatch[]; totalTeams: number }>(`/tournaments/${id}/stages/${stageId}/matches/generate`, { method: 'POST' }),
+
+  updateStageMatch: (id: string, stageId: string, matchId: string, data: any) =>
+    request<{ message: string; match: import('@/types').StageMatch }>(`/tournaments/${id}/stages/${stageId}/matches/${matchId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  deleteStageMatch: (id: string, stageId: string, matchId: string) =>
+    request<{ message: string }>(`/tournaments/${id}/stages/${stageId}/matches/${matchId}`, { method: 'DELETE' }),
+
+  updateStageScores: (id: string, stageId: string, matchId: string, scores: { teamId: string; placement: number; kills: number }[]) =>
+    request<{ message: string; match: import('@/types').StageMatch; stageCompleted: boolean }>(`/tournaments/${id}/stages/${stageId}/matches/${matchId}/scores`, { method: 'PATCH', body: JSON.stringify({ scores }) }),
+
+  getStageBracket: (id: string, stageId: string) =>
+    request<{ bracket: import('@/types').StageBracketEntry[] }>(`/tournaments/${id}/stages/${stageId}/bracket`),
+
+  advanceTeams: (id: string, stageId: string) =>
+    request<{ message: string; advancedTeams: { teamId: string; teamName: string }[]; nextStage: { id: string; name: string; matches: import('@/types').StageMatch[] } }>(`/tournaments/${id}/stages/${stageId}/advance`, { method: 'POST' }),
 };
 
 // Clan API
