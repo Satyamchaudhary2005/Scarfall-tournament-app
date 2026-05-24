@@ -345,4 +345,13 @@ export const reportApi = {
     request<{ message: string; report: Report }>('/reports', { method: 'POST', body: JSON.stringify(data) }),
 };
 
+// Razorpay API
+export const razorpayApi = {
+  createOrder: (amount: number) =>
+    request<import('@/types').RazorpayOrder>('/wallet/create-order', { method: 'POST', body: JSON.stringify({ amount }) }),
+
+  verifyPayment: (data: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) =>
+    request<import('@/types').RazorpayVerifyResponse>('/wallet/verify-payment', { method: 'POST', body: JSON.stringify(data) }),
+};
+
 export { ApiError };

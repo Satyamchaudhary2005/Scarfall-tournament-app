@@ -221,3 +221,14 @@ export interface TransactionItem {
   status: 'PENDING' | 'COMPLETED' | 'FAILED';
   createdAt: string;
 }
+
+export interface RazorpayOrder {
+  order_id: string;
+  amount: number;
+  currency: string;
+}
+
+export interface RazorpayVerifyResponse {
+  message: string;
+  wallet: Wallet;
+}

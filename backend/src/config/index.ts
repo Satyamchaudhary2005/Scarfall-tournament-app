@@ -23,6 +23,11 @@ export const config = {
     callbackUrl: process.env.DISCORD_CALLBACK_URL || 'http://localhost:5000/api/auth/discord/callback',
   },
 
+  razorpay: {
+    keyId: process.env.RAZORPAY_KEY_ID || '',
+    keySecret: process.env.RAZORPAY_KEY_SECRET || '',
+  },
+
   isDev: (process.env.NODE_ENV || 'development') === 'development',
   isProd: process.env.NODE_ENV === 'production',
 };

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { walletApi } from '@/services/api';
+import { walletApi, razorpayApi } from '@/services/api';
 import { Button } from './Button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowDownUp, Plus, Minus, Banknote, Clock, TrendingUp, TrendingDown, Sparkles, Shield, Zap } from 'lucide-react';
@@ -60,12 +60,50 @@ export function WalletDropdown() {
     refetchInterval: 30000,
   });
 
+  const [razorpayLoading, setRazorpayLoading] = useState(false);
+
   const depositMutation = useMutation({
-    mutationFn: () => walletApi.deposit(Number(amount)),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['wallet'] });
-      setAmount('');
-      setActiveTab('balance');
+    mutationFn: async () => {
+      setRazorpayLoading(true);
+      try {
+        const order = await razorpayApi.createOrder(Math.round(Number(amount) * 100));
+        return new Promise<void>((resolve, reject) => {
+          const rzp = new (window as any).Razorpay({
+            key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+            amount: order.amount,
+            currency: order.currency,
+            name: 'ScarFall Esports',
+            description: 'Wallet Deposit',
+            order_id: order.order_id,
+            handler: async (response: any) => {
+              try {
+                await razorpayApi.verifyPayment(response);
+                queryClient.invalidateQueries({ queryKey: ['wallet'] });
+                setAmount('');
+                setActiveTab('balance');
+                resolve();
+              } catch (err) {
+                reject(err);
+              }
+            },
+            modal: {
+              ondismiss: () => {
+                reject(new Error('Payment cancelled'));
+              },
+            },
+            theme: { color: '#ff1f1f' },
+          });
+          rzp.on('payment.failed', (response: any) => {
+            reject(new Error(response.error?.description || 'Payment failed'));
+          });
+          rzp.open();
+        });
+      } finally {
+        setRazorpayLoading(false);
+      }
+    },
+    onError: () => {
+      setRazorpayLoading(false);
     },
   });
 
@@ -97,7 +135,7 @@ export function WalletDropdown() {
 
   const balance = walletData?.wallet?.balance ?? 0;
   const transactions = walletData?.wallet?.transactions ?? [];
-  const isPending = depositMutation.isPending || withdrawMutation.isPending;
+  const isPending = razorpayLoading || depositMutation.isPending || withdrawMutation.isPending;
 
   return (
     <div className="relative" ref={dropdownRef}>
