@@ -1,15 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/authStore';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Card, Button } from '@/components/ui';
-import { authApi } from '@/services/api';
-import { Trophy, Swords, Users, Skull, Crosshair, Activity, LogOut, Gamepad2 } from 'lucide-react';
+import { authApi, walletApi } from '@/services/api';
+import { Trophy, Swords, Users, Skull, Crosshair, Activity, LogOut, Gamepad2, Wallet, Banknote, TrendingUp, TrendingDown, Plus, Minus, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { calculateKd, calculateWinRate } from '@/lib/utils';
+import { calculateKd, calculateWinRate, cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -80,6 +80,9 @@ export default function ProfilePage() {
               </Button>
             </div>
           </Card>
+
+          {/* Wallet Section */}
+          <WalletSection />
 
           {/* In-Game Name */}
           <Card className="p-6 mb-8">
@@ -162,5 +165,168 @@ export default function ProfilePage() {
 
       <Footer />
     </main>
+  );
+}
+
+function WalletSection() {
+  const { data: walletData, isLoading } = useQuery({
+    queryKey: ['wallet'],
+    queryFn: () => walletApi.getWallet(),
+    refetchInterval: 30000,
+  });
+
+  const { data: txData } = useQuery({
+    queryKey: ['wallet-transactions'],
+    queryFn: () => walletApi.getTransactions(),
+  });
+
+  const balance = walletData?.wallet?.balance ?? 0;
+  const transactions = txData?.transactions ?? walletData?.wallet?.transactions ?? [];
+
+  // Calculate estimated total winnings from transaction history
+  const totalWinnings = transactions
+    .filter((tx: any) => tx.type === 'TOURNAMENT_WINNING')
+    .reduce((sum: number, tx: any) => sum + tx.amount, 0);
+
+  const totalSpent = transactions
+    .filter((tx: any) => tx.type === 'TOURNAMENT_FEE')
+    .reduce((sum: number, tx: any) => sum + tx.amount, 0);
+
+  return (
+    <Card className="p-6 mb-8 overflow-hidden relative">
+      {/* BG gradient orbs */}
+      <div className="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-red-500/5 to-red-700/5 rounded-full blur-3xl" />
+      <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-gradient-to-br from-red-500/3 to-red-700/5 rounded-full blur-3xl" />
+
+      <div className="relative">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg shadow-red-500/25">
+              <Wallet className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-white">Wallet</h2>
+              <p className="text-xs text-white/40">Manage your gaming funds</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Balance Display */}
+        <div className="flex flex-wrap gap-6 mb-5">
+          <div className="flex-1 min-w-[140px]">
+            <p className="text-xs text-white/30 font-medium tracking-widest uppercase mb-1">Available Balance</p>
+            <p className="text-3xl sm:text-4xl font-black text-white tracking-tight">
+              {isLoading ? (
+                <span className="inline-flex items-center gap-1.5 h-9">
+                  <span className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                </span>
+              ) : (
+                <>₹{balance.toLocaleString()}</>
+              )}
+            </p>
+          </div>
+          {totalWinnings > 0 && (
+            <div className="min-w-[120px]">
+              <p className="text-xs text-green-400/50 font-medium tracking-widest uppercase mb-1">Total Winnings</p>
+              <p className="text-lg sm:text-xl font-black text-green-400">+₹{totalWinnings.toLocaleString()}</p>
+            </div>
+          )}
+          {totalSpent > 0 && (
+            <div className="min-w-[120px]">
+              <p className="text-xs text-red-400/50 font-medium tracking-widest uppercase mb-1">Total Entry Fees</p>
+              <p className="text-lg sm:text-xl font-black text-red-400">-₹{totalSpent.toLocaleString()}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Quick Actions */}
+        <div className="flex flex-wrap gap-2 mb-5">
+          <button
+            onClick={() => {
+              toast.success('Open the wallet dropdown from the navbar to deposit funds');
+            }}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-red-500 to-red-700 hover:from-red-400 hover:to-red-600 transition-all text-xs font-bold text-white shadow-lg shadow-red-500/20 active:scale-95"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Deposit
+          </button>
+          <button
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-red-400/30 transition-all text-xs font-semibold text-white/60 hover:text-red-400 active:scale-95"
+          >
+            <Minus className="w-3.5 h-3.5" />
+            Withdraw
+          </button>
+          <Link href="/tournaments?type=free">
+            <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 hover:border-green-400/40 transition-all text-xs font-semibold text-green-400 hover:text-green-300 active:scale-95">
+              <Trophy className="w-3.5 h-3.5" />
+              Free Tournaments
+            </button>
+          </Link>
+        </div>
+
+        {/* Recent Transactions */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold text-white/70">Recent Activity</h3>
+            <Clock className="w-3.5 h-3.5 text-white/20" />
+          </div>
+
+          {transactions.length === 0 ? (
+            <div className="text-center py-6 rounded-lg bg-white/[0.02] border border-white/5">
+              <Banknote className="w-8 h-8 text-white/10 mx-auto mb-2" />
+              <p className="text-sm text-white/20 font-medium">No transactions yet</p>
+              <p className="text-xs text-white/10 mt-1">Deposit funds or join tournaments to get started</p>
+            </div>
+          ) : (
+            <div className="space-y-0.5 max-h-52 overflow-y-auto">
+              {transactions.slice(0, 10).map((tx: any, i: number) => (
+                <motion.div
+                  key={tx.id}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.03 }}
+                  className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition-colors cursor-default"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={cn(
+                      'w-8 h-8 rounded-lg flex items-center justify-center',
+                      tx.type === 'DEPOSIT' && 'bg-green-500/15 text-green-400',
+                      tx.type === 'WITHDRAW' && 'bg-red-500/15 text-red-400',
+                      tx.type === 'TOURNAMENT_WINNING' && 'bg-yellow-500/15 text-yellow-400',
+                      tx.type === 'TOURNAMENT_FEE' && 'bg-blue-500/15 text-blue-400',
+                    )}>
+                      {tx.type === 'DEPOSIT' && <TrendingUp className="w-3.5 h-3.5" />}
+                      {tx.type === 'WITHDRAW' && <TrendingDown className="w-3.5 h-3.5" />}
+                      {tx.type === 'TOURNAMENT_WINNING' && <Trophy className="w-3.5 h-3.5" />}
+                      {tx.type === 'TOURNAMENT_FEE' && <Swords className="w-3.5 h-3.5" />}
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-white/80 capitalize">
+                        {tx.type === 'TOURNAMENT_WINNING' ? 'Tournament Win'
+                          : tx.type === 'TOURNAMENT_FEE' ? 'Entry Fee'
+                          : tx.type.toLowerCase()}
+                      </p>
+                      <p className="text-[10px] text-white/30">
+                        {new Date(tx.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                      </p>
+                    </div>
+                  </div>
+                  <span className={cn(
+                    'text-sm font-bold',
+                    (tx.type === 'DEPOSIT' || tx.type === 'TOURNAMENT_WINNING') && 'text-green-400',
+                    (tx.type === 'WITHDRAW' || tx.type === 'TOURNAMENT_FEE') && 'text-red-400',
+                  )}>
+                    {(tx.type === 'DEPOSIT' || tx.type === 'TOURNAMENT_WINNING') ? '+' : '-'}₹{tx.amount.toLocaleString()}
+                  </span>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </Card>
   );
 }

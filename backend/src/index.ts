@@ -6,6 +6,7 @@ import { createServer } from 'http';
 import { config } from './config';
 import { initializeSocket } from './services/socket';
 import { runCleanup } from './controllers/tournament.controller';
+import { startDailyFreeTournamentScheduler } from './services/dailyFreeTournaments';
 
 // Route imports
 import authRoutes from './routes/auth.routes';
@@ -97,5 +98,10 @@ runCleanup().catch((err) => console.error('Initial cleanup error:', err));
 setInterval(() => {
   runCleanup().catch((err) => console.error('Auto cleanup error:', err));
 }, 60 * 60 * 1000);
+
+// Daily free tournament scheduler (marketing)
+startDailyFreeTournamentScheduler().catch((err) =>
+  console.error('[DailyFreeTournaments] Scheduler init error:', err)
+);
 
 export default app;

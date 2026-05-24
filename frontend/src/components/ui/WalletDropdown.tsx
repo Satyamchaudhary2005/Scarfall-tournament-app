@@ -137,6 +137,14 @@ export function WalletDropdown() {
   const transactions = walletData?.wallet?.transactions ?? [];
   const isPending = razorpayLoading || depositMutation.isPending || withdrawMutation.isPending;
 
+  // Calculate winnings/spent from transaction history
+  const totalWinnings = transactions
+    .filter((tx: any) => tx.type === 'TOURNAMENT_WINNING')
+    .reduce((sum: number, tx: any) => sum + tx.amount, 0);
+  const totalEntryFees = transactions
+    .filter((tx: any) => tx.type === 'TOURNAMENT_FEE')
+    .reduce((sum: number, tx: any) => sum + tx.amount, 0);
+
   return (
     <div className="relative" ref={dropdownRef}>
       <button
@@ -217,12 +225,29 @@ export function WalletDropdown() {
                     animate={{ opacity: 1, y: 0 }}
                     className="relative text-center py-2"
                   >
-                    <p className="text-xs text-white/30 font-medium tracking-[0.2em] uppercase mb-3">Total Balance</p>
+                    <p className="text-xs text-white/30 font-medium tracking-[0.2em] uppercase mb-3">Available Balance</p>
                     <div className="flex items-center justify-center gap-2">
                       <span className="text-4xl sm:text-5xl font-black text-white tracking-tight">
                         ₹<AnimatedNumber value={balance} />
                       </span>
                     </div>
+
+                    {/* Winnings & Spent stats */}
+                    <div className="flex items-center justify-center gap-6 mt-3">
+                      {totalWinnings > 0 && (
+                        <div className="text-center">
+                          <p className="text-[10px] text-green-400/50 font-semibold tracking-wider uppercase">Winnings</p>
+                          <p className="text-lg font-bold text-green-400">+₹{totalWinnings.toLocaleString()}</p>
+                        </div>
+                      )}
+                      {totalEntryFees > 0 && (
+                        <div className="text-center">
+                          <p className="text-[10px] text-red-400/50 font-semibold tracking-wider uppercase">Entry Fees</p>
+                          <p className="text-lg font-bold text-red-400">-₹{totalEntryFees.toLocaleString()}</p>
+                        </div>
+                      )}
+                    </div>
+
                     <div className="mt-4 flex gap-2.5 max-w-[240px] mx-auto">
                       <button
                         onClick={() => setActiveTab('withdraw')}
