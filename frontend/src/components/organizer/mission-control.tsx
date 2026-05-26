@@ -766,6 +766,15 @@ function SingleMatchView({ tournament, tournamentId }: any) {
     onError: (err: any) => toast.error(err.message || 'Failed'),
   });
 
+  const goLiveMutation = useMutation({
+    mutationFn: () => (tournamentApi as any).updateStatus(tournamentId, 'LIVE'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tournament', tournamentId] });
+      toast.success('Match is now LIVE');
+    },
+    onError: (err: any) => toast.error(err.message || 'Failed'),
+  });
+
   const roomAssigned = tournament.roomId || tournament.roomPassword;
   const status = tournament.status;
 
@@ -775,7 +784,14 @@ function SingleMatchView({ tournament, tournamentId }: any) {
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-white">Match Details</h3>
           <div className="flex items-center gap-2">
-            {status === 'WAITING' && <WaitingCountdown createdAt={tournament.createdAt} />}
+            {status === 'WAITING' && (
+              <>
+                <WaitingCountdown createdAt={tournament.createdAt} />
+                <button onClick={() => goLiveMutation.mutate()} className="px-3 py-1.5 rounded-lg bg-green-500/10 hover:bg-green-500/20 text-green-400 text-xs font-semibold transition-all">
+                  <Zap className="w-3 h-3 inline mr-1" /> Go Live Now
+                </button>
+              </>
+            )}
             {status === 'LIVE' && (
               <button onClick={() => completeMutation.mutate()} className="px-3 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-xs font-semibold transition-all">
                 <CheckCircle className="w-3 h-3 inline mr-1" /> Mark Completed
@@ -862,6 +878,12 @@ function MultiRoundMatchManager({ tournamentId, tournament }: any) {
     onError: (err: any) => toast.error(err.message || 'Failed'),
   });
 
+  const goLiveMutation = useMutation({
+    mutationFn: (roundId: string) => tournamentApi.updateRoundStatus(tournamentId, roundId, 'LIVE'),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['tournament', tournamentId] }); toast.success('Round is now LIVE'); },
+    onError: (err: any) => toast.error(err.message || 'Failed'),
+  });
+
   const deleteMutation = useMutation({
     mutationFn: (roundId: string) => tournamentApi.deleteRound(tournamentId, roundId),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['tournament', tournamentId] }); toast.success('Round deleted'); },
@@ -916,7 +938,12 @@ function MultiRoundMatchManager({ tournamentId, tournament }: any) {
                   <StartRoundButton roundId={round.id} roundNumber={round.roundNumber} onStart={(data: any) => startMutation.mutate({ roundId: round.id, ...data })} loading={startMutation.isPending} />
                 )}
                 {round.status === 'WAITING' && (
-                  <WaitingCountdown createdAt={round.createdAt} />
+                  <>
+                    <WaitingCountdown createdAt={round.createdAt} />
+                    <button onClick={() => goLiveMutation.mutate(round.id)} className="px-3 py-1.5 rounded-lg bg-green-500/10 hover:bg-green-500/20 text-green-400 text-xs font-semibold transition-all">
+                      <Zap className="w-3 h-3 inline mr-1" /> Go Live Now
+                    </button>
+                  </>
                 )}
                 {round.status === 'LIVE' && (
                   <button onClick={() => completeMutation.mutate(round.id)} className="px-3 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-xs font-semibold transition-all">
