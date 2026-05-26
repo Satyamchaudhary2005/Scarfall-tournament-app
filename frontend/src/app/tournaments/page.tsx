@@ -182,7 +182,9 @@ function TournamentsContent() {
     const config = TYPE_CONFIG[type];
     const Icon = config.icon;
     const { data, isLoading } = queries[type];
-    const tournaments = data?.tournaments || [];
+    const tournaments = (data?.tournaments || [])
+      .filter((t: any) => status !== 'ALL' || t.status !== 'COMPLETED')
+      .sort((a: any, b: any) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
     const total = data?.pagination?.total || 0;
 
     return (        <motion.div
@@ -442,7 +444,10 @@ function TournamentsContent() {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                {(allFilteredQuery.data?.tournaments ?? []).map((t: any) => renderTournamentCard(t))}
+                {(allFilteredQuery.data?.tournaments ?? [])
+                  .filter((t: any) => status !== 'ALL' || t.status !== 'COMPLETED')
+                  .sort((a: any, b: any) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime())
+                  .map((t: any) => renderTournamentCard(t))}
               </div>
             )}
           </motion.div>
