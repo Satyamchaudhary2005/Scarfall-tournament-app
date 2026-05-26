@@ -30,7 +30,9 @@ export const createTournamentSchema = z.object({
   placementPoints: z.array(z.number().int().min(0)).optional(),
 });
 
-export const updateTournamentSchema = createTournamentSchema.partial();
+export const updateTournamentSchema = createTournamentSchema.partial().extend({
+  status: z.enum(['DRAFT', 'UPCOMING', 'REGISTRATION_OPEN', 'LIVE', 'COMPLETED', 'CANCELLED', 'WAITING']).optional(),
+});
 
 export const createRoundSchema = z.object({
   title: z.string().max(100).optional(),

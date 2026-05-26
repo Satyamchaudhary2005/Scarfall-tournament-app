@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { tournamentApi, walletApi, notificationApi } from '@/services/api';
@@ -89,6 +89,7 @@ export function TournamentMissionControl({ tournamentId, onBack }: { tournamentI
     UPCOMING: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
     REGISTRATION_OPEN: 'text-green-400 bg-green-500/10 border-green-500/20',
     LIVE: 'text-red-400 bg-red-500/10 border-red-500/20',
+    WAITING: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20',
     COMPLETED: 'text-purple-400 bg-purple-500/10 border-purple-500/20',
     CANCELLED: 'text-white/40 bg-white/5 border-white/10',
   };
@@ -734,32 +735,100 @@ function MatchesTab({ tournamentId, tournament, selectedStage, onBackToStages, o
     return <MultiRoundMatchManager tournamentId={tournamentId} tournament={tournament} />;
   }
 
-  return <SingleMatchView tournament={tournament} />;
+  return <SingleMatchView tournament={tournament} tournamentId={tournamentId} />;
 }
 
-function SingleMatchView({ tournament }: any) {
+function SingleMatchView({ tournament, tournamentId }: any) {
+  const queryClient = useQueryClient();
+  const [showCredsModal, setShowCredsModal] = useState(false);
+  const [credsRoomId, setCredsRoomId] = useState('');
+  const [credsPassword, setCredsPassword] = useState('');
+
+  const sendCredsMutation = useMutation({
+    mutationFn: (data: { roomId: string; roomPassword: string }) =>
+      tournamentApi.setRoomCredentials(tournamentId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tournament', tournamentId] });
+      toast.success('Credentials sent — match is in WAITING. Will go LIVE in 10 min.');
+      setShowCredsModal(false);
+      setCredsRoomId('');
+      setCredsPassword('');
+    },
+    onError: (err: any) => toast.error(err.message || 'Failed'),
+  });
+
+  const completeMutation = useMutation({
+    mutationFn: () => (tournamentApi as any).updateStatus(tournamentId, 'COMPLETED'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tournament', tournamentId] });
+      toast.success('Match marked completed');
+    },
+    onError: (err: any) => toast.error(err.message || 'Failed'),
+  });
+
+  const roomAssigned = tournament.roomId || tournament.roomPassword;
+  const status = tournament.status;
+
   return (
-    <Card className="p-6">
-      <h3 className="text-lg font-semibold text-white mb-4">Match Details</h3>
-      <div className="grid grid-cols-2 gap-4 text-sm">
-        <div>
-          <span className="text-white/40">Map</span>
-          <p className="text-white font-medium">{tournament.mapName || 'TBD'}</p>
+    <>
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-white">Match Details</h3>
+          <div className="flex items-center gap-2">
+            {status === 'WAITING' && <WaitingCountdown createdAt={tournament.createdAt} />}
+            {status === 'LIVE' && (
+              <button onClick={() => completeMutation.mutate()} className="px-3 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-xs font-semibold transition-all">
+                <CheckCircle className="w-3 h-3 inline mr-1" /> Mark Completed
+              </button>
+            )}
+            {!roomAssigned && status !== 'COMPLETED' && status !== 'LIVE' && (
+              <button onClick={() => setShowCredsModal(true)} className="px-3 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-xs font-semibold transition-all">
+                <Key className="w-3 h-3 inline mr-1" /> Send Credentials
+              </button>
+            )}
+          </div>
         </div>
-        <div>
-          <span className="text-white/40">Mode</span>
-          <p className="text-white font-medium">{tournament.mode}</p>
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <span className="text-white/40">Map</span>
+            <p className="text-white font-medium">{tournament.mapName || 'TBD'}</p>
+          </div>
+          <div>
+            <span className="text-white/40">Mode</span>
+            <p className="text-white font-medium">{tournament.mode}</p>
+          </div>
+          <div>
+            <span className="text-white/40">Room ID</span>
+            <p className="text-white font-mono">{tournament.roomId || 'Not assigned'}</p>
+          </div>
+          <div>
+            <span className="text-white/40">Password</span>
+            <p className="text-white font-mono">{tournament.roomPassword || 'Not assigned'}</p>
+          </div>
         </div>
-        <div>
-          <span className="text-white/40">Room ID</span>
-          <p className="text-white font-mono">{tournament.roomId || 'Not assigned'}</p>
-        </div>
-        <div>
-          <span className="text-white/40">Password</span>
-          <p className="text-white font-mono">{tournament.roomPassword || 'Not assigned'}</p>
-        </div>
-      </div>
-    </Card>
+      </Card>
+
+      <AnimatePresence>
+        {showCredsModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-sm">
+              <Card className="p-6">
+                <h3 className="text-lg font-bold text-white mb-4">Send Room Credentials</h3>
+                <p className="text-sm text-white/50 mb-4">Match will enter WAITING status for 10 minutes, then go LIVE automatically.</p>
+                <div className="space-y-3 mb-4">
+                  <input value={credsRoomId} onChange={(e) => setCredsRoomId(e.target.value)} placeholder="Room ID" className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50" />
+                  <input value={credsPassword} onChange={(e) => setCredsPassword(e.target.value)} placeholder="Room Password" className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50" />
+                </div>
+                <div className="flex gap-3">
+                  <Button variant="secondary" className="flex-1" onClick={() => setShowCredsModal(false)}>Cancel</Button>
+                  <Button className="flex-1" onClick={() => sendCredsMutation.mutate({ roomId: credsRoomId, roomPassword: credsPassword })} loading={sendCredsMutation.isPending} disabled={!credsRoomId || !credsPassword}>Send & Wait</Button>
+                </div>
+              </Card>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 
@@ -782,8 +851,8 @@ function MultiRoundMatchManager({ tournamentId, tournament }: any) {
   });
 
   const startMutation = useMutation({
-    mutationFn: (data: any) => tournamentApi.updateRoundStatus(tournamentId, data.roundId, 'LIVE', { roomId: data.roomId, roomPassword: data.roomPassword }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['tournament', tournamentId] }); toast.success('Round started'); },
+    mutationFn: (data: any) => tournamentApi.updateRoundStatus(tournamentId, data.roundId, 'WAITING', { roomId: data.roomId, roomPassword: data.roomPassword }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['tournament', tournamentId] }); toast.success('Round in waiting — will go LIVE in 10 min'); },
     onError: (err: any) => toast.error(err.message || 'Failed'),
   });
 
@@ -846,9 +915,12 @@ function MultiRoundMatchManager({ tournamentId, tournament }: any) {
                 {round.status === 'UPCOMING' && (
                   <StartRoundButton roundId={round.id} roundNumber={round.roundNumber} onStart={(data: any) => startMutation.mutate({ roundId: round.id, ...data })} loading={startMutation.isPending} />
                 )}
+                {round.status === 'WAITING' && (
+                  <WaitingCountdown createdAt={round.createdAt} />
+                )}
                 {round.status === 'LIVE' && (
                   <button onClick={() => completeMutation.mutate(round.id)} className="px-3 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-xs font-semibold transition-all">
-                    <CheckCircle className="w-3 h-3 inline mr-1" /> Complete
+                    <CheckCircle className="w-3 h-3 inline mr-1" /> Mark Completed
                   </button>
                 )}
                 {round.status === 'UPCOMING' && (
@@ -895,6 +967,35 @@ function StartRoundButton({ roundId, roundNumber, onStart, loading }: any) {
         )}
       </AnimatePresence>
     </>
+  );
+}
+
+function WaitingCountdown({ createdAt }: { createdAt: string }) {
+  const [remaining, setRemaining] = useState(0);
+
+  useEffect(() => {
+    const start = new Date(createdAt).getTime();
+    const TEN_MIN = 10 * 60 * 1000;
+
+    const tick = () => {
+      const elapsed = Date.now() - start;
+      const left = Math.max(0, TEN_MIN - elapsed);
+      setRemaining(left);
+    };
+
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [createdAt]);
+
+  const mins = Math.floor(remaining / 60000);
+  const secs = Math.floor((remaining % 60000) / 1000);
+
+  return (
+    <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-yellow-500/10 text-yellow-400 text-xs font-semibold">
+      <Clock className="w-3 h-3" />
+      {remaining > 0 ? `${mins}:${String(secs).padStart(2, '0')}` : 'Starting...'}
+    </span>
   );
 }
 

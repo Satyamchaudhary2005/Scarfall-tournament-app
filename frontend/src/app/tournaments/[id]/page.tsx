@@ -450,21 +450,21 @@ export default function TournamentDetailPage() {
               )}
 
               {/* Per-round room credentials for multi-round tournaments */}
-              {tournament?.format === 'MULTI_ROUND' && (isRegistered || user?.id === tournament.host.id) && tournament?.rounds?.some((r: any) => r.status === 'LIVE' && r.roomId) && (
+              {tournament?.format === 'MULTI_ROUND' && (isRegistered || user?.id === tournament.host.id) && tournament?.rounds?.some((r: any) => (r.status === 'WAITING' || r.status === 'LIVE') && r.roomId) && (
                 <Card className="p-6 border-blue-500/20">
                   <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                     <Swords className="w-4 h-4 text-blue-400" />
                     Match Rooms
                   </h3>
                   <div className="space-y-4">
-                    {tournament.rounds.filter((r: any) => r.status === 'LIVE' && r.roomId).map((round: any) => (
+                    {tournament.rounds.filter((r: any) => (r.status === 'WAITING' || r.status === 'LIVE') && r.roomId).map((round: any) => (
                       <div key={round.id} className="p-3 rounded-lg bg-blue-500/5 border border-blue-500/10">
                         <div className="flex items-center gap-2 mb-2">
                           <div className="w-6 h-6 rounded-md bg-blue-500/10 flex items-center justify-center">
                             <span className="text-xs font-bold text-blue-400">R{round.roundNumber}</span>
                           </div>
                           <p className="text-sm font-semibold text-white">{round.title}</p>
-                          <Badge size="sm" variant="success">LIVE</Badge>
+                          <Badge size="sm" variant={round.status === 'LIVE' ? 'success' : 'warning'}>{round.status}</Badge>
                         </div>
                         <div className="grid grid-cols-2 gap-2 mt-2">
                           <div>

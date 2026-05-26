@@ -834,6 +834,46 @@ export async function runCleanup() {
   };
 }
 
+// Auto-transition WAITING → LIVE after 10 minutes
+export async function autoStartRounds() {
+  const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+
+  const waitingRounds = await prisma.round.findMany({
+    where: {
+      status: 'WAITING',
+      updatedAt: { lte: tenMinutesAgo },
+    },
+  });
+
+  for (const round of waitingRounds) {
+    await prisma.round.update({
+      where: { id: round.id },
+      data: { status: 'LIVE' },
+    });
+  }
+
+  const waitingTournaments = await prisma.tournament.findMany({
+    where: {
+      status: 'WAITING',
+      updatedAt: { lte: tenMinutesAgo },
+    },
+  });
+
+  for (const tournament of waitingTournaments) {
+    await prisma.tournament.update({
+      where: { id: tournament.id },
+      data: { status: 'LIVE' },
+    });
+    try {
+      emitTournamentUpdate(tournament.id, { status: 'LIVE' });
+    } catch {}
+  }
+
+  if (waitingRounds.length > 0 || waitingTournaments.length > 0) {
+    console.log(`[AutoStart] Started ${waitingRounds.length} round(s) and ${waitingTournaments.length} tournament(s)`);
+  }
+}
+
 export const setRoomCredentials = async (req: Request, res: Response): Promise<void> => {
   try {
     const id = req.params.id as string;
@@ -855,6 +895,7 @@ export const setRoomCredentials = async (req: Request, res: Response): Promise<v
       data: {
         roomId: data.roomId,
         roomPassword: data.roomPassword,
+        status: 'WAITING',
       },
     });
 
@@ -988,14 +1029,14 @@ export const updateRoundStatus = async (req: Request, res: Response): Promise<vo
     const roundId = req.params.roundId as string;
     const { status, roomId, roomPassword } = req.body;
 
-    if (!['UPCOMING', 'LIVE', 'COMPLETED'].includes(status)) {
+    if (!['UPCOMING', 'WAITING', 'LIVE', 'COMPLETED'].includes(status)) {
       res.status(400).json({ error: 'Invalid status' });
       return;
     }
 
-    if (status === 'LIVE') {
+    if (status === 'WAITING') {
       if (!roomId || !roomPassword) {
-        res.status(400).json({ error: 'Room ID and Password are required to start a round' });
+        res.status(400).json({ error: 'Room ID and Password are required to put a round in waiting' });
         return;
       }
     }
@@ -1012,12 +1053,15 @@ export const updateRoundStatus = async (req: Request, res: Response): Promise<vo
       return;
     }
 
+    const updateData: any = { status };
+    if (status === 'WAITING' && roomId && roomPassword) {
+      updateData.roomId = roomId;
+      updateData.roomPassword = roomPassword;
+    }
+
     const updated = await prisma.round.update({
       where: { id: roundId },
-      data: {
-        status,
-        ...(status === 'LIVE' && { roomId, roomPassword }),
-      },
+      data: updateData,
     });
 
     // If completing a round and auto-calculate scores

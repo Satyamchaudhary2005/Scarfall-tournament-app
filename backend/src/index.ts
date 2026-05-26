@@ -5,7 +5,7 @@ import morgan from 'morgan';
 import { createServer } from 'http';
 import { config } from './config';
 import { initializeSocket } from './services/socket';
-import { runCleanup } from './controllers/tournament.controller';
+import { runCleanup, autoStartRounds } from './controllers/tournament.controller';
 import { startDailyFreeTournamentScheduler } from './services/dailyFreeTournaments';
 
 // Route imports
@@ -98,6 +98,11 @@ runCleanup().catch((err) => console.error('Initial cleanup error:', err));
 setInterval(() => {
   runCleanup().catch((err) => console.error('Auto cleanup error:', err));
 }, 60 * 60 * 1000);
+
+// Auto-start WAITING tournaments/rounds → LIVE after 10 minutes
+setInterval(() => {
+  autoStartRounds().catch((err) => console.error('Auto start error:', err));
+}, 30 * 1000);
 
 // Daily free tournament scheduler (marketing)
 startDailyFreeTournamentScheduler().catch((err) =>
