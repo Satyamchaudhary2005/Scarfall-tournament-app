@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { tournamentApi, walletApi, notificationApi } from '@/services/api';
 import { Card, Button, Badge, ConfirmModal } from '@/components/ui';
@@ -60,6 +61,17 @@ export function TournamentMissionControl({ tournamentId, onBack }: { tournamentI
   const tournament = tData?.tournament;
   const wallet = walletData?.wallet;
   const notifications = activityData?.notifications || [];
+
+  const router = useRouter();
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => tournamentApi.deleteHosted(id),
+    onSuccess: () => {
+      toast.success('Tournament deleted');
+      router.push('/organizer/tournaments');
+    },
+    onError: () => toast.error('Failed to delete tournament'),
+  });
 
   const entryFeeNum = Number(tournament?.entryFee || 0);
   const totalCollection = entryFeeNum * (tournament?.slots || 0);
@@ -145,6 +157,13 @@ export function TournamentMissionControl({ tournamentId, onBack }: { tournamentI
             totalCollection={totalCollection}
             organizerEarnings={organizerEarnings}
             onBack={onBack}
+            onDelete={() => setShowConfirmModal({
+              open: true, title: 'Delete Tournament',
+              message: `Delete "${tournament.title}"? This cannot be undone.`,
+              variant: 'danger', confirmLabel: 'Delete',
+              onConfirm: () => { deleteMutation.mutate(tournament.id); setShowConfirmModal((prev: any) => ({ ...prev, open: false })); },
+            })}
+            deleteLoading={deleteMutation.isPending}
           />
 
           {/* Tab Content */}
@@ -329,7 +348,7 @@ function SidebarNav({ tabs, activeTab, onSelect, collapsed, onToggle, tournament
 
 // ─── Tournament Header ─────────────────────────────────────────────────────────
 
-function TournamentHeader({ tournament, statusColors, registeredCount, prizePoolNum, totalCollection, organizerEarnings, onBack }: any) {
+function TournamentHeader({ tournament, statusColors, registeredCount, prizePoolNum, totalCollection, organizerEarnings, onBack, onDelete, deleteLoading }: any) {
   return (
     <div className="relative rounded-xl overflow-hidden mb-6">
       <div className="h-36 sm:h-44 bg-gradient-to-br from-primary/30 via-primary/10 to-surface relative overflow-hidden">
@@ -363,6 +382,14 @@ function TournamentHeader({ tournament, statusColors, registeredCount, prizePool
             <h1 className="text-xl sm:text-2xl font-black text-white">{tournament.title}</h1>
           </div>
         </div>
+        <button
+          onClick={onDelete}
+          disabled={deleteLoading}
+          className="p-2 rounded-lg bg-black/30 hover:bg-red-500/20 text-white/60 hover:text-red-400 transition-all backdrop-blur-sm disabled:opacity-50"
+          title="Delete Tournament"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
       </div>
       <div className="absolute bottom-4 left-4 right-4">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
