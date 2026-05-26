@@ -770,7 +770,7 @@ function SingleMatchView({ tournament, tournamentId }: any) {
       const roundId = (createRes as any).round?.id;
       if (!roundId) throw new Error('Failed to create round');
       await tournamentApi.updateRoundScores(tournamentId, roundId, scoreEntries);
-      await (tournamentApi as any).updateStatus(tournamentId, 'COMPLETED');
+      await tournamentApi.update(tournamentId, { status: 'COMPLETED' });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tournament', tournamentId] });
@@ -794,7 +794,7 @@ function SingleMatchView({ tournament, tournamentId }: any) {
   });
 
   const goLiveMutation = useMutation({
-    mutationFn: () => (tournamentApi as any).updateStatus(tournamentId, 'LIVE'),
+    mutationFn: () => tournamentApi.update(tournamentId, { status: 'LIVE' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tournament', tournamentId] });
       toast.success('Match is now LIVE');

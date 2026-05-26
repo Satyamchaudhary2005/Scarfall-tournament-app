@@ -321,9 +321,6 @@ export const leaderboardApi = {
     const qs = searchParams.toString();
     return request<{ leaderboard: ClanLeaderboardEntry[]; pagination: Pagination }>(`/leaderboard/clan${qs ? `?${qs}` : ''}`);
   },
-
-  updateStatus: (id: string, status: string) =>
-    request<{ message: string; tournament: Tournament }>(`/tournaments/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
 };
 
 // Admin API
