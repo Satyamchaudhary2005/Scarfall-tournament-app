@@ -141,7 +141,7 @@ function TournamentsContent() {
                 <Badge variant="success" size="sm">Joined</Badge>
               )}
               <Badge className={getStatusBadgeVariant(tournament.status)} size="sm">
-                {tournament.status === 'REGISTRATION_OPEN' ? 'OPEN' : tournament.status === 'UPCOMING' ? 'UPCOMING' : tournament.status === 'COMPLETED' ? 'Ended' : tournament.status}
+                {tournament.status === 'REGISTRATION_OPEN' || tournament.status === 'UPCOMING' ? 'OPEN' : tournament.status === 'COMPLETED' ? 'Ended' : tournament.status}
               </Badge>
             </div>
           </div>
@@ -236,12 +236,12 @@ function TournamentsContent() {
           </div>
         ) : (
           <>
-            <div className="relative group">
+            <div className="relative">
               {/* Left scroll arrow */}
               {canScrollLeft[type] && (
                 <button
                   onClick={() => scrollRow(type, 'left')}
-                  className="hidden sm:flex absolute left-0 top-0 bottom-2 z-10 w-9 items-center justify-center bg-gradient-to-r from-surface via-surface/95 to-transparent text-white/60 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                  className="hidden sm:flex absolute left-0 top-0 bottom-2 z-10 w-9 items-center justify-center bg-gradient-to-r from-surface via-surface/95 to-transparent text-white/60 hover:text-white transition-all"
                   aria-label="Scroll left"
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
@@ -251,7 +251,7 @@ function TournamentsContent() {
               {canScrollRight[type] && (
                 <button
                   onClick={() => scrollRow(type, 'right')}
-                  className="hidden sm:flex absolute right-0 top-0 bottom-2 z-10 w-9 items-center justify-center bg-gradient-to-l from-surface via-surface/95 to-transparent text-white/60 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                  className="hidden sm:flex absolute right-0 top-0 bottom-2 z-10 w-9 items-center justify-center bg-gradient-to-l from-surface via-surface/95 to-transparent text-white/60 hover:text-white transition-all"
                   aria-label="Scroll right"
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>

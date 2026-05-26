@@ -8,13 +8,13 @@ import {
   Swords, Target, Zap, Shield, Image, Settings,
   Users, CheckCircle, Sparkles,
   Monitor, Lock, Unlock, BarChart3, Crosshair,
-  LayoutList, Plus, Clock, Edit3, Trash2, Key,
-  PlayCircle, Layers,
+  LayoutList, Plus, Clock, Edit3, Key,
+  Layers,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
-import { Card, Badge } from '@/components/ui';
+import { Card } from '@/components/ui';
 import toast from 'react-hot-toast';
 import { tournamentApi } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
@@ -130,7 +130,7 @@ export function CreateWizard({ onTypeChange }: { onTypeChange?: (type: string) =
   const queryClient = useQueryClient();
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<Draft>(initialDraft);
-  const [showMyTournaments, setShowMyTournaments] = useState(false);
+
 
   const update = useCallback(<K extends keyof Draft>(key: K, value: Draft[K]) => {
     setDraft((prev) => ({ ...prev, [key]: value }));
@@ -260,51 +260,28 @@ export function CreateWizard({ onTypeChange }: { onTypeChange?: (type: string) =
             })}
           </div>
         </div>
-        <button
-          onClick={() => setShowMyTournaments(!showMyTournaments)}
-          className={`flex-shrink-0 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
-            showMyTournaments
-              ? 'bg-primary text-white shadow-glow-red-sm'
-              : 'bg-white/5 text-white/60 border border-white/10 hover:text-white hover:bg-white/10'
-          }`}
-        >
-          <Trophy className="w-3.5 h-3.5 inline mr-1.5" />
-          My Tournaments
-        </button>
       </div>
 
       <AnimatePresence mode="wait">
-        {showMyTournaments ? (
-          <motion.div
-            key="my-tournaments"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <MyTournamentsSection />
-          </motion.div>
-        ) : (
-          <motion.div
-            key={step}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.2 }}
-          >
-            {step === 0 && <StepBasics draft={draft} update={update} />}
-            {step === 1 && <StepEntryPrize draft={draft} update={update} prizePoolAmount={prizePoolAmount} totalCollection={totalCollection} />}
-            {step === 2 && <StepFormat draft={draft} update={update} prizePoolAmount={prizePoolAmount} />}
-            {step === 3 && <StepScoring draft={draft} update={update} />}
-            {step === 4 && <StepRoom draft={draft} update={update} />}
-            {step === 5 && <StepStream draft={draft} update={update} />}
-            {step === 6 && <StepModeration draft={draft} update={update} />}
-            {step === 7 && <StepReview draft={draft} prizePoolAmount={prizePoolAmount} totalCollection={totalCollection} />}
-          </motion.div>
-        )}
+        <motion.div
+          key={step}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          transition={{ duration: 0.2 }}
+        >
+          {step === 0 && <StepBasics draft={draft} update={update} />}
+          {step === 1 && <StepEntryPrize draft={draft} update={update} prizePoolAmount={prizePoolAmount} totalCollection={totalCollection} />}
+          {step === 2 && <StepFormat draft={draft} update={update} prizePoolAmount={prizePoolAmount} />}
+          {step === 3 && <StepScoring draft={draft} update={update} />}
+          {step === 4 && <StepRoom draft={draft} update={update} />}
+          {step === 5 && <StepStream draft={draft} update={update} />}
+          {step === 6 && <StepModeration draft={draft} update={update} />}
+          {step === 7 && <StepReview draft={draft} prizePoolAmount={prizePoolAmount} totalCollection={totalCollection} />}
+        </motion.div>
       </AnimatePresence>
 
-      {!showMyTournaments && (
-        <div className="flex items-center justify-between mt-8 pt-6 border-t border-card-border">
+      <div className="flex items-center justify-between mt-8 pt-6 border-t border-card-border">
           <Button variant="ghost" onClick={prevStep} disabled={step === 0}>
             <ChevronLeft className="w-4 h-4" />
             Back
@@ -333,137 +310,6 @@ export function CreateWizard({ onTypeChange }: { onTypeChange?: (type: string) =
             </button>
           )}
         </div>
-      )}
-    </div>
-  );
-}
-
-function MyTournamentsSection() {
-  const queryClient = useQueryClient();
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-
-  const { data, isLoading } = useQuery({
-    queryKey: ['my-tournaments'],
-    queryFn: () => tournamentApi.getMyTournaments(),
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => tournamentApi.deleteHosted(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['my-tournaments'] });
-      toast.success('Tournament deleted');
-      setConfirmDeleteId(null);
-    },
-    onError: (err: any) => {
-      toast.error(err.message || 'Failed to delete tournament');
-    },
-  });
-
-  if (isLoading) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="h-40 rounded-xl bg-card border border-card-border animate-pulse" />
-        ))}
-      </div>
-    );
-  }
-
-  const tournaments = data?.tournaments || [];
-
-  if (tournaments.length === 0) {
-    return (
-      <div className="text-center py-16">
-        <Trophy className="w-16 h-16 text-white/10 mx-auto mb-4" />
-        <h3 className="text-xl font-semibold text-white/40 mb-2">No tournaments yet</h3>
-        <p className="text-white/30">Create your first tournament to get started</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-          <Trophy className="w-4 h-4 text-primary" />
-        </div>
-        <div>
-          <p className="text-sm font-semibold text-white">My Tournaments</p>
-          <p className="text-[10px] text-white/40">{tournaments.length} published</p>
-        </div>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {tournaments.map((t: any) => (
-          <Card key={t.id} className="p-4 group">
-            {confirmDeleteId === t.id ? (
-              <div className="text-center py-4">
-                <p className="text-sm font-semibold text-white mb-3">Delete this tournament?</p>
-                <div className="flex gap-2 justify-center">
-                  <button
-                    onClick={() => setConfirmDeleteId(null)}
-                    className="px-4 py-2 rounded-lg text-xs font-semibold bg-white/5 border border-white/10 text-white/50 hover:text-white/70 transition-all"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() => deleteMutation.mutate(t.id)}
-                    disabled={deleteMutation.isPending}
-                    className="px-4 py-2 rounded-lg text-xs font-bold bg-red-500 hover:bg-red-600 text-white transition-all disabled:opacity-50 flex items-center gap-1"
-                  >
-                    {deleteMutation.isPending ? (
-                      <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    ) : (
-                      <><Trash2 className="w-3.5 h-3.5" /> Delete</>
-                    )}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <Link href={`/tournaments/${t.id}`}>
-                  <div className="flex items-start justify-between mb-2">
-                    <Badge size="sm" variant={
-                      t.status === 'LIVE' ? 'success' :
-                      t.status === 'COMPLETED' ? 'info' :
-                      t.status === 'CANCELLED' ? 'danger' : 'warning'
-                    }>
-                      {t.status === 'REGISTRATION_OPEN' ? 'Open' : t.status.charAt(0) + t.status.slice(1).toLowerCase()}
-                    </Badge>
-                    <span className="text-[10px] text-white/30">{t.format?.replace(/_/g, ' ')}</span>
-                  </div>
-                  <h3 className="text-base font-bold text-white group-hover:text-primary transition-colors mb-2">{t.title}</h3>
-                  <div className="flex items-center gap-4 text-xs text-white/50">
-                    <span className="flex items-center gap-1">
-                      <Trophy className="w-3 h-3 text-primary" />
-                      {t.prizePool || 'No prize'}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Users className="w-3 h-3" />
-                      {t._count?.registrations || 0}/{t.slots}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <PlayCircle className="w-3 h-3" />
-                      {t.mode}
-                    </span>
-                  </div>
-                </Link>
-                <div className="mt-3 pt-3 border-t border-card-border flex items-center justify-between">
-                  <span className="text-[10px] text-white/30">{new Date(t.startsAt).toLocaleDateString()}</span>
-                  <div className="flex gap-1.5">
-                    <button
-                      onClick={() => setConfirmDeleteId(t.id)}
-                      className="p-1.5 rounded-lg text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-all"
-                      title="Delete tournament"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
-          </Card>
-        ))}
-      </div>
     </div>
   );
 }
