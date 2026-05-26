@@ -180,7 +180,7 @@ export function WalletDropdown() {
             className="fixed left-4 right-4 top-24 z-50 overflow-hidden sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[360px]"
           >
             {/* Outer glass container */}
-            <div className="relative bg-gradient-to-b from-[#0d0d1a]/95 to-[#111128]/95 backdrop-blur-2xl border border-white/[0.08] rounded-2xl shadow-2xl shadow-black/60 overflow-hidden">
+            <div className="relative bg-card border border-card-border rounded-2xl shadow-2xl shadow-black/60 overflow-hidden">
               {/* Animated gradient orbs */}
               <div className="absolute -top-20 -right-20 w-40 h-40 bg-red-500/5 rounded-full blur-3xl" />
               <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-red-700/5 rounded-full blur-3xl" />
@@ -236,14 +236,14 @@ export function WalletDropdown() {
                     <div className="flex items-center justify-center gap-6 mt-3">
                       {totalWinnings > 0 && (
                         <div className="text-center">
-                          <p className="text-[10px] text-green-400/50 font-semibold tracking-wider uppercase">Winnings</p>
-                          <p className="text-lg font-bold text-green-400">+₹{totalWinnings.toLocaleString()}</p>
+                          <p className="text-[10px] text-red-400/50 font-semibold tracking-wider uppercase">Winnings</p>
+                          <p className="text-lg font-bold text-red-400">+₹{totalWinnings.toLocaleString()}</p>
                         </div>
                       )}
                       {totalEntryFees > 0 && (
                         <div className="text-center">
-                          <p className="text-[10px] text-red-400/50 font-semibold tracking-wider uppercase">Entry Fees</p>
-                          <p className="text-lg font-bold text-red-400">-₹{totalEntryFees.toLocaleString()}</p>
+                          <p className="text-[10px] text-white/40 font-semibold tracking-wider uppercase">Entry Fees</p>
+                          <p className="text-lg font-bold text-white/70">-₹{totalEntryFees.toLocaleString()}</p>
                         </div>
                       )}
                     </div>
@@ -251,7 +251,7 @@ export function WalletDropdown() {
                     <div className="mt-4 flex gap-2.5 max-w-[240px] mx-auto">
                       <button
                         onClick={() => setActiveTab('withdraw')}
-                        className="flex-1 py-2.5 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-red-400/30 transition-all text-xs font-semibold text-white/60 hover:text-red-400 flex items-center justify-center gap-1.5 group"
+                        className="flex-1 py-2.5 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-red-500/30 transition-all text-xs font-semibold text-white/60 hover:text-red-400 flex items-center justify-center gap-1.5 group"
                       >
                         <Minus className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
                         Withdraw
@@ -276,10 +276,7 @@ export function WalletDropdown() {
                   >
                     <div className="flex items-center gap-2 sm:gap-3 mb-4">
                       <div className={cn(
-                        'w-10 h-10 rounded-xl flex items-center justify-center shadow-lg',
-                        activeTab === 'deposit'
-                          ? 'bg-gradient-to-br from-green-500 to-emerald-600 shadow-green-500/30'
-                          : 'bg-gradient-to-br from-red-500 to-rose-600 shadow-red-500/30'
+                        'w-10 h-10 rounded-xl flex items-center justify-center shadow-lg bg-gradient-to-br from-red-500 to-red-700 shadow-red-500/30'
                       )}>
                         {activeTab === 'deposit' ? <Plus className="w-5 h-5 text-white" /> : <Minus className="w-5 h-5 text-white" />}
                       </div>
@@ -303,10 +300,8 @@ export function WalletDropdown() {
                         max={activeTab === 'withdraw' ? balance : undefined}
                         className={cn(
                           'w-full pl-10 pr-4 py-3.5 rounded-xl text-white text-2xl font-bold outline-none transition-all placeholder:text-white/[0.08]',
-                          'bg-white/[0.04] border focus:bg-white/[0.07]',
-                          activeTab === 'deposit'
-                            ? 'border-white/10 focus:border-green-400/40'
-                            : 'border-white/10 focus:border-red-400/40'
+                          'bg-white/5 border border-white/10 focus:bg-white/[0.07]',
+                          'focus:border-red-500/40'
                         )}
                       />
                     </div>
@@ -316,14 +311,12 @@ export function WalletDropdown() {
                         <button
                           key={amt}
                           onClick={() => setAmount(String(amt))}
-                          className={cn(
-                            'flex-1 py-2 rounded-lg text-xs font-bold border transition-all duration-150',
-                            Number(amount) === amt
-                              ? activeTab === 'deposit'
-                                ? 'border-green-400/40 text-green-400 bg-green-500/10 shadow-lg shadow-green-500/10'
-                                : 'border-red-400/40 text-red-400 bg-red-500/10 shadow-lg shadow-red-500/10'
-                              : 'border-white/[0.06] text-white/30 hover:text-white/60 hover:border-white/20 bg-white/[0.02]'
-                          )}
+                            className={cn(
+                              'flex-1 py-2 rounded-lg text-xs font-bold border transition-all duration-150',
+                              Number(amount) === amt
+                                ? 'border-red-500/40 text-red-400 bg-red-500/10 shadow-lg shadow-red-500/10'
+                                : 'border-white/[0.06] text-white/30 hover:text-white/60 hover:border-white/20 bg-white/[0.02]'
+                            )}
                         >
                           ₹{amt}
                         </button>
@@ -360,7 +353,7 @@ export function WalletDropdown() {
                     className="relative"
                   >
                     <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg shadow-red-500/30">
                         <Clock className="w-5 h-5 text-white" />
                       </div>
                       <div>
@@ -390,10 +383,9 @@ export function WalletDropdown() {
                             <div className="flex items-center gap-3">
                               <div className={cn(
                                 'w-9 h-9 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110',
-                                tx.type === 'DEPOSIT' && 'bg-gradient-to-br from-green-500/20 to-emerald-500/10 text-green-400',
-                                tx.type === 'WITHDRAW' && 'bg-gradient-to-br from-red-500/20 to-rose-500/10 text-red-400',
-                                (tx.type === 'TOURNAMENT_WINNING' || tx.type === 'TOURNAMENT_FEE') && 'bg-gradient-to-br from-blue-500/20 to-indigo-500/10 text-blue-400',
-                                tx.type === 'CLAN_FEE' && 'bg-gradient-to-br from-purple-500/20 to-violet-500/10 text-purple-400',
+                                (tx.type === 'DEPOSIT' || tx.type === 'TOURNAMENT_WINNING') && 'bg-red-500/10 text-red-400',
+                                (tx.type === 'WITHDRAW' || tx.type === 'TOURNAMENT_FEE' || tx.type === 'CLAN_FEE') && 'bg-red-500/10 text-red-400',
+                                !['DEPOSIT', 'WITHDRAW', 'TOURNAMENT_WINNING', 'TOURNAMENT_FEE', 'CLAN_FEE'].includes(tx.type) && 'bg-white/5 text-white/40',
                               )}>
                                 {tx.type === 'DEPOSIT' && <TrendingUp className="w-4 h-4" />}
                                 {tx.type === 'WITHDRAW' && <TrendingDown className="w-4 h-4" />}
@@ -416,8 +408,8 @@ export function WalletDropdown() {
                             </div>
                             <span className={cn(
                               'text-sm font-bold tracking-tight',
-                              (tx.type === 'DEPOSIT' || tx.type === 'TOURNAMENT_WINNING') && 'text-green-400',
-                              (tx.type === 'WITHDRAW' || tx.type === 'TOURNAMENT_FEE' || tx.type === 'CLAN_FEE') && 'text-red-400',
+                              (tx.type === 'DEPOSIT' || tx.type === 'TOURNAMENT_WINNING') && 'text-red-400',
+                              (tx.type === 'WITHDRAW' || tx.type === 'TOURNAMENT_FEE' || tx.type === 'CLAN_FEE') && 'text-white/50',
                             )}>
                               {(tx.type === 'DEPOSIT' || tx.type === 'TOURNAMENT_WINNING') ? '+' : '-'}₹{tx.amount.toLocaleString()}
                             </span>
