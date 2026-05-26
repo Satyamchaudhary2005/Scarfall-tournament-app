@@ -71,9 +71,9 @@ export function getStatusBadgeVariant(status: string) {
     case 'LIVE':
       return 'bg-green-500/20 text-green-400 border-green-500/30';
     case 'REGISTRATION_OPEN':
-      return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+      return 'bg-red-500/20 text-red-400 border-red-500/30';
     case 'UPCOMING':
-      return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+      return 'bg-red-500/20 text-red-400 border-red-500/30';
     case 'COMPLETED':
       return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
     case 'CANCELLED':
