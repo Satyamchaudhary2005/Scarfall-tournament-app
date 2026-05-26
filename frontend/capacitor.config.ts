@@ -5,8 +5,8 @@ const config: CapacitorConfig = {
   appName: 'TournaX',
   webDir: 'capacitor-assets',
   server: {
-    url: 'https://tournax.vercel.app',
     cleartext: true,
+    allowNavigation: ['tournax.vercel.app'],
   },
   android: {
     buildOptions: {
