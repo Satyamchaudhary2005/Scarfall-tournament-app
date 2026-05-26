@@ -1231,12 +1231,20 @@ function OrganizerContent() {
               </div>
               <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between">
                 <span className="text-xs text-white/30">{t.entryFee === 'Free' ? 'Free Entry' : `₹${t.entryFee}`}</span>
-                <Link
-                  href={`/tournaments/${t.id}`}
-                  className="text-xs text-primary hover:text-primary-400 font-medium"
-                >
-                  View →
-                </Link>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={`/organizer/tournaments/${t.id}/manage`}
+                    className="text-xs font-semibold bg-primary/10 hover:bg-primary/20 text-primary px-2.5 py-1 rounded-lg transition-all"
+                  >
+                    Manage
+                  </Link>
+                  <Link
+                    href={`/tournaments/${t.id}`}
+                    className="text-xs text-white/40 hover:text-white font-medium"
+                  >
+                    View →
+                  </Link>
+                </div>
               </div>
             </Card>
           ))}
