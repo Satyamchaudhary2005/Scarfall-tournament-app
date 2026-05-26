@@ -58,6 +58,7 @@ export default function OrganizerPage() {
 }
 
 function OrganizerContent() {
+  const router = useRouter();
   const [search, setSearch] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -1127,10 +1128,10 @@ function OrganizerContent() {
           <Trophy className="w-16 h-16 text-white/10 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-white/40 mb-2">No tournaments yet</h3>
           <p className="text-white/30 mb-6">Create your first tournament to get started</p>
-          <Button onClick={() => setShowCreate(true)}>
-            <Plus className="w-4 h-4" />
-            Create Tournament
-          </Button>
+           <Button onClick={() => router.push('/organizer/create')}>
+             <Plus className="w-4 h-4" />
+             Create Tournament
+           </Button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1148,54 +1149,6 @@ function OrganizerContent() {
                   {t.status === 'REGISTRATION_OPEN' ? 'Open' : t.status.charAt(0) + t.status.slice(1).toLowerCase()}
                 </Badge>
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={() => setRoomCreds({ id: t.id, roomId: t.roomId || '', roomPassword: t.roomPassword || '' })}
-                    className="p-1.5 rounded-lg hover:bg-white/5 text-white/40 hover:text-green-400 transition-all"
-                    title="Room Credentials"
-                  >
-                    <Key className="w-4 h-4" />
-                  </button>
-                  {t.format === 'MULTI_ROUND' && (
-                    <button
-                      onClick={() => setManageRoundsFor(t)}
-                      className="p-1.5 rounded-lg hover:bg-white/5 text-white/40 hover:text-yellow-400 transition-all"
-                      title="Manage Rounds"
-                    >
-                      <Swords className="w-4 h-4" />
-                    </button>
-                  )}
-                  <button
-                    onClick={() => setManageParticipantsFor(t)}
-                    className="p-1.5 rounded-lg hover:bg-white/5 text-white/40 hover:text-blue-400 transition-all"
-                    title="Participants"
-                  >
-                    <Users className="w-4 h-4" />
-                  </button>
-                  {t.format === 'MULTI_STAGE' && (
-                    <>
-                      <button
-                        onClick={() => { setCurrentTournamentId(t.id); setShowStageBuilder(true); }}
-                        className="p-1.5 rounded-lg hover:bg-white/5 text-white/40 hover:text-purple-400 transition-all"
-                        title="Manage Stages"
-                      >
-                        <Layers className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => setStageListModal(t.id)}
-                        className="p-1.5 rounded-lg hover:bg-white/5 text-white/40 hover:text-green-400 transition-all"
-                        title="Manage Matches"
-                      >
-                        <Swords className="w-4 h-4" />
-                      </button>
-                    </>
-                  )}
-                  <button
-                    onClick={() => handleEdit(t)}
-                    className="p-1.5 rounded-lg hover:bg-white/5 text-white/40 hover:text-primary transition-all"
-                    title="Edit"
-                  >
-                    <Edit3 className="w-4 h-4" />
-                  </button>
                   <button
                     onClick={() => setConfirmModal({
                       open: true, title: 'Delete Tournament',
