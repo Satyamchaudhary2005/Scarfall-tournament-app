@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { tournamentApi, clanApi } from '@/services/api';
+import { tournamentApi, clanApi, walletApi } from '@/services/api';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button, Card, Badge } from '@/components/ui';
@@ -47,6 +47,18 @@ export default function TournamentDetailPage() {
   const clanMembers = clanData?.clan?.members || [];
   const clan = clanData?.clan;
 
+  const { data: walletData } = useQuery({
+    queryKey: ['wallet'],
+    queryFn: () => walletApi.getWallet(),
+  });
+
+  const walletBalance = walletData?.wallet?.balance || 0;
+
+  const parseEntryFee = (fee: string): number => {
+    if (!fee || fee.toLowerCase() === 'free' || fee === '0') return 0;
+    return parseFloat(fee.replace(/[^0-9.]/g, '')) || 0;
+  };
+
   const registerMutation = useMutation({
     mutationFn: (data?: { teamName?: string; teamSize?: number }) =>
       tournamentApi.register(id as string, data),
@@ -81,6 +93,9 @@ export default function TournamentDetailPage() {
 
   // Check if any clan member is already registered
   const isClanRegistered = tournament?.registrations?.some(r => r.clanId === user?.clanId);
+
+  const entryFeeAmount = tournament ? parseEntryFee(tournament.entryFee) : 0;
+  const hasSufficientBalance = entryFeeAmount === 0 || walletBalance >= entryFeeAmount;
 
   const handleMemberToggle = (memberId: string, role: 'playing' | 'substitute') => {
     setSelectedMembers(prev => {
@@ -759,6 +774,30 @@ export default function TournamentDetailPage() {
                       )}
                     </div>
 
+                    {entryFeeAmount > 0 && (
+                      <div className="flex items-center justify-between text-sm mb-4 px-3 py-2 rounded-lg bg-white/5">
+                        <span className="text-white/50">Entry Fee</span>
+                        <span className="text-white font-medium">{tournament.entryFee}</span>
+                      </div>
+                    )}
+                    {entryFeeAmount > 0 && (
+                      <div className="flex items-center justify-between text-sm mb-4 px-3 py-2 rounded-lg bg-white/5">
+                        <span className="text-white/50">Wallet Balance</span>
+                        <span className={`font-medium ${hasSufficientBalance ? 'text-green-400' : 'text-red-400'}`}>
+                          ₹{walletBalance.toLocaleString()}
+                        </span>
+                      </div>
+                    )}
+                    {entryFeeAmount > 0 && !hasSufficientBalance && (
+                      <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-sm">
+                        <p className="text-red-400 font-medium mb-1">Insufficient balance</p>
+                        <p className="text-red-400/70 text-xs">
+                          You need ₹{entryFeeAmount.toLocaleString()} to register.{' '}
+                          <Link href="/profile" className="text-primary hover:underline">Add funds</Link>
+                        </p>
+                      </div>
+                    )}
+
                     <div className="flex gap-3">
                       <Button
                         variant="secondary"
@@ -773,13 +812,15 @@ export default function TournamentDetailPage() {
                       </Button>
                       <Button
                         className="flex-1"
-                        disabled={!canRegisterClan || clanMembers.length === 0}
+                        disabled={!canRegisterClan || clanMembers.length === 0 || (entryFeeAmount > 0 && !hasSufficientBalance)}
                         onClick={handleClanRegister}
                         loading={clanRegisterMutation.isPending}
                       >
-                        {canRegisterClan
-                          ? `Register Clan (+${isSquad ? '100' : '50'} XP)`
-                          : `Select ${maxPlaying - counts.playing} more playing members`}
+                        {entryFeeAmount > 0 && !hasSufficientBalance
+                          ? 'Insufficient Balance'
+                          : canRegisterClan
+                            ? `Register Clan (+${isSquad ? '100' : '50'} XP)`
+                            : `Select ${maxPlaying - counts.playing} more playing members`}
                       </Button>
                     </div>
 
@@ -803,6 +844,14 @@ export default function TournamentDetailPage() {
                         <span className="text-white/50">Entry Fee</span>
                         <span className="text-white font-medium">{tournament.entryFee}</span>
                       </div>
+                      {entryFeeAmount > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-white/50">Wallet Balance</span>
+                          <span className={`font-medium ${hasSufficientBalance ? 'text-green-400' : 'text-red-400'}`}>
+                            ₹{walletBalance.toLocaleString()}
+                          </span>
+                        </div>
+                      )}
                       <div className="flex justify-between">
                         <span className="text-white/50">Mode</span>
                         <span className="text-white font-medium">{tournament.mode}</span>
@@ -826,6 +875,16 @@ export default function TournamentDetailPage() {
                       )}
                     </div>
 
+                    {entryFeeAmount > 0 && !hasSufficientBalance && (
+                      <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-sm">
+                        <p className="text-red-400 font-medium mb-1">Insufficient balance</p>
+                        <p className="text-red-400/70 text-xs">
+                          You need ₹{entryFeeAmount.toLocaleString()} to register.{' '}
+                          <Link href="/profile" className="text-primary hover:underline">Add funds</Link>
+                        </p>
+                      </div>
+                    )}
+
                     <div className="flex gap-3">
                       <Button
                         variant="secondary"
@@ -836,6 +895,7 @@ export default function TournamentDetailPage() {
                       </Button>
                       <Button
                         className="flex-1"
+                        disabled={!hasSufficientBalance}
                         onClick={() => registerMutation.mutate({})}
                         loading={registerMutation.isPending}
                       >

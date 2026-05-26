@@ -263,6 +263,16 @@ export const registerForTournament = async (req: Request, res: Response): Promis
       return;
     }
 
+    // Handle entry fee deduction
+    const entryFeeAmount = parseEntryFee(tournament.entryFee);
+    if (entryFeeAmount > 0) {
+      const wallet = await prisma.wallet.findUnique({ where: { userId: req.user!.id } });
+      if (!wallet || wallet.balance < entryFeeAmount) {
+        res.status(400).json({ error: `Insufficient wallet balance. Required: ₹${entryFeeAmount}` });
+        return;
+      }
+    }
+
     const registration = await prisma.tournamentRegistration.create({
       data: {
         tournamentId: id,
@@ -279,6 +289,28 @@ export const registerForTournament = async (req: Request, res: Response): Promis
         },
       },
     });
+
+    // Deduct entry fee
+    if (entryFeeAmount > 0) {
+      const wallet = await prisma.wallet.findUnique({ where: { userId: req.user!.id } });
+      if (wallet) {
+        await prisma.$transaction([
+          prisma.wallet.update({
+            where: { id: wallet.id },
+            data: { balance: { decrement: entryFeeAmount } },
+          }),
+          prisma.transaction.create({
+            data: {
+              type: 'TOURNAMENT_FEE',
+              amount: entryFeeAmount,
+              description: `Entry fee for ${tournament.title}`,
+              status: 'COMPLETED',
+              walletId: wallet.id,
+            },
+          }),
+        ]);
+      }
+    }
 
     res.status(201).json({ message: 'Registered successfully', registration });
   } catch (error) {
@@ -411,6 +443,16 @@ export const registerClanForTournament = async (req: Request, res: Response): Pr
     const teamNameFinal = teamName || `Team ${clan.name}`;
     const xpAwarded = tournament.mode === 'DUO' ? 50 : 100;
 
+    // Handle entry fee deduction (once per team, from the registering user)
+    const entryFeeAmount = parseEntryFee(tournament.entryFee);
+    if (entryFeeAmount > 0) {
+      const wallet = await prisma.wallet.findUnique({ where: { userId: req.user!.id } });
+      if (!wallet || wallet.balance < entryFeeAmount) {
+        res.status(400).json({ error: `Insufficient wallet balance. Required: ₹${entryFeeAmount}` });
+        return;
+      }
+    }
+
     // Create registration entries for each selected member
     const registrations = await Promise.all(
       allMemberIds.map(memberId =>
@@ -445,6 +487,28 @@ export const registerClanForTournament = async (req: Request, res: Response): Pr
         matchesPlayed: { increment: 1 },
       },
     });
+
+    // Deduct entry fee
+    if (entryFeeAmount > 0) {
+      const wallet = await prisma.wallet.findUnique({ where: { userId: req.user!.id } });
+      if (wallet) {
+        await prisma.$transaction([
+          prisma.wallet.update({
+            where: { id: wallet.id },
+            data: { balance: { decrement: entryFeeAmount } },
+          }),
+          prisma.transaction.create({
+            data: {
+              type: 'TOURNAMENT_FEE',
+              amount: entryFeeAmount,
+              description: `Entry fee for ${tournament.title}`,
+              status: 'COMPLETED',
+              walletId: wallet.id,
+            },
+          }),
+        ]);
+      }
+    }
 
     res.status(201).json({
       message: 'Clan registered successfully',
@@ -1168,3 +1232,9 @@ export const getScoreboard = async (req: Request, res: Response): Promise<void> 
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+function parseEntryFee(fee: string): number {
+  if (!fee || fee.toLowerCase() === 'free' || fee === '0') return 0;
+  const cleaned = fee.replace(/[^0-9.]/g, '');
+  return Math.max(0, parseFloat(cleaned) || 0);
+}
