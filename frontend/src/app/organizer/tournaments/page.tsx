@@ -365,7 +365,7 @@ function OrganizerContent() {
             <RefreshCw className="w-4 h-4" />
             Cleanup Old
           </Button>
-          <Button onClick={() => { setShowCreate(!showCreate); setEditingId(null); resetForm(); }} className="flex-1 sm:flex-none">
+          <Button onClick={() => router.push('/organizer/create')} className="flex-1 sm:flex-none">
             <Plus className="w-4 h-4" />
             Create
           </Button>
