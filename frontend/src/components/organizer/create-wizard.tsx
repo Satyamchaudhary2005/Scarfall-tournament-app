@@ -67,6 +67,9 @@ interface Draft {
   duplicateDetection: boolean;
   manualApproval: boolean;
   autoQualification: boolean;
+  prizeDistributionEnabled: boolean;
+  prizeTopN: number;
+  prizeDistribution: number[];
 }
 
 const initialDraft: Draft = {
@@ -82,6 +85,9 @@ const initialDraft: Draft = {
   teamTypeVal: 'SOLO', maps: '', timing: '60', autoDistribution: true,
   youtubeUrl: '',
   duplicateDetection: true, manualApproval: false, autoQualification: true,
+  prizeDistributionEnabled: false,
+  prizeTopN: 3,
+  prizeDistribution: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
 };
 
 const steps = [
@@ -162,6 +168,14 @@ export function CreateWizard({ onTypeChange }: { onTypeChange?: (type: string) =
         payload.totalRounds = draft.matchCount;
         payload.killReward = draft.rewardPerKill;
         payload.maxKillReward = draft.maxKillReward;
+      }
+
+      if (draft.prizeDistributionEnabled) {
+        payload.prizeDistribution = {
+          enabled: true,
+          topN: draft.prizeTopN,
+          distribution: draft.prizeDistribution.slice(0, draft.prizeTopN),
+        };
       }
 
       const res = await tournamentApi.create(payload);
@@ -279,7 +293,7 @@ export function CreateWizard({ onTypeChange }: { onTypeChange?: (type: string) =
           >
             {step === 0 && <StepBasics draft={draft} update={update} />}
             {step === 1 && <StepEntryPrize draft={draft} update={update} prizePoolAmount={prizePoolAmount} totalCollection={totalCollection} />}
-            {step === 2 && <StepFormat draft={draft} update={update} />}
+            {step === 2 && <StepFormat draft={draft} update={update} prizePoolAmount={prizePoolAmount} />}
             {step === 3 && <StepScoring draft={draft} update={update} />}
             {step === 4 && <StepRoom draft={draft} update={update} />}
             {step === 5 && <StepStream draft={draft} update={update} />}
@@ -632,7 +646,7 @@ function StepEntryPrize({ draft, update, prizePoolAmount, totalCollection }: {
   );
 }
 
-function StepFormat({ draft, update }: { draft: Draft; update: <K extends keyof Draft>(k: K, v: Draft[K]) => void }) {
+function StepFormat({ draft, update, prizePoolAmount }: { draft: Draft; update: <K extends keyof Draft>(k: K, v: Draft[K]) => void; prizePoolAmount: number }) {
   return (
     <div>
       <div className="flex items-center gap-3 mb-6">
@@ -715,6 +729,157 @@ function StepFormat({ draft, update }: { draft: Draft; update: <K extends keyof 
           </div>
           <PerKillCalculator kills={12} rewardPerKill={draft.rewardPerKill} maxReward={draft.maxKillReward} />
         </div>
+      )}
+
+      <hr className="border-white/5 my-8" />
+
+      <PrizeDistributionSection draft={draft} update={update} prizePoolAmount={prizePoolAmount} />
+    </div>
+  );
+}
+
+function PrizeDistributionSection({ draft, update, prizePoolAmount }: {
+  draft: Draft; update: <K extends keyof Draft>(k: K, v: Draft[K]) => void; prizePoolAmount: number;
+}) {
+  const totalDistributed = draft.prizeDistribution.slice(0, draft.prizeTopN).reduce((a, b) => a + b, 0);
+  const remaining = prizePoolAmount - totalDistributed;
+
+  return (
+    <div>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 rounded-xl bg-yellow-500/10 flex items-center justify-center">
+          <Trophy className="w-5 h-5 text-yellow-400" />
+        </div>
+        <div>
+          <h2 className="text-lg font-semibold text-white">Prize Pool Distribution</h2>
+          <p className="text-sm text-white/50">Configure how prize money is distributed among winners</p>
+        </div>
+      </div>
+
+      <label className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10 cursor-pointer hover:bg-white/[0.07] transition-all mb-6">
+        <input
+          type="checkbox"
+          checked={draft.prizeDistributionEnabled}
+          onChange={(e) => update('prizeDistributionEnabled', e.target.checked)}
+          className="w-4 h-4 rounded border-white/10 bg-white/5 text-primary focus:ring-primary/30"
+        />
+        <div>
+          <p className="text-sm font-medium text-white">Custom Prize Distribution</p>
+          <p className="text-xs text-white/40">Manually set prize amounts for each top position</p>
+        </div>
+      </label>
+
+      {draft.prizeDistributionEnabled && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-4"
+        >
+          <div className="bg-card border border-card-border rounded-xl p-4">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm text-white/70">Prize Pool</span>
+              <span className="text-lg font-bold text-white">₹{prizePoolAmount.toLocaleString()}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm mb-4">
+              <span className="text-white/50">Distributed</span>
+              <span className={`font-semibold ${totalDistributed > prizePoolAmount ? 'text-red-400' : 'text-green-400'}`}>
+                ₹{totalDistributed.toLocaleString()}
+              </span>
+            </div>
+            {totalDistributed < prizePoolAmount && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-white/50">Remaining to allocate</span>
+                <span className="font-semibold text-yellow-400">₹{remaining.toLocaleString()}</span>
+              </div>
+            )}
+            {totalDistributed > prizePoolAmount && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-white/50">Over allocated</span>
+                <span className="font-semibold text-red-400">-₹{(totalDistributed - prizePoolAmount).toLocaleString()}</span>
+              </div>
+            )}
+            <div className="mt-3 w-full h-2 bg-white/10 rounded-full overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.min((totalDistributed / Math.max(prizePoolAmount, 1)) * 100, 100)}%` }}
+                className={`h-full rounded-full ${totalDistributed > prizePoolAmount ? 'bg-red-500' : 'bg-primary'}`}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Select label="Top N Winners" value={String(draft.prizeTopN)} onChange={(v) => update('prizeTopN', Number(v))} options={[
+              ...Array.from({ length: 10 }, (_, i) => ({ value: String(i + 1), label: `Top ${i + 1}` })),
+            ]} />
+            <button
+              onClick={() => {
+                if (prizePoolAmount <= 0) return;
+                const equalShare = Math.floor(prizePoolAmount / draft.prizeTopN);
+                const dist = [...draft.prizeDistribution];
+                for (let i = 0; i < draft.prizeTopN; i++) dist[i] = equalShare;
+                const extra = prizePoolAmount - equalShare * draft.prizeTopN;
+                if (extra > 0) dist[0] += extra;
+                update('prizeDistribution', dist);
+              }}
+              className="self-end py-2.5 px-4 rounded-lg text-xs font-semibold bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10 transition-all h-[42px]"
+            >
+              Split Equally
+            </button>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-white/50 uppercase tracking-wider mb-2">Prize Breakdown</p>
+            {Array.from({ length: draft.prizeTopN }, (_, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
+                  i === 0 ? 'bg-yellow-500/20 text-yellow-400' :
+                  i === 1 ? 'bg-gray-400/20 text-gray-300' :
+                  i === 2 ? 'bg-orange-500/20 text-orange-400' :
+                  'bg-white/5 text-white/40'
+                }`}>
+                  #{i + 1}
+                </div>
+                <div className="relative flex-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20 font-bold text-sm z-10">₹</span>
+                  <input
+                    type="number"
+                    value={draft.prizeDistribution[i] || 0}
+                    onChange={(e) => {
+                      const dist = [...draft.prizeDistribution];
+                      dist[i] = Number(e.target.value);
+                      update('prizeDistribution', dist);
+                    }}
+                    min={0}
+                    className="w-full pl-8 pr-3 py-2.5 rounded-lg text-white text-sm font-semibold outline-none bg-white/[0.04] border border-white/10 focus:border-primary/40 transition-all"
+                    placeholder="0"
+                  />
+                </div>
+                <span className="text-xs text-white/30 w-14 text-right shrink-0">
+                  {prizePoolAmount > 0 ? Math.round((draft.prizeDistribution[i] / prizePoolAmount) * 100) : 0}%
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {draft.prizeDistributionEnabled && draft.prizeTopN > 0 && totalDistributed > 0 && totalDistributed <= prizePoolAmount && (
+            <div className="bg-green-500/5 border border-green-500/20 rounded-lg p-3">
+              <div className="flex items-center gap-2 text-sm">
+                <CheckCircle className="w-4 h-4 text-green-400" />
+                <span className="text-green-300 font-medium">Prize distribution set</span>
+              </div>
+              <div className="mt-2 space-y-1">
+                {Array.from({ length: draft.prizeTopN }, (_, i) => (
+                  draft.prizeDistribution[i] > 0 && (
+                    <div key={i} className="flex items-center justify-between text-xs text-white/50">
+                      <span>#{i + 1} place</span>
+                      <span className="text-white font-medium">₹{draft.prizeDistribution[i].toLocaleString()}</span>
+                    </div>
+                  )
+                ))}
+              </div>
+            </div>
+          )}
+        </motion.div>
       )}
     </div>
   );
@@ -940,6 +1105,14 @@ function StepReview({ draft, prizePoolAmount, totalCollection }: {
           { label: 'Per Kill', value: `₹${draft.rewardPerKill}` },
           { label: 'Max Reward', value: `₹${draft.maxKillReward}` },
           { label: 'Matches', value: String(draft.matchCount) },
+        ] : []),
+        ...(draft.prizeDistributionEnabled && draft.prizeTopN > 0 ? [
+          { label: 'Prize Distribution', value: `Top ${draft.prizeTopN}` },
+          ...Array.from({ length: draft.prizeTopN }, (_, i) =>
+            draft.prizeDistribution[i] > 0
+              ? { label: `#${i + 1} place`, value: `₹${draft.prizeDistribution[i].toLocaleString()}` }
+              : { label: `#${i + 1} place`, value: '-' }
+          ),
         ] : []),
       ],
     },

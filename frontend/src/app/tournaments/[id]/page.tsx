@@ -12,7 +12,7 @@ import type { Tournament } from '@/types';
 import {
   Trophy, Users, Clock, IndianRupee, Zap, Calendar,
   ChevronLeft, UserPlus, Check, AlertCircle, Swords, Key, Copy,
-  Crosshair, Skull,
+  Crosshair, Skull, Gift, Crown, Medal, Target, TrendingUp,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
@@ -175,16 +175,24 @@ export default function TournamentDetailPage() {
             {tournament.bannerUrl ? (
               <img src={tournament.bannerUrl} alt="" className="w-full h-48 sm:h-64 object-cover" />
             ) : (
-              <div className="w-full h-48 sm:h-64 bg-gradient-to-br from-primary/20 to-surface flex items-center justify-center">
-                <Trophy className="w-16 h-16 text-primary/30" />
+              <div className="w-full h-48 sm:h-64 bg-gradient-to-br from-primary/30 via-primary/10 to-surface flex items-center justify-center relative overflow-hidden">
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent" />
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+                >
+                  <Trophy className="w-20 h-20 text-primary/40" />
+                </motion.div>
               </div>
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/50 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/40 to-transparent" />
             <div className="absolute bottom-6 left-6 right-6">
               <Badge className={getStatusBadgeVariant(tournament.status)} size="md">
-                {tournament.status === 'REGISTRATION_OPEN' ? 'Registration Open' : tournament.status}
+                {tournament.status === 'REGISTRATION_OPEN' ? 'Registration Open' : tournament.status.charAt(0) + tournament.status.slice(1).toLowerCase().replace(/_/g, ' ')}
               </Badge>
               <h1 className="text-2xl sm:text-3xl font-black text-white mt-2">{tournament.title}</h1>
+              <p className="text-sm text-white/50 mt-1">{tournament.mode} • {String(tournament.format || '').replace(/_/g, ' ')}</p>
             </div>
           </div>
 
@@ -195,27 +203,85 @@ export default function TournamentDetailPage() {
               <Card className="p-6">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
                   <div className="text-center">
-                    <IndianRupee className="w-5 h-5 text-primary mx-auto mb-1" />
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-2">
+                      <IndianRupee className="w-5 h-5 text-primary" />
+                    </div>
                     <p className="text-xl font-bold text-white">{tournament.prizePool}</p>
                     <p className="text-xs text-white/40">Prize Pool</p>
                   </div>
                   <div className="text-center">
-                    <Users className="w-5 h-5 text-white/40 mx-auto mb-1" />
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center mx-auto mb-2">
+                      <Users className="w-5 h-5 text-blue-400" />
+                    </div>
                     <p className="text-xl font-bold text-white">{tournament._count?.registrations || 0}/{tournament.slots}</p>
                     <p className="text-xs text-white/40">Players</p>
                   </div>
                   <div className="text-center">
-                    <Zap className="w-5 h-5 text-white/40 mx-auto mb-1" />
+                    <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center mx-auto mb-2">
+                      <Zap className="w-5 h-5 text-green-400" />
+                    </div>
                     <p className="text-xl font-bold text-white">{tournament.mode}</p>
                     <p className="text-xs text-white/40">Mode</p>
                   </div>
                   <div className="text-center">
-                    <Calendar className="w-5 h-5 text-white/40 mx-auto mb-1" />
+                    <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center mx-auto mb-2">
+                      <Calendar className="w-5 h-5 text-purple-400" />
+                    </div>
                     <p className="text-xl font-bold text-white">{formatDateTime(tournament.startsAt)}</p>
                     <p className="text-xs text-white/40">Date</p>
                   </div>
                 </div>
               </Card>
+
+              {/* Prize Distribution */}
+              {(tournament as any).prizeDistribution?.enabled && (
+                <Card className="p-6 border-yellow-500/20">
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="w-10 h-10 rounded-xl bg-yellow-500/10 flex items-center justify-center">
+                      <Gift className="w-5 h-5 text-yellow-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">Prize Distribution</h3>
+                      <p className="text-sm text-white/50">Top {(tournament as any).prizeDistribution.topN} winners</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    {(tournament as any).prizeDistribution.distribution.map((amount: number, i: number) => (
+                      <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-white/[0.02] border border-white/5">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
+                          i === 0 ? 'bg-yellow-500/20 text-yellow-400' :
+                          i === 1 ? 'bg-gray-400/20 text-gray-300' :
+                          i === 2 ? 'bg-orange-500/20 text-orange-400' :
+                          'bg-white/5 text-white/40'
+                        }`}>
+                          {i === 0 ? <Crown className="w-4 h-4" /> : i === 1 ? <Medal className="w-4 h-4" /> : i === 2 ? <Medal className="w-4 h-4" /> : `#${i + 1}`}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-white">
+                              {i === 0 ? '1st Place' : i === 1 ? '2nd Place' : i === 2 ? '3rd Place' : `${i + 1}th Place`}
+                            </span>
+                            <span className="text-sm font-bold text-yellow-400">₹{amount.toLocaleString()}</span>
+                          </div>
+                          <div className="mt-1.5 w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${(amount / Math.max(...(tournament as any).prizeDistribution.distribution)) * 100}%` }}
+                              className={`h-full rounded-full ${i === 0 ? 'bg-yellow-500' : i === 1 ? 'bg-gray-400' : i === 2 ? 'bg-orange-500' : 'bg-primary/50'}`}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-card-border flex items-center justify-between text-sm">
+                    <span className="text-white/50">Total Prize Pool</span>
+                    <span className="text-lg font-bold text-white">
+                      ₹{(tournament as any).prizeDistribution.distribution.reduce((a: number, b: number) => a + b, 0).toLocaleString()}
+                    </span>
+                  </div>
+                </Card>
+              )}
 
               {/* Description */}
               {tournament.description && (
@@ -437,6 +503,30 @@ export default function TournamentDetailPage() {
                   </div>
                 )}
 
+                {(tournament as any).prizeDistribution?.enabled && (
+                  <div className="mb-4 p-3 rounded-lg bg-yellow-500/5 border border-yellow-500/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Gift className="w-3.5 h-3.5 text-yellow-400" />
+                      <span className="text-xs font-semibold text-yellow-400">Prize Distribution</span>
+                    </div>
+                    <div className="space-y-1">
+                      {(tournament as any).prizeDistribution.distribution.slice(0, 3).map((amount: number, i: number) => (
+                        <div key={i} className="flex items-center justify-between text-xs">
+                          <span className="text-white/50">
+                            {i === 0 ? '🥇 1st' : i === 1 ? '🥈 2nd' : '🥉 3rd'}
+                          </span>
+                          <span className="text-white font-medium">₹{amount.toLocaleString()}</span>
+                        </div>
+                      ))}
+                      {(tournament as any).prizeDistribution.topN > 3 && (
+                        <p className="text-[10px] text-white/30 pt-1 border-t border-yellow-500/10">
+                          + {(tournament as any).prizeDistribution.topN - 3} more positions
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between text-sm">
                     <span className="text-white/50">Entry Fee</span>
@@ -546,12 +636,23 @@ export default function TournamentDetailPage() {
                       </div>
                     </div>
 
-                    <div className="bg-primary/5 border border-primary/10 rounded-lg p-3 mb-4">
+                    <div className="bg-primary/5 border border-primary/10 rounded-lg p-3 mb-4 space-y-2">
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-white/70">Playing: <strong className="text-white">{counts.playing}/{maxPlaying}</strong></span>
                         <span className="text-white/70">Substitutes: <strong className="text-white">{counts.substitute}/{maxSubs}</strong></span>
                         <span className="text-green-400 font-medium">+{isSquad ? '100' : '50'} Clan XP</span>
                       </div>
+                      {(tournament as any).prizeDistribution?.enabled && (
+                        <div className="pt-2 border-t border-primary/10">
+                          <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider mb-1">Prize Distribution</p>
+                          {(tournament as any).prizeDistribution.distribution.map((amount: number, i: number) => (
+                            <div key={i} className="flex items-center justify-between py-0.5">
+                              <span className="text-xs text-white/50">{i === 0 ? '1st' : i === 1 ? '2nd' : i === 2 ? '3rd' : `#${i + 1}`}</span>
+                              <span className="text-xs font-semibold text-yellow-400">₹{amount.toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     {/* Team Name */}
@@ -693,7 +794,7 @@ export default function TournamentDetailPage() {
                       You are about to register for <strong className="text-white">{tournament.title}</strong>
                     </p>
 
-                    <div className="space-y-3 mb-6 text-sm">
+                    <div className="space-y-2 mb-6 text-sm">
                       <div className="flex justify-between">
                         <span className="text-white/50">Prize Pool</span>
                         <span className="text-white font-medium">{tournament.prizePool}</span>
@@ -706,6 +807,23 @@ export default function TournamentDetailPage() {
                         <span className="text-white/50">Mode</span>
                         <span className="text-white font-medium">{tournament.mode}</span>
                       </div>
+                      <div className="flex justify-between">
+                        <span className="text-white/50">Players</span>
+                        <span className="text-white font-medium">{tournament._count?.registrations || 0}/{tournament.slots}</span>
+                      </div>
+                      {(tournament as any).prizeDistribution?.enabled && (
+                        <div className="mt-3 pt-3 border-t border-card-border">
+                          <p className="text-[10px] text-white/40 font-medium uppercase tracking-wider mb-2">Prize Distribution</p>
+                          {(tournament as any).prizeDistribution.distribution.map((amount: number, i: number) => (
+                            <div key={i} className="flex items-center justify-between py-0.5">
+                              <span className="text-xs text-white/50">
+                                {i === 0 ? '🥇 1st' : i === 1 ? '🥈 2nd' : i === 2 ? '🥉 3rd' : `#${i + 1}th`}
+                              </span>
+                              <span className="text-xs font-semibold text-yellow-400">₹{amount.toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex gap-3">
