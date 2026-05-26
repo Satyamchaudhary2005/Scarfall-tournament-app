@@ -1,14 +1,13 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { ArrowRight, Trophy, Users, LayoutGrid, Target } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Trophy, Users, LayoutGrid, Target, ArrowRight } from 'lucide-react';
 import { useState } from 'react';
 
 interface FlowNode {
   label: string;
   icon: React.ReactNode;
   color: string;
-  sub?: string;
 }
 
 interface FlowConfig {
@@ -60,46 +59,51 @@ export function TournamentFlowPreview({ type = 'SINGLE' }: { type?: string }) {
 
   return (
     <div className="bg-card border border-card-border rounded-xl p-4">
-      <div className="text-xs font-semibold uppercase tracking-wider text-white/40 mb-3">Tournament Flow</div>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-2 mb-4">
+        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+          <Trophy className="w-4 h-4 text-primary" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-white">Tournament Flow</p>
+          <p className="text-[10px] text-white/40">Format visualization</p>
+        </div>
+      </div>
+      <div className="flex items-center justify-between gap-1">
         {flow.nodes.map((node, i) => (
-          <div key={i} className="flex-1 flex flex-col items-center">
-            <motion.div
-              onMouseEnter={() => setHovered(i)}
-              onMouseLeave={() => setHovered(null)}
-              animate={hovered === i ? { scale: 1.1 } : { scale: 1 }}
-              className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all duration-300 ${node.color} ${
-                hovered === i ? 'shadow-lg shadow-primary/20 scale-110' : ''
-              }`}
-            >
-              {node.icon}
-            </motion.div>
-            <span className={`text-[9px] mt-1.5 font-medium text-center leading-tight transition-colors ${
-              hovered === i ? 'text-white' : 'text-white/40'
-            }`}>
-              {node.label}
-            </span>
-            {i < flow.nodes.length - 1 && (
+          <div key={i} className="flex items-center gap-0 flex-1">
+            <div className="flex flex-col items-center">
               <motion.div
-                animate={hovered === i ? { x: 2 } : { x: 0 }}
-                className="hidden sm:block absolute right-[-8px] top-1/2 -translate-y-1/2"
+                onMouseEnter={() => setHovered(i)}
+                onMouseLeave={() => setHovered(null)}
+                animate={hovered === i ? { scale: 1.1 } : { scale: 1 }}
+                className={`w-9 h-9 rounded-xl border flex items-center justify-center transition-all duration-300 ${node.color} ${
+                  hovered === i ? 'shadow-lg shadow-primary/20' : ''
+                }`}
               >
-                <ArrowRight className="w-3 h-3 text-white/20" />
+                {node.icon}
               </motion.div>
+              <span className={`text-[9px] mt-1.5 font-medium text-center leading-tight transition-colors ${
+                hovered === i ? 'text-white' : 'text-white/40'
+              }`}>
+                {node.label}
+              </span>
+            </div>
+            {i < flow.nodes.length - 1 && (
+              <div className="flex-1 flex items-center justify-center mb-5">
+                <div className="w-full h-px bg-white/10 relative">
+                  <ArrowRight className="w-3 h-3 text-white/20 absolute right-0 top-1/2 -translate-y-1/2" />
+                </div>
+              </div>
             )}
           </div>
         ))}
       </div>
-      <motion.div
-        initial={{ opacity: 0, height: 0 }}
-        animate={{ opacity: 1, height: 'auto' }}
-        className="mt-3 pt-3 border-t border-card-border"
-      >
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-white/40">Format</span>
-          <span className="text-white font-medium">{flow.label}</span>
+      <div className="mt-4 pt-3 border-t border-card-border">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-white/40">Format</span>
+          <span className="text-xs font-semibold text-white">{flow.label}</span>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

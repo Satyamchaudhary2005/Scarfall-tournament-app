@@ -5,7 +5,7 @@ import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import {
   Plus, Trash2, GripVertical, ChevronDown, ChevronUp,
   ArrowRight, Trophy, Users, Settings, Copy, Sparkles,
-  Swords, Gamepad2, ScrollText, Flag,
+  Swords, Gamepad2, ScrollText, Flag, X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
@@ -194,28 +194,33 @@ export function StageBuilder({ stages: externalStages, onChange, totalTeams = 64
     updateStages(reordered);
   }
 
-  function addDefaultScoring(id: string) {
-    updateStage(id, {
-      scoring: { killPoints: 1, placementPoints: [15, 12, 10, 8, 6, 4, 2, 1], qualificationRule: 'TOP_N', qualificationValue: 16 },
-    });
-  }
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Trophy className="w-4 h-4 text-primary" />
-          <span className="text-sm font-semibold text-white">Tournament Stages</span>
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Trophy className="w-4 h-4 text-primary" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-white">Tournament Stages</p>
+            <p className="text-[10px] text-white/40">Build your tournament flow</p>
+          </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="ghost" size="sm" onClick={() => setShowPresets(!showPresets)}>
-            <Sparkles className="w-3.5 h-3.5" />
+          <button
+            onClick={() => setShowPresets(!showPresets)}
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/5 hover:bg-primary/20 text-white/70 hover:text-primary transition-all"
+          >
+            <Sparkles className="w-3.5 h-3.5 inline mr-1" />
             Presets
-          </Button>
-          <Button variant="secondary" size="sm" onClick={addStage}>
-            <Plus className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={addStage}
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-all"
+          >
+            <Plus className="w-3.5 h-3.5 inline mr-1" />
             Add Stage
-          </Button>
+          </button>
         </div>
       </div>
 
@@ -231,30 +236,26 @@ export function StageBuilder({ stages: externalStages, onChange, totalTeams = 64
               {PRESETS.map((preset) => (
                 <motion.button
                   key={preset.id}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
                   onClick={() => applyPreset(preset)}
                   className="bg-card border border-card-border hover:border-primary/30 rounded-xl p-3 text-left transition-all group"
                 >
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">{preset.stageCount} Stages</span>
-                    <span className="text-[10px] text-white/40">{preset.complexity}</span>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">{preset.stageCount} Stages</span>
+                    <span className="text-[9px] text-white/40 bg-white/5 px-1.5 py-0.5 rounded">{preset.complexity}</span>
                   </div>
                   <p className="text-sm font-semibold text-white group-hover:text-primary transition-colors">{preset.name}</p>
                   <p className="text-xs text-white/40 mt-0.5">{preset.description}</p>
-                  <div className="flex items-center gap-2 mt-2">
+                  <div className="flex items-center gap-1.5 mt-2">
                     <Users className="w-3 h-3 text-white/30" />
                     <span className="text-[10px] text-white/30">{preset.recommendedTeams} teams</span>
                   </div>
-                  <div className="flex items-center gap-1 mt-2">
+                  <div className="flex items-center gap-0.5 mt-2">
                     {preset.stages.map((s, i) => (
-                      <div key={i} className="flex items-center">
-                        <div className="w-5 h-5 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
-                          <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                        </div>
-                        {i < preset.stages.length - 1 && (
-                          <div className="w-4 h-px bg-primary/20" />
-                        )}
+                      <div key={i} className="flex items-center gap-0">
+                        <div className="w-2 h-2 rounded-full bg-primary/40" />
+                        {i < preset.stages.length - 1 && <div className="w-3 h-px bg-primary/20" />}
                       </div>
                     ))}
                   </div>
@@ -279,39 +280,42 @@ export function StageBuilder({ stages: externalStages, onChange, totalTeams = 64
                   className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-white/[0.02] transition-colors"
                   onClick={() => setExpandedId(expandedId === stage.id ? null : stage.id)}
                 >
-                  <div {...{}} className="cursor-grab active:cursor-grabbing text-white/20 hover:text-white/40 transition-colors">
+                  <div className="cursor-grab active:cursor-grabbing text-white/20 hover:text-white/40 transition-colors">
                     <GripVertical className="w-4 h-4" />
                   </div>
                   <div className={`w-8 h-8 rounded-lg border flex items-center justify-center ${
                     stage.type === 'GRAND_FINALS'
                       ? 'border-primary/30 bg-primary/10 text-primary'
-                      : 'border-white/10 bg-white/5 text-white/60'
+                      : 'border-white/10 bg-white/5 text-white/50'
                   }`}>
                     {stageTypeIcons[stage.type] || <Copy className="w-4 h-4" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-white">{stage.name}</span>
-                      <span className="text-[10px] text-white/40 bg-white/5 px-1.5 py-0.5 rounded">
+                      <span className="text-[9px] text-white/40 bg-white/5 px-1.5 py-0.5 rounded-full">
                         {stageTypeLabels[stage.type] || stage.type}
                       </span>
                     </div>
-                    <div className="flex items-center gap-3 mt-1 text-[10px] text-white/30">
-                      <span>{stage.teamsCount} teams</span>
-                      <span>{stage.qualifyingTeams} qualify</span>
-                      <span>{stage.matchesCount} matches</span>
+                    <div className="flex items-center gap-3 mt-0.5">
+                      <span className="text-[10px] text-white/40">{stage.teamsCount} teams</span>
+                      <ArrowRight className="w-2.5 h-2.5 text-white/20" />
+                      <span className="text-[10px] text-green-400">{stage.qualifyingTeams} qualify</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e: React.MouseEvent) => { e.stopPropagation(); removeStage(stage.id); }}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); removeStage(stage.id); }}
                       disabled={stages.length <= 1}
+                      className="p-1.5 rounded-lg hover:bg-white/5 text-white/30 hover:text-red-400 transition-all disabled:opacity-30"
                     >
-                      <Trash2 className="w-3.5 h-3.5 text-white/30 hover:text-red-400" />
-                    </Button>
-                    {expandedId === stage.id ? <ChevronUp className="w-4 h-4 text-white/30" /> : <ChevronDown className="w-4 h-4 text-white/30" />}
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                    {expandedId === stage.id ? (
+                      <ChevronUp className="w-4 h-4 text-white/30" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-white/30" />
+                    )}
                   </div>
                 </div>
 
@@ -324,14 +328,14 @@ export function StageBuilder({ stages: externalStages, onChange, totalTeams = 64
                       transition={{ duration: 0.2 }}
                       className="overflow-hidden"
                     >
-                      <div className="px-4 pb-4 pt-2 border-t border-card-border">
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
+                      <div className="px-4 pb-4 pt-3 border-t border-card-border">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
                           <div>
-                            <label className="block text-[10px] font-medium text-white/40 mb-1 uppercase tracking-wider">Stage Type</label>
+                            <label className="text-[10px] font-medium text-white/40 uppercase tracking-wider mb-1.5 block">Stage Type</label>
                             <select
                               value={stage.type}
                               onChange={(e) => updateStage(stage.id, { type: e.target.value })}
-                              className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-primary/50"
+                              className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-primary/50 transition-all"
                             >
                               {Object.entries(stageTypeLabels).map(([value, label]) => (
                                 <option key={value} value={value}>{label}</option>
@@ -339,77 +343,66 @@ export function StageBuilder({ stages: externalStages, onChange, totalTeams = 64
                             </select>
                           </div>
                           <div>
-                            <label className="block text-[10px] font-medium text-white/40 mb-1 uppercase tracking-wider">Teams Count</label>
+                            <label className="text-[10px] font-medium text-white/40 uppercase tracking-wider mb-1.5 block">Teams Count</label>
                             <input
                               type="number"
                               value={stage.teamsCount}
                               onChange={(e) => updateStage(stage.id, { teamsCount: Number(e.target.value) })}
-                              className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-primary/50"
+                              className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-primary/50 transition-all"
                             />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-medium text-white/40 mb-1 uppercase tracking-wider">Qualifying</label>
+                            <label className="text-[10px] font-medium text-white/40 uppercase tracking-wider mb-1.5 block">Qualifying</label>
                             <input
                               type="number"
                               value={stage.qualifyingTeams}
                               onChange={(e) => updateStage(stage.id, { qualifyingTeams: Number(e.target.value) })}
-                              className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-primary/50"
+                              className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-primary/50 transition-all"
                             />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-medium text-white/40 mb-1 uppercase tracking-wider">Eliminated</label>
+                            <label className="text-[10px] font-medium text-white/40 uppercase tracking-wider mb-1.5 block">Eliminated</label>
                             <input
                               type="number"
                               value={stage.eliminationCount}
                               onChange={(e) => updateStage(stage.id, { eliminationCount: Number(e.target.value) })}
-                              className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-primary/50"
+                              className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-primary/50 transition-all"
                             />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-medium text-white/40 mb-1 uppercase tracking-wider">Per Lobby</label>
+                            <label className="text-[10px] font-medium text-white/40 uppercase tracking-wider mb-1.5 block">Per Lobby</label>
                             <input
                               type="number"
                               value={stage.teamsPerLobby}
                               onChange={(e) => updateStage(stage.id, { teamsPerLobby: Number(e.target.value) })}
-                              className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-primary/50"
+                              className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-primary/50 transition-all"
                             />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-medium text-white/40 mb-1 uppercase tracking-wider">Matches</label>
+                            <label className="text-[10px] font-medium text-white/40 uppercase tracking-wider mb-1.5 block">Matches</label>
                             <input
                               type="number"
                               value={stage.matchesCount}
                               onChange={(e) => updateStage(stage.id, { matchesCount: Number(e.target.value) })}
-                              className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-primary/50"
+                              className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-primary/50 transition-all"
                             />
                           </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 mb-3">
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => addDefaultScoring(stage.id)}
-                          >
-                            <Settings className="w-3 h-3" />
-                            Scoring Rules
-                          </Button>
                         </div>
 
                         <div className="bg-white/[0.02] border border-white/5 rounded-lg p-3">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-white/50">Progression</span>
-                            <span className="text-white">
-                              {stage.teamsCount} → {stage.qualifyingTeams} qualify
-                              ({stage.eliminationCount} eliminated)
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs text-white/50">Progression</span>
+                            <span className="text-xs text-white/70 font-medium">
+                              {stage.teamsCount} teams → {stage.qualifyingTeams} qualify
                             </span>
                           </div>
-                          <div className="h-1.5 bg-white/5 rounded-full mt-2 overflow-hidden">
+                          <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-full"
+                              className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-full transition-all duration-500"
                               style={{ width: `${(stage.qualifyingTeams / stage.teamsCount) * 100}%` }}
                             />
                           </div>
+                          <p className="text-[10px] text-white/30 mt-1">{stage.eliminationCount} teams eliminated</p>
                         </div>
                       </div>
                     </motion.div>
@@ -421,12 +414,12 @@ export function StageBuilder({ stages: externalStages, onChange, totalTeams = 64
         </AnimatePresence>
       </Reorder.Group>
 
-      {stages.length > 0 && (
-        <div className="relative flex items-center gap-0.5 py-2">
+      {stages.length > 1 && (
+        <div className="flex items-center gap-0.5 py-1">
           {stages.map((stage, i) => (
             <div key={stage.id} className="flex items-center flex-1">
-              <motion.div
-                className={`flex-1 h-2 rounded-full ${
+              <div
+                className={`flex-1 h-1.5 rounded-full transition-all ${
                   stage.type === 'GRAND_FINALS'
                     ? 'bg-gradient-to-r from-primary to-primary/60'
                     : 'bg-white/10'
@@ -434,7 +427,7 @@ export function StageBuilder({ stages: externalStages, onChange, totalTeams = 64
                 style={{ opacity: 0.3 + (i / stages.length) * 0.7 }}
               />
               {i < stages.length - 1 && (
-                <ArrowRight className="w-3 h-3 text-white/20 mx-1 flex-shrink-0" />
+                <ArrowRight className="w-3 h-3 text-white/20 mx-0.5 flex-shrink-0" />
               )}
             </div>
           ))}

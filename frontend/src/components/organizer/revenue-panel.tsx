@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { IndianRupee, TrendingUp, Percent, Users, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { IndianRupee, TrendingUp, Users, ArrowUpRight, ArrowDownRight, Percent, Shield } from 'lucide-react';
 
 interface RevenueData {
   entryFee: number;
@@ -47,13 +47,19 @@ export function RevenueBreakdown({ entryFee = 0, teams = 0, prizePoolPercent = 8
           exit={{ opacity: 0, height: 0 }}
           className="overflow-hidden"
         >
-          <div className="bg-card border border-card-border rounded-xl p-4 mt-4">
-            <div className="flex items-center gap-2 mb-3">
-              <IndianRupee className="w-4 h-4 text-primary" />
-              <span className="text-sm font-semibold text-white">Revenue Breakdown</span>
+          <div className="bg-card border border-card-border rounded-xl">
+            <div className="px-4 py-3 border-b border-card-border">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <IndianRupee className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-white">Revenue Breakdown</p>
+                  <p className="text-[10px] text-white/40">Real-time calculation</p>
+                </div>
+              </div>
             </div>
-
-            <div className="space-y-2">
+            <div className="p-4 space-y-2">
               {items.map((item, i) => (
                 <motion.div
                   key={item.label}
@@ -72,28 +78,14 @@ export function RevenueBreakdown({ entryFee = 0, teams = 0, prizePoolPercent = 8
                 </motion.div>
               ))}
             </div>
-
-            <div className="mt-3 pt-3 border-t border-card-border">
-              <div className="flex items-center justify-between text-xs text-white/30">
-                <span className="flex items-center gap-1"><Percent className="w-3 h-3" /> Prize Pool: {prizePoolPercent}%</span>
-                <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {teams} teams</span>
-              </div>
-            </div>
-
-            <div className="mt-3">
+            <div className="px-4 pb-4">
               <div className="h-2 bg-white/5 rounded-full overflow-hidden flex">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${prizePoolPercent}%` }}
-                  transition={{ duration: 0.8, ease: 'easeOut' }}
-                  className="h-full bg-gradient-to-r from-green-500 to-green-400"
-                  style={{ width: `${prizePoolPercent}%` }}
-                />
-                <div className="h-full bg-primary" style={{ width: `${(100 - prizePoolPercent) / 2}%` }} />
-                <div className="h-full bg-yellow-500" style={{ width: `${(100 - prizePoolPercent) / 2}%` }} />
+                <div className="h-full bg-gradient-to-r from-green-500 to-green-400 transition-all duration-700" style={{ width: `${prizePoolPercent}%` }} />
+                <div className="h-full bg-primary transition-all duration-700" style={{ width: `${(100 - prizePoolPercent) / 2}%` }} />
+                <div className="h-full bg-yellow-500 transition-all duration-700" style={{ width: `${(100 - prizePoolPercent) / 2}%` }} />
               </div>
               <div className="flex justify-between text-[10px] text-white/30 mt-1">
-                <span>Prize Pool</span>
+                <span className="flex items-center gap-1"><Percent className="w-2.5 h-2.5" />Prize Pool</span>
                 <span>Organizer</span>
                 <span>Commission</span>
               </div>
@@ -113,51 +105,59 @@ export function PerKillCalculator({ kills = 0, rewardPerKill = 0, maxReward = 0 
   const total = Math.min(kills * rewardPerKill, maxReward);
 
   return (
-    <div className="bg-card border border-card-border rounded-xl p-4 mt-4">
-      <div className="flex items-center gap-2 mb-3">
-        <Target className="w-4 h-4 text-primary" />
-        <span className="text-sm font-semibold text-white">Kill Reward Calculator</span>
+    <div className="bg-card border border-card-border rounded-xl">
+      <div className="px-4 py-3 border-b border-card-border">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Target className="w-4 h-4 text-primary" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-white">Kill Reward Calculator</p>
+            <p className="text-[10px] text-white/40">Live kill earnings estimate</p>
+          </div>
+        </div>
       </div>
-
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs text-white/60">Per Kill</span>
-        <span className="text-sm font-bold text-white">₹{rewardPerKill}</span>
-      </div>
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs text-white/60">Kills</span>
-        <span className="text-sm font-bold text-white">{kills}</span>
-      </div>
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs text-white/60">Max Reward</span>
-        <span className="text-sm font-bold text-white/60">₹{maxReward.toLocaleString()}</span>
-      </div>
-
-      <div className="pt-3 border-t border-card-border">
+      <div className="p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold text-white">Total Reward</span>
-          <motion.span
-            key={total}
-            initial={{ scale: 1.2, color: '#ff1f1f' }}
-            animate={{ scale: 1, color: '#ffffff' }}
-            className="text-lg font-bold text-white"
-          >
-            ₹{total.toLocaleString()}
-          </motion.span>
+          <span className="text-xs text-white/50">Per Kill</span>
+          <span className="text-sm font-bold text-white">₹{rewardPerKill}</span>
         </div>
-        <div className="h-2 bg-white/5 rounded-full mt-2 overflow-hidden">
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${Math.min((total / (maxReward || 1)) * 100, 100)}%` }}
-            className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-full"
-          />
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-white/50">Kills</span>
+          <span className="text-sm font-bold text-white">{kills}</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-white/50">Max Reward</span>
+          <span className="text-sm font-bold text-white/50">₹{maxReward.toLocaleString()}</span>
+        </div>
+        <div className="pt-3 border-t border-card-border">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-white">Total Reward</span>
+            <motion.span
+              key={total}
+              initial={{ scale: 1.2 }}
+              animate={{ scale: 1 }}
+              className="text-lg font-bold text-white"
+            >
+              ₹{total.toLocaleString()}
+            </motion.span>
+          </div>
+          <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${Math.min((total / (maxReward || 1)) * 100, 100)}%` }}
+              className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-full"
+            />
+          </div>
         </div>
       </div>
-
-      <div className="mt-3 bg-yellow-500/5 border border-yellow-500/20 rounded-lg p-2.5">
-        <p className="text-[10px] text-yellow-400/70 leading-relaxed">
-          Anti-fraud notice: Kill counts are verified through match results and OCR validation.
-          Suspicious activity will be reviewed and may result in disqualification.
-        </p>
+      <div className="mx-4 mb-4 p-3 bg-yellow-500/5 border border-yellow-500/20 rounded-lg">
+        <div className="flex items-start gap-2">
+          <Shield className="w-3.5 h-3.5 text-yellow-400 mt-0.5 flex-shrink-0" />
+          <p className="text-[10px] text-yellow-400/70 leading-relaxed">
+            Anti-fraud notice: Kill counts are verified through match results and OCR validation. Suspicious activity will be reviewed and may result in disqualification.
+          </p>
+        </div>
       </div>
     </div>
   );

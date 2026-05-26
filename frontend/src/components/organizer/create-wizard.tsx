@@ -4,17 +4,15 @@ import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft, ChevronRight, Check, Trophy, IndianRupee,
-  Swords, Gamepad2, Target, Zap, Shield, Image, Settings,
-  Timer, Users, Map, CheckCircle, Share2, Sparkles,
-  Monitor, DollarSign, Lock, Unlock, BarChart3, Crosshair,
-  LayoutList, ScrollText, ArrowRight, Eye,
+  Swords, Target, Zap, Shield, Image, Settings,
+  Users, CheckCircle, Sparkles,
+  Monitor, Lock, Unlock, BarChart3, Crosshair,
+  LayoutList, ArrowRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
-import { Card, CardContent } from '@/components/ui/Card';
 import toast from 'react-hot-toast';
-import { useAuthStore } from '@/store/authStore';
 import { RevenueBreakdown, PerKillCalculator } from './revenue-panel';
 import { StageBuilder } from './stage-builder';
 
@@ -44,15 +42,12 @@ interface Draft {
   prizePool: number;
   prizePoolPercent: number;
   sponsoredPrize: boolean;
-  walletLock: number;
   roomSize: number;
   matchMap: string;
   teamType: string;
   matchTime: string;
   numMatches: number;
   matchRotation: string;
-  scoringSystem: string;
-  matchSchedule: string;
   stages: StageData[];
   rewardPerKill: number;
   maxKillReward: number;
@@ -61,9 +56,9 @@ interface Draft {
   placementPoints: number[];
   killPoints: number;
   scoringPreset: string;
+  teamTypeVal: string;
   maps: string;
   timing: string;
-  teamTypeVal: string;
   autoDistribution: boolean;
   roomPasswordVisibility: string;
   ocrValidation: boolean;
@@ -81,14 +76,14 @@ interface Draft {
 const initialDraft: Draft = {
   name: '', game: '', banner: '', description: '', type: 'SINGLE',
   entryType: 'FREE', entryFee: 0, maxTeams: 50, prizePool: 0, prizePoolPercent: 80,
-  sponsoredPrize: false, walletLock: 0,
+  sponsoredPrize: false,
   roomSize: 4, matchMap: '', teamType: 'SOLO', matchTime: '60',
-  numMatches: 3, matchRotation: 'FIXED', scoringSystem: 'POINTS', matchSchedule: '',
+  numMatches: 3, matchRotation: 'FIXED',
   stages: [],
   rewardPerKill: 5, maxKillReward: 500, matchCount: 1, killValidation: 'OCR',
   placementPoints: [15, 12, 10, 8, 6, 4, 2, 1, 0, 0, 0, 0],
   killPoints: 1, scoringPreset: 'STANDARD',
-  maps: '', timing: '60', teamTypeVal: 'SOLO', autoDistribution: true,
+  teamTypeVal: 'SOLO', maps: '', timing: '60', autoDistribution: true,
   roomPasswordVisibility: 'REGISTERED', ocrValidation: false,
   youtubeUrl: '', sponsorBanner: '', obsOverlay: false, featuredMatch: false,
   ocrVerification: false, antiCheat: false, duplicateDetection: true,
@@ -100,17 +95,17 @@ const steps = [
   { id: 'entry', label: 'Entry & Prize', icon: IndianRupee },
   { id: 'format', label: 'Format', icon: Swords },
   { id: 'scoring', label: 'Scoring', icon: BarChart3 },
-  { id: 'room', label: 'Room Settings', icon: Settings },
-  { id: 'stream', label: 'Stream & Media', icon: Monitor },
+  { id: 'room', label: 'Room', icon: Settings },
+  { id: 'stream', label: 'Stream', icon: Monitor },
   { id: 'moderation', label: 'Security', icon: Shield },
   { id: 'review', label: 'Review', icon: CheckCircle },
 ];
 
 const tournamentTypes = [
-  { id: 'SINGLE', label: 'Single Match', desc: 'Quick standalone competitive room', format: 'Single lobby, one match determines winner', recommend: 'Best for 1v1 or small team matches', icon: Crosshair },
-  { id: 'MULTI', label: 'Multi Match', desc: 'Multiple matches with combined leaderboard', format: 'Teams play multiple rounds, cumulative scoring', recommend: 'Ideal for league-style tournaments', icon: LayoutList },
-  { id: 'MULTI_STAGE', label: 'Multi Stage', desc: 'Professional qualification-based tournament', format: 'Multiple stages with qualifiers, eliminations, finals', recommend: 'For large-scale competitive events', icon: Trophy },
-  { id: 'PER_KILL', label: 'Per Kill Challenge', desc: 'Kill-based reward tournaments', format: 'Every kill earns money', recommend: 'Best for action-packed BR games', icon: Target },
+  { id: 'SINGLE', label: 'Single Match', desc: 'Quick standalone competitive room', format: 'Single lobby, one match determines winner', recommend: 'Best for 1v1 or small team matches' },
+  { id: 'MULTI', label: 'Multi Match', desc: 'Multiple matches with combined leaderboard', format: 'Teams play multiple rounds, cumulative scoring', recommend: 'Ideal for league-style tournaments' },
+  { id: 'MULTI_STAGE', label: 'Multi Stage', desc: 'Professional qualification-based tournament', format: 'Multiple stages with qualifiers, eliminations, finals', recommend: 'For large-scale competitive events' },
+  { id: 'PER_KILL', label: 'Per Kill Challenge', desc: 'Kill-based reward tournaments', format: 'Every kill earns money', recommend: 'Best for action-packed BR games' },
 ];
 
 const games = [
@@ -131,15 +126,15 @@ const scoringPresets = [
   { id: 'FLAT', label: 'Flat', points: [5, 4, 3, 2, 1, 0, 0, 0], kill: 1 },
 ];
 
-export function CreateWizard() {
-  const { user } = useAuthStore();
+export function CreateWizard({ onTypeChange }: { onTypeChange?: (type: string) => void }) {
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<Draft>(initialDraft);
   const [publishing, setPublishing] = useState(false);
 
   const update = useCallback(<K extends keyof Draft>(key: K, value: Draft[K]) => {
     setDraft((prev) => ({ ...prev, [key]: value }));
-  }, []);
+    if (key === 'type' && onTypeChange) onTypeChange(value as string);
+  }, [onTypeChange]);
 
   const totalCollection = draft.entryFee * draft.maxTeams;
   const prizePoolAmount = draft.entryType === 'PAID'
@@ -191,8 +186,6 @@ export function CreateWizard() {
 
       if (draft.type === 'PER_KILL') {
         body.killPoints = draft.rewardPerKill;
-        body.killReward = draft.rewardPerKill;
-        body.maxKillReward = draft.maxKillReward;
         body.totalRounds = draft.matchCount;
       }
 
@@ -239,28 +232,54 @@ export function CreateWizard() {
 
   return (
     <div>
-      <StepIndicator current={step} steps={steps} onSelect={setStep} />
-
-      <div className="mt-6">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={step}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.25 }}
-          >
-            {step === 0 && <StepBasics draft={draft} update={update} />}
-            {step === 1 && <StepEntryPrize draft={draft} update={update} prizePoolAmount={prizePoolAmount} totalCollection={totalCollection} />}
-            {step === 2 && <StepFormat draft={draft} update={update} />}
-            {step === 3 && <StepScoring draft={draft} update={update} />}
-            {step === 4 && <StepRoom draft={draft} update={update} />}
-            {step === 5 && <StepStream draft={draft} update={update} />}
-            {step === 6 && <StepModeration draft={draft} update={update} />}
-            {step === 7 && <StepReview draft={draft} prizePoolAmount={prizePoolAmount} totalCollection={totalCollection} />}
-          </motion.div>
-        </AnimatePresence>
+      <div className="overflow-x-auto -mx-4 px-4 mb-6">
+        <div className="flex gap-1 min-w-max pb-1">
+          {steps.map((s, i) => {
+            const Icon = s.icon;
+            const isActive = i === step;
+            const isDone = i < step;
+            return (
+              <button
+                key={s.id}
+                onClick={() => { if (i <= step + 1 && validateStep(i)) setStep(i); }}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
+                  isActive
+                    ? 'bg-primary text-white shadow-glow-red-sm'
+                    : isDone
+                      ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                      : 'bg-white/5 text-white/40 border border-white/10 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                {isDone ? (
+                  <Check className="w-3 h-3" />
+                ) : (
+                  <Icon className="w-3 h-3" />
+                )}
+                <span className="hidden sm:inline">{s.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
+
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={step}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          transition={{ duration: 0.2 }}
+        >
+          {step === 0 && <StepBasics draft={draft} update={update} />}
+          {step === 1 && <StepEntryPrize draft={draft} update={update} prizePoolAmount={prizePoolAmount} totalCollection={totalCollection} />}
+          {step === 2 && <StepFormat draft={draft} update={update} />}
+          {step === 3 && <StepScoring draft={draft} update={update} />}
+          {step === 4 && <StepRoom draft={draft} update={update} />}
+          {step === 5 && <StepStream draft={draft} update={update} />}
+          {step === 6 && <StepModeration draft={draft} update={update} />}
+          {step === 7 && <StepReview draft={draft} prizePoolAmount={prizePoolAmount} totalCollection={totalCollection} />}
+        </motion.div>
+      </AnimatePresence>
 
       <div className="flex items-center justify-between mt-8 pt-6 border-t border-card-border">
         <Button variant="ghost" onClick={prevStep} disabled={step === 0}>
@@ -274,56 +293,22 @@ export function CreateWizard() {
             <ChevronRight className="w-4 h-4" />
           </Button>
         ) : (
-          <Button onClick={handlePublish} loading={publishing} className="relative overflow-hidden">
+          <button
+            onClick={handlePublish}
+            disabled={publishing}
+            className="relative overflow-hidden px-8 py-3 bg-primary hover:bg-primary-600 text-white font-bold rounded-lg transition-all duration-200 hover:shadow-glow-red active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             <motion.div
-              className="absolute inset-0 bg-gradient-to-r from-primary via-primary-600 to-primary"
+              className="absolute inset-0 bg-gradient-to-r from-primary via-primary-600 to-primary bg-[length:200%_100%]"
               animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
               transition={{ duration: 3, repeat: Infinity }}
             />
-            <span className="relative flex items-center gap-2">
+            <span className="relative flex items-center gap-2 text-sm">
               <Sparkles className="w-4 h-4" />
               {publishing ? 'Publishing...' : 'Publish Tournament'}
             </span>
-          </Button>
+          </button>
         )}
-      </div>
-    </div>
-  );
-}
-
-function StepIndicator({ current, steps, onSelect }: {
-  current: number;
-  steps: { id: string; label: string; icon: React.FC<{ className?: string }> }[];
-  onSelect: (i: number) => void;
-}) {
-  return (
-    <div className="overflow-x-auto -mx-4 px-4">
-      <div className="flex gap-1 min-w-max pb-1">
-        {steps.map((s, i) => {
-          const Icon = s.icon;
-          const isActive = i === current;
-          const isDone = i < current;
-          return (
-            <button
-              key={s.id}
-              onClick={() => onSelect(i)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
-                isActive
-                  ? 'bg-primary/10 text-primary border border-primary/20'
-                  : isDone
-                    ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-                    : 'bg-white/5 text-white/30 border border-white/5 hover:bg-white/[0.07]'
-              }`}
-            >
-              {isDone ? (
-                <Check className="w-3 h-3" />
-              ) : (
-                <Icon className="w-3 h-3" />
-              )}
-              <span className="hidden sm:inline">{s.label}</span>
-            </button>
-          );
-        })}
       </div>
     </div>
   );
@@ -331,30 +316,33 @@ function StepIndicator({ current, steps, onSelect }: {
 
 function StepBasics({ draft, update }: { draft: Draft; update: <K extends keyof Draft>(k: K, v: Draft[K]) => void }) {
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-bold text-white mb-1">Tournament Basics</h2>
-        <p className="text-sm text-white/40">Set up the core details of your tournament</p>
+    <div>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+          <Trophy className="w-5 h-5 text-primary" />
+        </div>
+        <div>
+          <h2 className="text-lg font-semibold text-white">Tournament Basics</h2>
+          <p className="text-sm text-white/50">Set up the core details of your tournament</p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <Input label="Tournament Name" value={draft.name} onChange={(e) => update('name', e.target.value)} placeholder="Enter tournament name" />
-        <Select
-          label="Game"
-          value={draft.game}
-          onChange={(v) => update('game', v)}
-          options={games}
-        />
+        <Select label="Game" value={draft.game} onChange={(v) => update('game', v)} options={games} />
       </div>
 
-      <Input label="Banner URL (optional)" value={draft.banner} onChange={(e) => update('banner', e.target.value)} placeholder="https://example.com/banner.jpg" />
-      <div>
+      <div className="mb-6">
+        <Input label="Banner URL (optional)" value={draft.banner} onChange={(e) => update('banner', e.target.value)} placeholder="https://example.com/banner.jpg" />
+      </div>
+
+      <div className="mb-6">
         <label className="block text-sm font-medium text-white/70 mb-1.5">Description</label>
         <textarea
           value={draft.description}
           onChange={(e) => update('description', e.target.value)}
           placeholder="Describe your tournament, rules, and what players can expect..."
-          className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder:text-white/30 min-h-[100px] focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all duration-200"
+          className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder:text-white/30 min-h-[100px] focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all"
         />
       </div>
 
@@ -362,8 +350,13 @@ function StepBasics({ draft, update }: { draft: Draft; update: <K extends keyof 
         <label className="block text-sm font-medium text-white/70 mb-3">Tournament Type</label>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {tournamentTypes.map((t) => {
-            const Icon = t.icon;
             const selected = draft.type === t.id;
+            const iconMap: Record<string, React.ReactNode> = {
+              SINGLE: <Crosshair className="w-5 h-5" />,
+              MULTI: <LayoutList className="w-5 h-5" />,
+              MULTI_STAGE: <Trophy className="w-5 h-5" />,
+              PER_KILL: <Target className="w-5 h-5" />,
+            };
             return (
               <motion.button
                 key={t.id}
@@ -379,14 +372,12 @@ function StepBasics({ draft, update }: { draft: Draft; update: <K extends keyof 
                 <div className={`w-10 h-10 rounded-lg border flex items-center justify-center mb-3 ${
                   selected ? 'border-primary/30 bg-primary/10 text-primary' : 'border-white/10 bg-white/5 text-white/40'
                 }`}>
-                  <Icon className="w-5 h-5" />
+                  {iconMap[t.id]}
                 </div>
                 <p className="text-sm font-semibold text-white mb-1">{t.label}</p>
                 <p className="text-xs text-white/50 mb-2">{t.desc}</p>
                 <p className="text-[10px] text-white/30 leading-relaxed">{t.format}</p>
-                <div className={`mt-2 text-[10px] font-medium ${
-                  selected ? 'text-primary' : 'text-white/30'
-                }`}>
+                <div className={`mt-2 text-[10px] font-medium ${selected ? 'text-primary' : 'text-white/30'}`}>
                   {t.recommend}
                 </div>
               </motion.button>
@@ -403,13 +394,18 @@ function StepEntryPrize({ draft, update, prizePoolAmount, totalCollection }: {
   prizePoolAmount: number; totalCollection: number;
 }) {
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-bold text-white mb-1">Entry & Prize System</h2>
-        <p className="text-sm text-white/40">Configure how players enter and how prizes are distributed</p>
+    <div>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+          <IndianRupee className="w-5 h-5 text-primary" />
+        </div>
+        <div>
+          <h2 className="text-lg font-semibold text-white">Entry & Prize System</h2>
+          <p className="text-sm text-white/50">Configure how players enter and how prizes are distributed</p>
+        </div>
       </div>
 
-      <div className="flex gap-3">
+      <div className="flex gap-3 mb-6">
         {(['FREE', 'PAID'] as const).map((type) => (
           <motion.button
             key={type}
@@ -437,11 +433,13 @@ function StepEntryPrize({ draft, update, prizePoolAmount, totalCollection }: {
       {draft.entryType === 'PAID' ? (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input label="Entry Fee (₹)" type="number" value={String(draft.entryFee)} onChange={(e) => update('entryFee', Number(e.target.value))} icon={<IndianRupee className="w-4 h-4" />} />
-            <Input label="Maximum Teams" type="number" value={String(draft.maxTeams)} onChange={(e) => update('maxTeams', Number(e.target.value))} icon={<Users className="w-4 h-4" />} />
+            <Input label="Entry Fee (₹)" type="number" value={String(draft.entryFee)} onChange={(e) => update('entryFee', Number(e.target.value))} />
+            <Input label="Maximum Teams" type="number" value={String(draft.maxTeams)} onChange={(e) => update('maxTeams', Number(e.target.value))} />
           </div>
           <div>
-            <label className="block text-sm font-medium text-white/70 mb-1.5">Prize Pool Percentage: {draft.prizePoolPercent}%</label>
+            <label className="block text-sm font-medium text-white/70 mb-1.5">
+              Prize Pool: {draft.prizePoolPercent}% of collection
+            </label>
             <input
               type="range"
               min={50}
@@ -451,24 +449,26 @@ function StepEntryPrize({ draft, update, prizePoolAmount, totalCollection }: {
               className="w-full h-2 bg-white/10 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-glow-red-sm"
             />
             <div className="flex justify-between text-[10px] text-white/30 mt-1">
-              <span>50% (Low)</span>
-              <span>95% (High)</span>
+              <span>50%</span>
+              <span>95%</span>
             </div>
           </div>
           <RevenueBreakdown entryFee={draft.entryFee} teams={draft.maxTeams} prizePoolPercent={draft.prizePoolPercent} show />
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="flex items-center gap-3">
+          <label className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10 cursor-pointer hover:bg-white/[0.07] transition-all">
             <input
               type="checkbox"
-              id="sponsored"
               checked={draft.sponsoredPrize}
               onChange={(e) => update('sponsoredPrize', e.target.checked)}
               className="w-4 h-4 rounded border-white/10 bg-white/5 text-primary focus:ring-primary/30"
             />
-            <label htmlFor="sponsored" className="text-sm text-white/70">Add Sponsored Prize Pool</label>
-          </div>
+            <div>
+              <p className="text-sm font-medium text-white">Add Sponsored Prize Pool</p>
+              <p className="text-xs text-white/40">Lock funds from your wallet as prize</p>
+            </div>
+          </label>
 
           {draft.sponsoredPrize && (
             <motion.div
@@ -476,7 +476,7 @@ function StepEntryPrize({ draft, update, prizePoolAmount, totalCollection }: {
               animate={{ opacity: 1, y: 0 }}
               className="space-y-3"
             >
-              <Input label="Prize Pool Amount (₹)" type="number" value={String(draft.prizePool)} onChange={(e) => update('prizePool', Number(e.target.value))} icon={<IndianRupee className="w-4 h-4" />} />
+              <Input label="Prize Pool Amount (₹)" type="number" value={String(draft.prizePool)} onChange={(e) => update('prizePool', Number(e.target.value))} />
               <div className={`rounded-lg p-3 border ${
                 draft.prizePool > 12500
                   ? 'bg-red-500/10 border-red-500/30'
@@ -488,13 +488,11 @@ function StepEntryPrize({ draft, update, prizePoolAmount, totalCollection }: {
                 </div>
                 {draft.prizePool > 12500 && (
                   <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs text-red-400 mt-2">
-                    Insufficient wallet balance. Required: ₹{draft.prizePool.toLocaleString()}
+                    Insufficient balance. Required: ₹{draft.prizePool.toLocaleString()}
                   </motion.p>
                 )}
               </div>
-              <p className="text-xs text-white/30">
-                Prize pool amount will be locked upon tournament creation.
-              </p>
+              <p className="text-xs text-white/30">Prize pool amount will be locked upon creation.</p>
             </motion.div>
           )}
 
@@ -521,26 +519,26 @@ function StepEntryPrize({ draft, update, prizePoolAmount, totalCollection }: {
 
 function StepFormat({ draft, update }: { draft: Draft; update: <K extends keyof Draft>(k: K, v: Draft[K]) => void }) {
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-bold text-white mb-1">Format Configuration</h2>
-        <p className="text-sm text-white/40">Configure the tournament format and rules</p>
+    <div>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+          <Swords className="w-5 h-5 text-primary" />
+        </div>
+        <div>
+          <h2 className="text-lg font-semibold text-white">Format Configuration</h2>
+          <p className="text-sm text-white/50">Configure the tournament format and rules</p>
+        </div>
       </div>
 
       {draft.type === 'SINGLE' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input label="Room Size" type="number" value={String(draft.roomSize)} onChange={(e) => update('roomSize', Number(e.target.value))} />
           <Input label="Match Map" value={draft.matchMap} onChange={(e) => update('matchMap', e.target.value)} placeholder="e.g. Erangel" />
-          <Select
-            label="Team Type"
-            value={draft.teamType}
-            onChange={(v) => update('teamType', v)}
-            options={[
-              { value: 'SOLO', label: 'Solo' },
-              { value: 'DUO', label: 'Duo' },
-              { value: 'SQUAD', label: 'Squad' },
-            ]}
-          />
+          <Select label="Team Type" value={draft.teamType} onChange={(v) => update('teamType', v)} options={[
+            { value: 'SOLO', label: 'Solo', icon: <Crosshair className="w-4 h-4" />, description: '1 player per team' },
+            { value: 'DUO', label: 'Duo', icon: <Users className="w-4 h-4" />, description: '2 players per team' },
+            { value: 'SQUAD', label: 'Squad', icon: <Swords className="w-4 h-4" />, description: '4 players per team' },
+          ]} />
           <Input label="Match Time (minutes)" type="number" value={draft.matchTime} onChange={(e) => update('matchTime', e.target.value)} />
         </div>
       )}
@@ -549,20 +547,18 @@ function StepFormat({ draft, update }: { draft: Draft; update: <K extends keyof 
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input label="Number of Matches" type="number" value={String(draft.numMatches)} onChange={(e) => update('numMatches', Number(e.target.value))} />
-            <Select
-              label="Match Rotation"
-              value={draft.matchRotation}
-              onChange={(v) => update('matchRotation', v)}
-              options={[
-                { value: 'FIXED', label: 'Fixed Order' },
-                { value: 'RANDOM', label: 'Random Rotation' },
-                { value: 'VOTE', label: 'Player Vote' },
-              ]}
-            />
+            <Select label="Match Rotation" value={draft.matchRotation} onChange={(v) => update('matchRotation', v)} options={[
+              { value: 'FIXED', label: 'Fixed Order', description: 'Predetermined map order' },
+              { value: 'RANDOM', label: 'Random Rotation', description: 'Random map selection' },
+              { value: 'VOTE', label: 'Player Vote', description: 'Teams vote on maps' },
+            ]} />
           </div>
 
-          <div className="bg-card border border-card-border rounded-xl p-4">
-            <div className="text-sm font-semibold text-white mb-3">Standings Preview</div>
+          <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <BarChart3 className="w-4 h-4 text-primary" />
+              <span className="text-sm font-semibold text-white">Standings Preview</span>
+            </div>
             <div className="space-y-2">
               {[
                 { rank: 1, name: 'Team Alpha', points: 42, kills: 18 },
@@ -599,16 +595,11 @@ function StepFormat({ draft, update }: { draft: Draft; update: <K extends keyof 
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input label="Match Count" type="number" value={String(draft.matchCount)} onChange={(e) => update('matchCount', Number(e.target.value))} />
-            <Select
-              label="Kill Validation"
-              value={draft.killValidation}
-              onChange={(v) => update('killValidation', v)}
-              options={[
-                { value: 'OCR', label: 'OCR Validation' },
-                { value: 'MANUAL', label: 'Manual Review' },
-                { value: 'AUTO', label: 'Auto Verify' },
-              ]}
-            />
+            <Select label="Kill Validation" value={draft.killValidation} onChange={(v) => update('killValidation', v)} options={[
+              { value: 'OCR', label: 'OCR Validation', description: 'Auto-verify via screenshots' },
+              { value: 'MANUAL', label: 'Manual Review', description: 'Admin reviews each entry' },
+              { value: 'AUTO', label: 'Auto Verify', description: 'System auto-approves' },
+            ]} />
           </div>
           <PerKillCalculator kills={12} rewardPerKill={draft.rewardPerKill} maxReward={draft.maxKillReward} />
         </div>
@@ -619,46 +610,47 @@ function StepFormat({ draft, update }: { draft: Draft; update: <K extends keyof 
 
 function StepScoring({ draft, update }: { draft: Draft; update: <K extends keyof Draft>(k: K, v: Draft[K]) => void }) {
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-bold text-white mb-1">Scoring System</h2>
-        <p className="text-sm text-white/40">Configure placement and kill points</p>
+    <div>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+          <BarChart3 className="w-5 h-5 text-primary" />
+        </div>
+        <div>
+          <h2 className="text-lg font-semibold text-white">Scoring System</h2>
+          <p className="text-sm text-white/50">Configure placement and kill points</p>
+        </div>
       </div>
 
-      <div>
+      <div className="mb-6">
         <label className="block text-sm font-medium text-white/70 mb-2">Scoring Preset</label>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
           {scoringPresets.map((preset) => (
             <motion.button
               key={preset.id}
               whileTap={{ scale: 0.98 }}
-              onClick={() => {
-                update('scoringPreset', preset.id);
-                update('placementPoints', preset.points);
-                update('killPoints', preset.kill);
-              }}
+              onClick={() => { update('scoringPreset', preset.id); update('placementPoints', preset.points); update('killPoints', preset.kill); }}
               className={`p-3 rounded-xl border text-center transition-all ${
                 draft.scoringPreset === preset.id
                   ? 'bg-primary/10 border-primary/30'
                   : 'bg-card border-card-border hover:border-white/20'
               }`}
             >
-              <p className="text-sm font-semibold text-white">{preset.id}</p>
-              <div className="mt-2 space-y-1">
-                <div className="text-[10px] text-white/40">Pts: {preset.points.slice(0, 3).join(', ')}...</div>
-                <div className="text-[10px] text-primary">Kill: {preset.kill}pt</div>
+              <p className="text-sm font-semibold text-white mb-2">{preset.label}</p>
+              <div className="space-y-1">
+                <div className="text-[10px] text-white/40">#{preset.points.slice(0, 3).join(', #')}...</div>
+                <div className="text-[10px] text-primary font-medium">{preset.kill}pt per kill</div>
               </div>
             </motion.button>
           ))}
         </div>
       </div>
 
-      <div>
+      <div className="mb-6">
         <label className="block text-sm font-medium text-white/70 mb-2">Placement Points</label>
         <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((pos) => (
             <div key={pos} className="text-center">
-              <div className="text-[10px] text-white/30 mb-1">#{pos}</div>
+              <div className="text-[10px] text-white/40 mb-1">#{pos}</div>
               <input
                 type="number"
                 value={draft.placementPoints[pos - 1] ?? 0}
@@ -667,7 +659,7 @@ function StepScoring({ draft, update }: { draft: Draft; update: <K extends keyof
                   pts[pos - 1] = Number(e.target.value);
                   update('placementPoints', pts);
                 }}
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-1.5 py-1.5 text-xs text-white text-center focus:outline-none focus:border-primary/50"
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-1.5 py-1.5 text-xs text-white text-center focus:outline-none focus:border-primary/50 transition-all"
               />
             </div>
           ))}
@@ -683,50 +675,45 @@ function StepScoring({ draft, update }: { draft: Draft; update: <K extends keyof
 
 function StepRoom({ draft, update }: { draft: Draft; update: <K extends keyof Draft>(k: K, v: Draft[K]) => void }) {
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-bold text-white mb-1">Room & Match Settings</h2>
-        <p className="text-sm text-white/40">Configure match rooms and participant access</p>
+    <div>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+          <Settings className="w-5 h-5 text-primary" />
+        </div>
+        <div>
+          <h2 className="text-lg font-semibold text-white">Room & Match Settings</h2>
+          <p className="text-sm text-white/50">Configure match rooms and participant access</p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Input label="Match Maps (comma separated)" value={draft.maps} onChange={(e) => update('maps', e.target.value)} placeholder="Erangel, Miramar, Sanhok" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <Input label="Match Maps" value={draft.maps} onChange={(e) => update('maps', e.target.value)} placeholder="Erangel, Miramar, Sanhok" />
         <Input label="Match Timing (minutes)" type="number" value={draft.timing} onChange={(e) => update('timing', e.target.value)} />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Select
-          label="Team Type"
-          value={draft.teamTypeVal}
-          onChange={(v) => update('teamTypeVal', v)}
-          options={[
-            { value: 'SOLO', label: 'Solo' },
-            { value: 'DUO', label: 'Duo' },
-            { value: 'SQUAD', label: 'Squad' },
-          ]}
-        />
-        <Select
-          label="Room Password Visibility"
-          value={draft.roomPasswordVisibility}
-          onChange={(v) => update('roomPasswordVisibility', v)}
-          options={[
-            { value: 'REGISTERED', label: 'Registered Players Only' },
-            { value: 'PUBLIC', label: 'Public' },
-            { value: 'HIDDEN', label: 'Hidden (Manual Share)' },
-          ]}
-        />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <Select label="Team Type" value={draft.teamTypeVal} onChange={(v) => update('teamTypeVal', v)} options={[
+          { value: 'SOLO', label: 'Solo' },
+          { value: 'DUO', label: 'Duo' },
+          { value: 'SQUAD', label: 'Squad' },
+        ]} />
+        <Select label="Room Password Visibility" value={draft.roomPasswordVisibility} onChange={(v) => update('roomPasswordVisibility', v)} options={[
+          { value: 'REGISTERED', label: 'Registered Players Only' },
+          { value: 'PUBLIC', label: 'Public' },
+          { value: 'HIDDEN', label: 'Hidden (Manual Share)' },
+        ]} />
       </div>
 
       <div className="space-y-3">
         {[
-          { id: 'autoDistribution', label: 'Auto Room Distribution', desc: 'Automatically assign teams to rooms' },
-          { id: 'ocrValidation', label: 'OCR Validation', desc: 'Validate match results via OCR' },
+          { id: 'autoDistribution' as const, label: 'Auto Room Distribution', desc: 'Automatically assign teams to rooms' },
+          { id: 'ocrValidation' as const, label: 'OCR Validation', desc: 'Validate match results via OCR' },
         ].map((toggle) => (
-          <label key={toggle.id} className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10 cursor-pointer">
+          <label key={toggle.id} className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10 cursor-pointer hover:bg-white/[0.07] transition-all">
             <input
               type="checkbox"
-              checked={draft[toggle.id as 'autoDistribution' | 'ocrValidation']}
-              onChange={(e) => update(toggle.id as 'autoDistribution' | 'ocrValidation', e.target.checked)}
+              checked={draft[toggle.id]}
+              onChange={(e) => update(toggle.id, e.target.checked)}
               className="w-4 h-4 rounded border-white/10 bg-white/5 text-primary focus:ring-primary/30"
             />
             <div>
@@ -742,24 +729,29 @@ function StepRoom({ draft, update }: { draft: Draft; update: <K extends keyof Dr
 
 function StepStream({ draft, update }: { draft: Draft; update: <K extends keyof Draft>(k: K, v: Draft[K]) => void }) {
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-bold text-white mb-1">Stream & Media</h2>
-        <p className="text-sm text-white/40">Configure streaming and media settings</p>
+    <div>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+          <Monitor className="w-5 h-5 text-primary" />
+        </div>
+        <div>
+          <h2 className="text-lg font-semibold text-white">Stream & Media</h2>
+          <p className="text-sm text-white/50">Configure streaming and media settings</p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4">
-        <Input label="YouTube Stream URL" value={draft.youtubeUrl} onChange={(e) => update('youtubeUrl', e.target.value)} placeholder="https://youtube.com/watch?v=..." icon={<Monitor className="w-4 h-4" />} />
-        <Input label="Sponsor Banner URL" value={draft.sponsorBanner} onChange={(e) => update('sponsorBanner', e.target.value)} placeholder="https://example.com/banner.png" icon={<Image className="w-4 h-4" />} />
+      <div className="grid grid-cols-1 gap-4 mb-6">
+        <Input label="YouTube Stream URL" value={draft.youtubeUrl} onChange={(e) => update('youtubeUrl', e.target.value)} placeholder="https://youtube.com/watch?v=..." />
+        <Input label="Sponsor Banner URL" value={draft.sponsorBanner} onChange={(e) => update('sponsorBanner', e.target.value)} placeholder="https://example.com/banner.png" />
       </div>
 
       {draft.youtubeUrl && (
-        <div className="bg-card border border-card-border rounded-xl p-4">
+        <div className="bg-card border border-card-border rounded-xl p-4 mb-6">
           <div className="text-sm font-semibold text-white mb-3">Stream Preview</div>
           <div className="aspect-video bg-surface rounded-lg flex items-center justify-center border border-white/10">
             <div className="text-center">
               <Monitor className="w-10 h-10 text-white/20 mx-auto mb-2" />
-              <p className="text-xs text-white/30">Stream preview unavailable</p>
+              <p className="text-xs text-white/30">Stream preview placeholder</p>
             </div>
           </div>
         </div>
@@ -767,14 +759,14 @@ function StepStream({ draft, update }: { draft: Draft; update: <K extends keyof 
 
       <div className="space-y-3">
         {[
-          { id: 'obsOverlay', label: 'OBS Overlay', desc: 'Enable OBS integration for live streaming' },
-          { id: 'featuredMatch', label: 'Featured Match', desc: 'Feature this tournament on the homepage' },
+          { id: 'obsOverlay' as const, label: 'OBS Overlay', desc: 'Enable OBS integration for live streaming' },
+          { id: 'featuredMatch' as const, label: 'Featured Match', desc: 'Feature this tournament on the homepage' },
         ].map((toggle) => (
-          <label key={toggle.id} className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10 cursor-pointer">
+          <label key={toggle.id} className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10 cursor-pointer hover:bg-white/[0.07] transition-all">
             <input
               type="checkbox"
-              checked={draft[toggle.id as 'obsOverlay' | 'featuredMatch']}
-              onChange={(e) => update(toggle.id as 'obsOverlay' | 'featuredMatch', e.target.checked)}
+              checked={draft[toggle.id]}
+              onChange={(e) => update(toggle.id, e.target.checked)}
               className="w-4 h-4 rounded border-white/10 bg-white/5 text-primary focus:ring-primary/30"
             />
             <div>
@@ -790,22 +782,27 @@ function StepStream({ draft, update }: { draft: Draft; update: <K extends keyof 
 
 function StepModeration({ draft, update }: { draft: Draft; update: <K extends keyof Draft>(k: K, v: Draft[K]) => void }) {
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-bold text-white mb-1">Moderation & Security</h2>
-        <p className="text-sm text-white/40">Configure security and anti-cheat measures</p>
+    <div>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+          <Shield className="w-5 h-5 text-primary" />
+        </div>
+        <div>
+          <h2 className="text-lg font-semibold text-white">Moderation & Security</h2>
+          <p className="text-sm text-white/50">Configure security and anti-cheat measures</p>
+        </div>
       </div>
 
       <div className="space-y-3">
         {[
-          { id: 'ocrVerification', label: 'OCR Result Verification', desc: 'Automatically verify match results using OCR', icon: ScrollText, color: 'text-blue-400' },
-          { id: 'antiCheat', label: 'Anti-Cheat Review', desc: 'Screen participants for cheating software', icon: Shield, color: 'text-red-400' },
-          { id: 'duplicateDetection', label: 'Duplicate Team Detection', desc: 'Prevent teams from registering multiple times', icon: Users, color: 'text-yellow-400' },
-          { id: 'manualApproval', label: 'Manual Approval Mode', desc: 'Manually approve each registration', icon: CheckCircle, color: 'text-purple-400' },
-          { id: 'autoQualification', label: 'Auto Qualification Engine', desc: 'Automatically qualify top teams to next stage', icon: Zap, color: 'text-green-400' },
+          { id: 'ocrVerification' as const, label: 'OCR Result Verification', desc: 'Automatically verify match results using OCR', icon: Shield, color: 'text-blue-400' },
+          { id: 'antiCheat' as const, label: 'Anti-Cheat Review', desc: 'Screen participants for cheating software', icon: Shield, color: 'text-red-400' },
+          { id: 'duplicateDetection' as const, label: 'Duplicate Team Detection', desc: 'Prevent teams from registering multiple times', icon: Users, color: 'text-yellow-400' },
+          { id: 'manualApproval' as const, label: 'Manual Approval Mode', desc: 'Manually approve each registration', icon: CheckCircle, color: 'text-purple-400' },
+          { id: 'autoQualification' as const, label: 'Auto Qualification Engine', desc: 'Automatically qualify top teams to next stage', icon: Zap, color: 'text-green-400' },
         ].map((feature) => {
           const Icon = feature.icon;
-          const checked = draft[feature.id as keyof Draft] as boolean;
+          const checked = draft[feature.id];
           return (
             <label key={feature.id} className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10 cursor-pointer hover:bg-white/[0.07] transition-all">
               <Icon className={`w-5 h-5 ${feature.color} flex-shrink-0`} />
@@ -816,7 +813,7 @@ function StepModeration({ draft, update }: { draft: Draft; update: <K extends ke
               <input
                 type="checkbox"
                 checked={checked}
-                onChange={(e) => update(feature.id as keyof Draft, e.target.checked)}
+                onChange={(e) => update(feature.id, e.target.checked)}
                 className="w-4 h-4 rounded border-white/10 bg-white/5 text-primary focus:ring-primary/30"
               />
             </label>
@@ -853,7 +850,7 @@ function StepReview({ draft, prizePoolAmount, totalCollection }: {
           { label: 'Your Earnings', value: `₹${Math.round(totalCollection * (1 - draft.prizePoolPercent / 100) * 0.5).toLocaleString()}` },
           { label: 'Commission', value: `₹${Math.round(totalCollection * (1 - draft.prizePoolPercent / 100) * 0.5).toLocaleString()}` },
         ] : []),
-        ...(draft.sponsoredPrize ? [{ label: 'Locked Amount', value: `₹${Math.min(draft.prizePool, 12500).toLocaleString()}` }] : []),
+        ...(draft.sponsoredPrize ? [{ label: 'Locked Amount', value: `₹${draft.prizePool.toLocaleString()}` }] : []),
       ],
     },
     {
@@ -881,27 +878,27 @@ function StepReview({ draft, prizePoolAmount, totalCollection }: {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="text-center mb-6">
+    <div>
+      <div className="text-center mb-8">
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
-          transition={{ type: 'spring', stiffness: 200 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 15 }}
           className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center mx-auto mb-4 shadow-glow-red"
         >
           <Trophy className="w-8 h-8 text-white" />
         </motion.div>
         <h2 className="text-2xl font-bold text-white">Review & Publish</h2>
-        <p className="text-sm text-white/40 mt-1">Final review before your tournament goes live</p>
+        <p className="text-sm text-white/50 mt-1">Final review before your tournament goes live</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         {[
-          { label: 'Prize Pool', value: `₹${prizePoolAmount.toLocaleString()}`, color: 'text-green-400', bg: 'bg-green-500/10' },
-          { label: 'Total Teams', value: String(draft.maxTeams), color: 'text-blue-400', bg: 'bg-blue-500/10' },
-          { label: 'Format', value: typeLabel, color: 'text-primary', bg: 'bg-primary/10' },
+          { label: 'Prize Pool', value: `₹${prizePoolAmount.toLocaleString()}`, color: 'text-green-400', bg: 'bg-green-500/10', border: 'border-green-500/20' },
+          { label: 'Total Teams', value: String(draft.maxTeams), color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
+          { label: 'Format', value: typeLabel, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/20' },
         ].map((stat) => (
-          <div key={stat.label} className={`${stat.bg} rounded-xl p-4 text-center`}>
+          <div key={stat.label} className={`${stat.bg} ${stat.border} border rounded-xl p-4 text-center`}>
             <p className="text-xs text-white/40 uppercase tracking-wider mb-1">{stat.label}</p>
             <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
           </div>
@@ -909,7 +906,7 @@ function StepReview({ draft, prizePoolAmount, totalCollection }: {
       </div>
 
       {summarySections.map((section) => (
-        <div key={section.title} className="bg-card border border-card-border rounded-xl overflow-hidden">
+        <div key={section.title} className="bg-card border border-card-border rounded-xl overflow-hidden mb-4">
           <div className="px-4 py-3 border-b border-card-border">
             <p className="text-sm font-semibold text-white">{section.title}</p>
           </div>
@@ -927,15 +924,13 @@ function StepReview({ draft, prizePoolAmount, totalCollection }: {
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center py-6"
+        className="text-center"
       >
-        <div className="inline-flex items-center gap-2 text-xs text-white/30 bg-white/5 px-4 py-2 rounded-full">
+        <div className="inline-flex items-center gap-2 text-xs text-white/40 bg-white/5 border border-white/10 px-4 py-2 rounded-full">
           <Shield className="w-3 h-3" />
-          Everything looks ready. Click Publish to launch your tournament.
+          Everything looks ready to go live
         </div>
       </motion.div>
     </div>
   );
 }
-
-
