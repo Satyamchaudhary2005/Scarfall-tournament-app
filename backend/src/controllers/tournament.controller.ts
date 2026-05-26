@@ -988,10 +988,6 @@ export const createRound = async (req: Request, res: Response): Promise<void> =>
       res.status(403).json({ error: 'Not authorized' });
       return;
     }
-    if (tournament.format !== 'MULTI_ROUND') {
-      res.status(400).json({ error: 'Tournament is not a multi-round format' });
-      return;
-    }
 
     const lastRound = await prisma.round.findFirst({
       where: { tournamentId: id },
@@ -999,7 +995,7 @@ export const createRound = async (req: Request, res: Response): Promise<void> =>
     });
     const roundNumber = (lastRound?.roundNumber || 0) + 1;
 
-    if (roundNumber > tournament.totalRounds) {
+    if (tournament.totalRounds && roundNumber > tournament.totalRounds) {
       res.status(400).json({ error: `Maximum ${tournament.totalRounds} rounds reached` });
       return;
     }

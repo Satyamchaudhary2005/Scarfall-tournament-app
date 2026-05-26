@@ -743,6 +743,42 @@ function SingleMatchView({ tournament, tournamentId }: any) {
   const [showCredsModal, setShowCredsModal] = useState(false);
   const [credsRoomId, setCredsRoomId] = useState('');
   const [credsPassword, setCredsPassword] = useState('');
+  const [showResultModal, setShowResultModal] = useState(false);
+  const [scoreEntries, setScoreEntries] = useState<any[]>([]);
+
+  const registrations = tournament?.registrations || [];
+  const isSolo = tournament?.mode === 'SOLO';
+  const placementConfig = tournament?.placementPoints || [15, 12, 10, 8, 6, 4, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0];
+  const killPts = tournament?.killPoints || 1;
+
+  const openResultModal = () => {
+    const teams = isSolo
+      ? registrations.map((r: any) => ({ teamId: r.user?.id || r.id, teamName: r.user?.ign || r.user?.username || 'Unknown' }))
+      : [];
+    const existingScores = tournament?.rounds?.[0]?.scores || [];
+    const entries = teams.map((t: any) => {
+      const existing = existingScores.find((s: any) => s.teamId === t.teamId);
+      return { teamId: t.teamId, teamName: t.teamName, placement: existing?.placement || 0, kills: existing?.kills || 0 };
+    });
+    setScoreEntries(entries);
+    setShowResultModal(true);
+  };
+
+  const submitResultMutation = useMutation({
+    mutationFn: async () => {
+      const createRes = await tournamentApi.createRound(tournamentId, { title: 'Final Match' });
+      const roundId = (createRes as any).round?.id;
+      if (!roundId) throw new Error('Failed to create round');
+      await tournamentApi.updateRoundScores(tournamentId, roundId, scoreEntries);
+      await (tournamentApi as any).updateStatus(tournamentId, 'COMPLETED');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tournament', tournamentId] });
+      setShowResultModal(false);
+      toast.success('Results submitted! Tournament completed.');
+    },
+    onError: (err: any) => toast.error(err.message || 'Failed to submit results'),
+  });
 
   const sendCredsMutation = useMutation({
     mutationFn: (data: { roomId: string; roomPassword: string }) =>
@@ -753,15 +789,6 @@ function SingleMatchView({ tournament, tournamentId }: any) {
       setShowCredsModal(false);
       setCredsRoomId('');
       setCredsPassword('');
-    },
-    onError: (err: any) => toast.error(err.message || 'Failed'),
-  });
-
-  const completeMutation = useMutation({
-    mutationFn: () => (tournamentApi as any).updateStatus(tournamentId, 'COMPLETED'),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tournament', tournamentId] });
-      toast.success('Match marked completed');
     },
     onError: (err: any) => toast.error(err.message || 'Failed'),
   });
@@ -793,7 +820,7 @@ function SingleMatchView({ tournament, tournamentId }: any) {
               </>
             )}
             {status === 'LIVE' && (
-              <button onClick={() => completeMutation.mutate()} className="px-3 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-xs font-semibold transition-all">
+              <button onClick={openResultModal} className="px-3 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-xs font-semibold transition-all">
                 <CheckCircle className="w-3 h-3 inline mr-1" /> Mark Completed
               </button>
             )}
@@ -838,6 +865,102 @@ function SingleMatchView({ tournament, tournamentId }: any) {
                 <div className="flex gap-3">
                   <Button variant="secondary" className="flex-1" onClick={() => setShowCredsModal(false)}>Cancel</Button>
                   <Button className="flex-1" onClick={() => sendCredsMutation.mutate({ roomId: credsRoomId, roomPassword: credsPassword })} loading={sendCredsMutation.isPending} disabled={!credsRoomId || !credsPassword}>Send & Wait</Button>
+                </div>
+              </Card>
+            </motion.div>
+          </div>
+        )}
+
+        {showResultModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <Target className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-white">Enter Results</h3>
+                      <p className="text-sm text-white/50">Enter placement and kills for each team</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setShowResultModal(false)} className="p-1.5 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-all">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto mb-4">
+                  <table className="w-full min-w-[400px]">
+                    <thead>
+                      <tr className="border-b border-white/5">
+                        <th className="text-left px-3 py-2 text-xs text-white/40 font-medium uppercase">Team</th>
+                        <th className="text-center px-3 py-2 text-xs text-white/40 font-medium uppercase w-24">Placement</th>
+                        <th className="text-center px-3 py-2 text-xs text-white/40 font-medium uppercase w-20">Kills</th>
+                        <th className="text-center px-3 py-2 text-xs text-white/40 font-medium uppercase w-16">Pts</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {scoreEntries.map((entry, i) => {
+                        const pts = entry.placement > 0
+                          ? (placementConfig[Math.min(entry.placement - 1, placementConfig.length - 1)] || 0) + (entry.kills * killPts)
+                          : 0;
+                        return (
+                          <tr key={entry.teamId} className="border-b border-white/5 hover:bg-white/[0.02]">
+                            <td className="px-3 py-2">
+                              <span className="text-sm text-white font-medium">{entry.teamName}</span>
+                            </td>
+                            <td className="px-3 py-2">
+                              <input
+                                type="number"
+                                min={0}
+                                max={99}
+                                value={entry.placement || ''}
+                                onChange={(e) => {
+                                  const next = [...scoreEntries];
+                                  next[i] = { ...next[i], placement: parseInt(e.target.value) || 0 };
+                                  setScoreEntries(next);
+                                }}
+                                className="w-20 mx-auto block text-center bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-primary/50"
+                                placeholder="#"
+                              />
+                            </td>
+                            <td className="px-3 py-2">
+                              <input
+                                type="number"
+                                min={0}
+                                max={99}
+                                value={entry.kills || ''}
+                                onChange={(e) => {
+                                  const next = [...scoreEntries];
+                                  next[i] = { ...next[i], kills: parseInt(e.target.value) || 0 };
+                                  setScoreEntries(next);
+                                }}
+                                className="w-16 mx-auto block text-center bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-primary/50"
+                                placeholder="0"
+                              />
+                            </td>
+                            <td className="px-3 py-2 text-center">
+                              <span className="text-sm font-bold text-primary">{pts}</span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="flex gap-3">
+                  <Button variant="secondary" className="flex-1" onClick={() => setShowResultModal(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    onClick={() => submitResultMutation.mutate()}
+                    loading={submitResultMutation.isPending}
+                  >
+                    Submit Results & Complete
+                  </Button>
                 </div>
               </Card>
             </motion.div>
