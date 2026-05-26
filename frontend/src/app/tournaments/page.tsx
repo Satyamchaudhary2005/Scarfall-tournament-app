@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { tournamentApi } from '@/services/api';
 import { Navbar } from '@/components/layout/Navbar';
@@ -9,7 +9,7 @@ import { Card, Badge, Button } from '@/components/ui';
 import { useAuthStore } from '@/store/authStore';
 import {
   Trophy, Users, Clock, Search, IndianRupee, Zap, Filter, CheckCircle,
-  Layers, Target, Crown, Crosshair,
+  Layers, Target, Crown, Crosshair, ChevronLeft,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
@@ -30,6 +30,16 @@ type CategoryType = keyof typeof TYPE_CONFIG;
 
 export default function TournamentsPage() {
   const { isAuthenticated } = useAuthStore();
+  const [typeParam, setTypeParam] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const t = params.get('type');
+    setTypeParam(t && t in TYPE_CONFIG ? t : null);
+  }, []);
+
+  const filteredType = typeParam as CategoryType | null;
+
   const [status, setStatus] = useState('ALL');
   const [mode, setMode] = useState('ALL');
   const [search, setSearch] = useState('');
@@ -77,6 +87,12 @@ export default function TournamentsPage() {
       queryFn: () => tournamentApi.getAll({ ...commonParams, type: 'earn-per-kill' }),
     }),
   };
+
+  const allFilteredQuery = useQuery({
+    queryKey: ['tournaments', filteredType, 'all', apiStatus, mode, search],
+    queryFn: () => tournamentApi.getAll({ status: apiStatus, mode, search: search || undefined, type: filteredType!, limit: 100 }),
+    enabled: !!filteredType,
+  });
 
   const { data: regData } = useQuery({
     queryKey: ['my-registrations'],
@@ -383,8 +399,43 @@ export default function TournamentsPage() {
         )}
 
         {/* 4 Category Rows — each is a horizontal carousel */}
-        {(Object.keys(TYPE_CONFIG) as CategoryType[]).map((type, i) =>
-          renderCategoryRow(type, i)
+        {filteredType ? (
+          <motion.div
+            key={filteredType}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <Link href="/tournaments" className="p-2 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-all">
+                  <ChevronLeft className="w-4 h-4" />
+                </Link>
+                <div>
+                  <h2 className="text-xl font-bold text-white">{TYPE_CONFIG[filteredType].label}</h2>
+                  <p className="text-sm text-white/40">{TYPE_CONFIG[filteredType].desc}</p>
+                </div>
+              </div>
+            </div>
+            {allFilteredQuery.isLoading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {[...Array(8)].map((_, i) => (
+                  <div key={i} className="h-52 rounded-xl bg-card border border-card-border animate-pulse" />
+                ))}
+              </div>
+            ) : (allFilteredQuery.data?.tournaments ?? []).length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-white/30">No tournaments found in this category</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {(allFilteredQuery.data?.tournaments ?? []).map((t: any) => renderTournamentCard(t))}
+              </div>
+            )}
+          </motion.div>
+        ) : (
+          (Object.keys(TYPE_CONFIG) as CategoryType[]).map((type, i) =>
+            renderCategoryRow(type, i)
+          )
         )}
       </div>
 
