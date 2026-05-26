@@ -17,7 +17,7 @@ import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { getStatusBadgeVariant } from '@/lib/utils';
 
-const statusFilters = ['ALL', 'REGISTRATION_OPEN', 'UPCOMING', 'LIVE', 'ENDED'];
+const statusFilters = ['ALL', 'REGISTRATION_OPEN', 'LIVE', 'ENDED'];
 const modeFilters = ['ALL', 'SOLO', 'DUO', 'SQUAD'];
 
 const TYPE_CONFIG = {

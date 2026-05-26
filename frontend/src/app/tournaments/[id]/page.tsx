@@ -711,7 +711,7 @@ export default function TournamentDetailPage() {
                                     : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.04]'
                                 }`}
                                 onClick={() => {
-                                  if (!role || role === 'substitute') {
+                                  if (!role) {
                                     if (counts.playing < maxPlaying) {
                                       handleMemberToggle(member.id, 'playing');
                                     } else {
@@ -721,8 +721,10 @@ export default function TournamentDetailPage() {
                                     if (counts.substitute < maxSubs) {
                                       handleMemberToggle(member.id, 'substitute');
                                     } else {
-                                      handleMemberToggle(member.id, 'playing'); // Deselect
+                                      handleMemberToggle(member.id, 'playing');
                                     }
+                                  } else {
+                                    handleMemberToggle(member.id, 'substitute');
                                   }
                                 }}
                                 onContextMenu={(e) => {
