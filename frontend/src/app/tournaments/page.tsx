@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { tournamentApi } from '@/services/api';
 import { Navbar } from '@/components/layout/Navbar';
@@ -29,16 +30,29 @@ const TYPE_CONFIG = {
 type CategoryType = keyof typeof TYPE_CONFIG;
 
 export default function TournamentsPage() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen bg-surface">
+        <Navbar />
+        <div className="pt-24 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="h-12 w-48 rounded-lg bg-card border border-card-border animate-pulse mb-8" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {[...Array(8)].map((_, i) => <div key={i} className="h-52 rounded-xl bg-card border border-card-border animate-pulse" />)}
+          </div>
+        </div>
+        <Footer />
+      </main>
+    }>
+      <TournamentsContent />
+    </Suspense>
+  );
+}
+
+function TournamentsContent() {
   const { isAuthenticated } = useAuthStore();
-  const [typeParam, setTypeParam] = useState<string | null>(null);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const t = params.get('type');
-    setTypeParam(t && t in TYPE_CONFIG ? t : null);
-  }, []);
-
-  const filteredType = typeParam as CategoryType | null;
+  const searchParams = useSearchParams();
+  const typeParam = searchParams.get('type');
+  const filteredType = typeParam && typeParam in TYPE_CONFIG ? (typeParam as CategoryType) : null;
 
   const [status, setStatus] = useState('ALL');
   const [mode, setMode] = useState('ALL');
