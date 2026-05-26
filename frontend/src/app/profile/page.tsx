@@ -36,11 +36,11 @@ export default function ProfilePage() {
   }
 
   const stats = [
-    { label: 'Points', value: user.points.toLocaleString(), icon: Trophy, color: 'text-primary' },
-    { label: 'Kills', value: user.kills.toLocaleString(), icon: Crosshair, color: 'text-red-400' },
-    { label: 'KD Ratio', value: calculateKd(user.kills, user.deaths), icon: Swords, color: 'text-blue-400' },
-    { label: 'Wins', value: user.wins.toLocaleString(), icon: Trophy, color: 'text-yellow-400' },
-    { label: 'Matches', value: user.matchesPlayed.toLocaleString(), icon: Activity, color: 'text-purple-400' },
+    { label: 'Points', value: (user.points ?? 0).toLocaleString(), icon: Trophy, color: 'text-primary' },
+    { label: 'Kills', value: (user.kills ?? 0).toLocaleString(), icon: Crosshair, color: 'text-red-400' },
+    { label: 'KD Ratio', value: calculateKd(user.kills ?? 0, user.deaths ?? 0), icon: Swords, color: 'text-blue-400' },
+    { label: 'Wins', value: (user.wins ?? 0).toLocaleString(), icon: Trophy, color: 'text-yellow-400' },
+    { label: 'Matches', value: (user.matchesPlayed ?? 0).toLocaleString(), icon: Activity, color: 'text-purple-400' },
     { label: 'Win Rate', value: `${calculateWinRate(user.wins, user.matchesPlayed)}%`, icon: Skull, color: 'text-green-400' },
   ];
 
