@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi, tournamentApi } from '@/services/api';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
-import { Card, Button, Input, Badge, Select } from '@/components/ui';
+import { Card, Button, Input, Badge, Select, ConfirmModal } from '@/components/ui';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
 import {
@@ -197,6 +197,10 @@ function TournamentsTab() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean; title: string; message: string; variant?: 'danger' | 'warning' | 'info';
+    onConfirm: () => void; confirmLabel?: string;
+  }>({ open: false, title: '', message: '', onConfirm: () => {} });
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -403,9 +407,12 @@ function TournamentsTab() {
                           size="sm"
                           value={t.status}
                           onChange={(v) => {
-                            if (confirm(`Change "${t.title}" status to ${v}?`)) {
-                              statusMutation.mutate({ id: t.id, status: v });
-                            }
+                            setConfirmModal({
+                              open: true, title: 'Change Status',
+                              message: `Change "${t.title}" status to ${v}?`,
+                              variant: 'warning', confirmLabel: 'Change',
+                              onConfirm: () => { statusMutation.mutate({ id: t.id, status: v }); setConfirmModal(m => ({ ...m, open: false })); },
+                            });
                           }}
                           disabled={statusMutation.isPending}
                           options={[
@@ -447,11 +454,12 @@ function TournamentsTab() {
                           <Edit3 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => {
-                            if (confirm(`Delete tournament "${t.title}"? This cannot be undone.`)) {
-                              deleteMutation.mutate(t.id);
-                            }
-                          }}
+                          onClick={() => setConfirmModal({
+                            open: true, title: 'Delete Tournament',
+                            message: `Delete tournament "${t.title}"? This cannot be undone.`,
+                            variant: 'danger', confirmLabel: 'Delete',
+                            onConfirm: () => { deleteMutation.mutate(t.id); setConfirmModal(m => ({ ...m, open: false })); },
+                          })}
                           className="p-1.5 rounded-lg hover:bg-red-500/10 text-white/40 hover:text-red-400 transition-all"
                           title="Delete"
                         >
@@ -478,6 +486,16 @@ function TournamentsTab() {
       <AnimatePresence>
         {viewingId && <TournamentRegistrationsViewer tournamentId={viewingId} onClose={() => setViewingId(null)} />}
       </AnimatePresence>
+
+      <ConfirmModal
+        open={confirmModal.open}
+        onClose={() => setConfirmModal(m => ({ ...m, open: false }))}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmLabel={confirmModal.confirmLabel}
+        variant={confirmModal.variant}
+      />
     </div>
   );
 }
@@ -565,6 +583,10 @@ function UsersTab() {
   const [walletUser, setWalletUser] = useState<any>(null);
   const [walletAmount, setWalletAmount] = useState('');
   const [walletDesc, setWalletDesc] = useState('');
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean; title: string; message: string; variant?: 'danger' | 'warning' | 'info';
+    onConfirm: () => void; confirmLabel?: string;
+  }>({ open: false, title: '', message: '', onConfirm: () => {} });
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -663,9 +685,12 @@ function UsersTab() {
                           size="sm"
                           value={u.role}
                           onChange={(v) => {
-                            if (confirm(`Change ${u.username}'s role to ${v}?`)) {
-                              roleMutation.mutate({ id: u.id, role: v });
-                            }
+                            setConfirmModal({
+                              open: true, title: 'Change Role',
+                              message: `Change ${u.username}'s role to ${v}?`,
+                              variant: 'warning', confirmLabel: 'Change',
+                              onConfirm: () => { roleMutation.mutate({ id: u.id, role: v }); setConfirmModal(m => ({ ...m, open: false })); },
+                            });
                           }}
                           disabled={roleMutation.isPending}
                           className={
@@ -710,11 +735,12 @@ function UsersTab() {
                         </button>
                         {u.role !== 'ADMIN' && (
                           <button
-                            onClick={() => {
-                              if (confirm(`Permanently delete user "${u.username}"? This cannot be undone.`)) {
-                                deleteMutation.mutate(u.id);
-                              }
-                            }}
+                            onClick={() => setConfirmModal({
+                              open: true, title: 'Delete User',
+                              message: `Permanently delete user "${u.username}"? This cannot be undone.`,
+                              variant: 'danger', confirmLabel: 'Delete',
+                              onConfirm: () => { deleteMutation.mutate(u.id); setConfirmModal(m => ({ ...m, open: false })); },
+                            })}
                             className="p-1.5 rounded-lg hover:bg-red-500/10 text-white/40 hover:text-red-400 transition-all"
                             title="Delete user"
                           >
@@ -851,6 +877,16 @@ function UsersTab() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ConfirmModal
+        open={confirmModal.open}
+        onClose={() => setConfirmModal(m => ({ ...m, open: false }))}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmLabel={confirmModal.confirmLabel}
+        variant={confirmModal.variant}
+      />
     </div>
   );
 }
@@ -862,6 +898,10 @@ function AdminClansTab() {
   const [page, setPage] = useState(1);
   const [editingClan, setEditingClan] = useState<any>(null);
   const [viewingClan, setViewingClan] = useState<any>(null);
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean; title: string; message: string; variant?: 'danger' | 'warning' | 'info';
+    onConfirm: () => void; confirmLabel?: string;
+  }>({ open: false, title: '', message: '', onConfirm: () => {} });
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -956,11 +996,12 @@ function AdminClansTab() {
                           <Eye className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => {
-                            if (confirm(`Disband clan "${c.name}"? All members will be removed.`)) {
-                              deleteMutation.mutate(c.id);
-                            }
-                          }}
+                          onClick={() => setConfirmModal({
+                            open: true, title: 'Disband Clan',
+                            message: `Disband clan "${c.name}"? All members will be removed.`,
+                            variant: 'danger', confirmLabel: 'Disband',
+                            onConfirm: () => { deleteMutation.mutate(c.id); setConfirmModal(m => ({ ...m, open: false })); },
+                          })}
                           className="p-1.5 rounded-lg hover:bg-red-500/10 text-white/40 hover:text-red-400 transition-all"
                           title="Disband clan"
                         >
@@ -1064,6 +1105,16 @@ function AdminClansTab() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ConfirmModal
+        open={confirmModal.open}
+        onClose={() => setConfirmModal(m => ({ ...m, open: false }))}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmLabel={confirmModal.confirmLabel}
+        variant={confirmModal.variant}
+      />
     </div>
   );
 }

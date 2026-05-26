@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { tournamentApi } from '@/services/api';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
-import { Card, Button, Input, Badge, Select } from '@/components/ui';
+import { Card, Button, Input, Badge, Select, ConfirmModal } from '@/components/ui';
 import StageBuilder from '@/components/tournaments/StageBuilder';
 import StageDetailView from '@/components/tournaments/StageDetailView';
 import StageListModal from '@/components/tournaments/StageListModal';
@@ -92,6 +92,10 @@ function OrganizerContent() {
   const [guestTeamName, setGuestTeamName] = useState('');
   const [bulkIgns, setBulkIgns] = useState('');
   const [showBulkImport, setShowBulkImport] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean; title: string; message: string; variant?: 'danger' | 'warning' | 'info';
+    onConfirm: () => void; confirmLabel?: string;
+  }>({ open: false, title: '', message: '', onConfirm: () => {} });
 
   const resetForm = () => setForm({
     title: '', prizePool: '', entryFee: 'Free', mode: 'SOLO',
@@ -637,7 +641,12 @@ function OrganizerContent() {
                           )}
                           {round.status === 'UPCOMING' && (
                             <button
-                              onClick={() => { if (confirm(`Delete round ${round.roundNumber}?`)) deleteRoundMutation.mutate(round.id); }}
+                              onClick={() => setConfirmModal({
+                                open: true, title: 'Delete Round',
+                                message: `Delete round ${round.roundNumber}? This cannot be undone.`,
+                                variant: 'danger', confirmLabel: 'Delete',
+                                onConfirm: () => { deleteRoundMutation.mutate(round.id); setConfirmModal(m => ({ ...m, open: false })); },
+                              })}
                               className="p-1.5 rounded-lg hover:bg-red-500/10 text-white/40 hover:text-red-400 transition-all"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -909,11 +918,12 @@ function OrganizerContent() {
                             </div>
                           </div>
                           <button
-                            onClick={() => {
-                              if (confirm(`Remove ${displayName} from this tournament?`)) {
-                                removeParticipantMutation.mutate(reg.id);
-                              }
-                            }}
+                            onClick={() => setConfirmModal({
+                              open: true, title: 'Remove Participant',
+                              message: `Remove ${displayName} from this tournament?`,
+                              variant: 'danger', confirmLabel: 'Remove',
+                              onConfirm: () => { removeParticipantMutation.mutate(reg.id); setConfirmModal(m => ({ ...m, open: false })); },
+                            })}
                             disabled={removeParticipantMutation.isPending}
                             className="p-2 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-500/10 text-white/40 hover:text-red-400 transition-all disabled:opacity-30"
                             title="Remove participant"
@@ -1187,11 +1197,12 @@ function OrganizerContent() {
                     <Edit3 className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => {
-                      if (confirm(`Delete "${t.title}"? This cannot be undone.`)) {
-                        deleteMutation.mutate(t.id);
-                      }
-                    }}
+                    onClick={() => setConfirmModal({
+                      open: true, title: 'Delete Tournament',
+                      message: `Delete "${t.title}"? This cannot be undone.`,
+                      variant: 'danger', confirmLabel: 'Delete',
+                      onConfirm: () => { deleteMutation.mutate(t.id); setConfirmModal(m => ({ ...m, open: false })); },
+                    })}
                     className="p-1.5 rounded-lg hover:bg-red-500/10 text-white/40 hover:text-red-400 transition-all"
                     title="Delete"
                   >
@@ -1231,6 +1242,16 @@ function OrganizerContent() {
           ))}
         </div>
       )}
+
+      <ConfirmModal
+        open={confirmModal.open}
+        onClose={() => setConfirmModal(m => ({ ...m, open: false }))}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmLabel={confirmModal.confirmLabel}
+        variant={confirmModal.variant}
+      />
     </div>
   );
 }
