@@ -1,12 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { Swords, Users, Trophy, Mail, Github, Twitter, Gamepad2 } from 'lucide-react';
+import { Swords, Users, Trophy, Mail, Github, Twitter, Gamepad2, Download } from 'lucide-react';
 
 const quickLinks = [
   { href: '/tournaments', label: 'Tournaments', icon: Trophy },
   { href: '/leaderboard', label: 'Leaderboard', icon: Swords },
   { href: '/clans', label: 'Clans', icon: Users },
+  { href: '/download', label: 'Download App', icon: Download },
 ];
 
 const socialLinks = [

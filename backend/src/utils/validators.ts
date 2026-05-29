@@ -83,6 +83,23 @@ export const sendInviteSchema = z.object({
   username: z.string().min(1).max(30),
 });
 
+export const autoTournamentSchema = z.object({
+  title: z.string().min(3).max(100),
+  description: z.string().max(1000).optional(),
+  bannerUrl: z.string().url().optional(),
+  prizePool: z.string().optional(),
+  entryFee: z.string().optional(),
+  mode: z.enum(['SOLO', 'DUO', 'SQUAD']),
+  slots: z.number().int().min(2).max(500),
+  mapName: z.string().optional(),
+  rules: z.string().optional(),
+  format: z.enum(['SINGLE', 'MULTI_ROUND']).optional(),
+  totalRounds: z.number().int().min(1).max(20).optional(),
+  killPoints: z.number().int().min(0).max(10).optional(),
+  placementPoints: z.array(z.number().int().min(0)).optional(),
+  isActive: z.boolean().optional(),
+});
+
 export const forgotPasswordSchema = z.object({
   email: z.string().email(),
 });

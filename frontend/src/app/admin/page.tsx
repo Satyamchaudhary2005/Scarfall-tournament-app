@@ -16,12 +16,13 @@ import {
   PlayCircle, CheckCircle,
   Wallet, DollarSign, Minus,
   Crosshair, UserPlus, XCircle, Shield, Star, User,
+  CalendarClock,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { cn, API_URL } from '@/lib/utils';
 
-type Tab = 'overview' | 'tournaments' | 'users' | 'clans' | 'reports' | 'notifications';
+type Tab = 'overview' | 'tournaments' | 'users' | 'clans' | 'reports' | 'notifications' | 'auto-tournaments';
 
 export default function AdminPage() {
   const { user, isAuthenticated } = useAuthStore();
@@ -64,6 +65,7 @@ export default function AdminPage() {
               { id: 'clans', label: 'Clans', icon: Swords },
               { id: 'reports', label: 'Reports', icon: AlertTriangle },
               { id: 'notifications', label: 'Broadcast', icon: Send },
+              { id: 'auto-tournaments', label: 'Auto Tournaments', icon: CalendarClock },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -87,6 +89,7 @@ export default function AdminPage() {
           {activeTab === 'clans' && <AdminClansTab />}
           {activeTab === 'reports' && <ReportsTab />}
           {activeTab === 'notifications' && <BroadcastTab />}
+          {activeTab === 'auto-tournaments' && <AutoTournamentsTab />}
         </motion.div>
       </div>
 
@@ -1359,6 +1362,280 @@ function BroadcastTab() {
             </button>
           ))}
         </div>
+      </Card>
+    </div>
+  );
+}
+
+// ─── Auto Tournaments Tab ─────────────────────────────────────────────────────
+
+function AutoTournamentsTab() {
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['admin', 'auto-tournaments'],
+    queryFn: () => adminApi.getAutoTournamentTemplates(),
+  });
+
+  const [form, setForm] = useState({
+    title: '',
+    description: '',
+    prizePool: '',
+    entryFee: 'Free',
+    mode: 'SOLO',
+    slots: 100,
+    mapName: '',
+    rules: '',
+    format: 'SINGLE',
+    totalRounds: 1,
+    killPoints: 1,
+    isActive: true,
+  });
+
+  const resetForm = () => setForm({
+    title: '', description: '', prizePool: '', entryFee: 'Free',
+    mode: 'SOLO', slots: 100, mapName: '', rules: '',
+    format: 'SINGLE', totalRounds: 1, killPoints: 1, isActive: true,
+  });
+
+  const createMutation = useMutation({
+    mutationFn: () => adminApi.createAutoTournamentTemplate(form),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'auto-tournaments'] });
+      toast.success('Auto tournament template created!');
+      setShowForm(false);
+      resetForm();
+    },
+    onError: (err: any) => toast.error(err.message || 'Failed'),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: () => adminApi.updateAutoTournamentTemplate(editingId!, form),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'auto-tournaments'] });
+      toast.success('Template updated!');
+      setEditingId(null);
+      resetForm();
+    },
+    onError: (err: any) => toast.error(err.message || 'Failed'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => adminApi.deleteAutoTournamentTemplate(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'auto-tournaments'] });
+      toast.success('Template deleted');
+    },
+    onError: (err: any) => toast.error(err.message || 'Failed'),
+  });
+
+  const triggerMutation = useMutation({
+    mutationFn: (id: string) => adminApi.triggerAutoTournament(id),
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'auto-tournaments'] });
+      toast.success(data.message);
+    },
+    onError: (err: any) => toast.error(err.message || 'Failed'),
+  });
+
+  const handleEdit = (t: any) => {
+    setEditingId(t.id);
+    setForm({
+      title: t.title,
+      description: t.description || '',
+      prizePool: t.prizePool || '',
+      entryFee: t.entryFee || 'Free',
+      mode: t.mode,
+      slots: t.slots,
+      mapName: t.mapName || '',
+      rules: t.rules || '',
+      format: t.format || 'SINGLE',
+      totalRounds: t.totalRounds || 1,
+      killPoints: t.killPoints || 1,
+      isActive: t.isActive,
+    });
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <p className="text-sm text-white/50">
+            Configure tournament templates that are automatically created every day.
+          </p>
+        </div>
+        <Button onClick={() => { setShowForm(!showForm); setEditingId(null); resetForm(); }}>
+          <Plus className="w-4 h-4" />
+          New Template
+        </Button>
+      </div>
+
+      {/* Create/Edit Form */}
+      <AnimatePresence>
+        {(showForm || editingId) && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+          >
+            <Card className="p-6 mb-6">
+              <h3 className="text-lg font-semibold text-white mb-4">
+                {editingId ? 'Edit Template' : 'New Auto Tournament Template'}
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <Input label="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
+                <Input label="Prize Pool" value={form.prizePool} onChange={(e) => setForm({ ...form, prizePool: e.target.value })} />
+                <Input label="Entry Fee" value={form.entryFee} onChange={(e) => setForm({ ...form, entryFee: e.target.value })} />
+                <div>
+                  <Select
+                    label="Mode"
+                    value={form.mode}
+                    onChange={(v) => setForm({ ...form, mode: v })}
+                    options={[
+                      { value: 'SOLO', label: 'Solo', icon: <Crosshair className="w-full h-full" />, description: '1 player per team' },
+                      { value: 'DUO', label: 'Duo', icon: <Users className="w-full h-full" />, description: '2 players per team' },
+                      { value: 'SQUAD', label: 'Squad', icon: <Swords className="w-full h-full" />, description: '4 players per team' },
+                    ]}
+                  />
+                </div>
+                <Input label="Slots" type="number" value={form.slots.toString()} onChange={(e) => setForm({ ...form, slots: parseInt(e.target.value) || 0 })} />
+                <Input label="Map Name" value={form.mapName} onChange={(e) => setForm({ ...form, mapName: e.target.value })} />
+                <div>
+                  <Select
+                    label="Format"
+                    value={form.format}
+                    onChange={(v) => setForm({ ...form, format: v })}
+                    options={[
+                      { value: 'SINGLE', label: 'Single Match', icon: <PlayCircle className="w-full h-full" />, description: 'One match decides winner' },
+                      { value: 'MULTI_ROUND', label: 'Multi Round', icon: <Activity className="w-full h-full" />, description: 'Multiple rounds accumulate points' },
+                    ]}
+                  />
+                </div>
+                <Input label="Total Rounds" type="number" value={form.totalRounds.toString()} onChange={(e) => setForm({ ...form, totalRounds: parseInt(e.target.value) || 1 })} />
+                <Input label="Kill Points" type="number" value={form.killPoints.toString()} onChange={(e) => setForm({ ...form, killPoints: parseInt(e.target.value) || 0 })} />
+                <div className="flex items-center gap-3 pt-6">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={form.isActive}
+                      onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
+                    />
+                    <div className="w-9 h-5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary" />
+                  </label>
+                  <span className="text-sm text-white/70">Active</span>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-white/70 mb-1.5">Description</label>
+                  <textarea
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50 transition-all min-h-[80px]"
+                    value={form.description}
+                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <Button variant="secondary" onClick={() => { setShowForm(false); setEditingId(null); resetForm(); }}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => editingId ? updateMutation.mutate() : createMutation.mutate()}
+                  loading={createMutation.isPending || updateMutation.isPending}
+                >
+                  {editingId ? 'Save Changes' : 'Create Template'}
+                </Button>
+              </div>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Template List */}
+      <Card>
+        {isLoading ? (
+          <div className="p-6 space-y-3">
+            {[...Array(3)].map((_, i) => <div key={i} className="h-16 bg-white/5 rounded-lg animate-pulse" />)}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-white/5 text-xs text-white/30 uppercase">
+                  <th className="text-left p-4">Title</th>
+                  <th className="text-left p-4">Status</th>
+                  <th className="text-left p-4">Mode</th>
+                  <th className="text-left p-4">Slots</th>
+                  <th className="text-left p-4">Created</th>
+                  <th className="text-left p-4">Last Run</th>
+                  <th className="text-right p-4">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data?.templates?.map((t: any) => (
+                  <tr key={t.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                    <td className="p-4">
+                      <span className="text-sm text-white font-medium">{t.title}</span>
+                    </td>
+                    <td className="p-4">
+                      <Badge size="sm" variant={t.isActive ? 'success' : 'default'}>
+                        {t.isActive ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </td>
+                    <td className="p-4">
+                      <Badge size="sm" variant={t.mode === 'SOLO' ? 'default' : t.mode === 'DUO' ? 'info' : 'warning'}>
+                        {t.mode}
+                      </Badge>
+                    </td>
+                    <td className="p-4 text-sm text-white/70">{t.slots}</td>
+                    <td className="p-4 text-sm text-white/50">{new Date(t.createdAt).toLocaleDateString()}</td>
+                    <td className="p-4 text-sm text-white/50">
+                      {t.lastCreatedAt ? new Date(t.lastCreatedAt).toLocaleDateString() : 'Never'}
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => triggerMutation.mutate(t.id)}
+                          className="p-1.5 rounded-lg hover:bg-white/5 text-white/40 hover:text-green-400 transition-all"
+                          disabled={triggerMutation.isPending}
+                          title="Create now"
+                        >
+                          <PlayCircle className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleEdit(t)}
+                          className="p-1.5 rounded-lg hover:bg-white/5 text-white/40 hover:text-primary transition-all"
+                          title="Edit"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm(`Delete template "${t.title}"?`)) {
+                              deleteMutation.mutate(t.id);
+                            }
+                          }}
+                          className="p-1.5 rounded-lg hover:bg-red-500/10 text-white/40 hover:text-red-400 transition-all"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {(!data?.templates || data.templates.length === 0) && (
+                  <tr>
+                    <td colSpan={7} className="p-8 text-center text-white/30">
+                      No auto tournament templates configured yet
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
     </div>
   );

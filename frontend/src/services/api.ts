@@ -18,6 +18,7 @@ import {
   ScoreboardEntry,
   Round,
   RoundScore,
+  AutoTournamentTemplate,
 } from '@/types';
 
 class ApiError extends Error {
@@ -387,6 +388,22 @@ export const adminApi = {
   // Broadcast
   broadcastNotification: (data: { title: string; message: string; type?: string; link?: string }) =>
     request<{ message: string; recipientCount: number }>('/admin/notifications/broadcast', { method: 'POST', body: JSON.stringify(data) }),
+
+  // Auto Tournament Templates
+  getAutoTournamentTemplates: () =>
+    request<{ templates: AutoTournamentTemplate[] }>('/admin/auto-tournaments'),
+
+  createAutoTournamentTemplate: (data: any) =>
+    request<{ message: string; template: AutoTournamentTemplate }>('/admin/auto-tournaments', { method: 'POST', body: JSON.stringify(data) }),
+
+  updateAutoTournamentTemplate: (id: string, data: any) =>
+    request<{ message: string; template: AutoTournamentTemplate }>(`/admin/auto-tournaments/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  deleteAutoTournamentTemplate: (id: string) =>
+    request<{ message: string }>(`/admin/auto-tournaments/${id}`, { method: 'DELETE' }),
+
+  triggerAutoTournament: (id: string) =>
+    request<{ message: string }>(`/admin/auto-tournaments/${id}/trigger`, { method: 'POST' }),
 };
 
 // Notification API

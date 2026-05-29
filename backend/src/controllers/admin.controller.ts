@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { prisma } from '../config/database';
 import { paginate } from '../utils/helpers';
 import { emitNotification } from '../services/socket';
+import { autoTournamentSchema } from '../utils/validators';
+import { executeAutoTournamentTemplate } from '../services/autoTournamentScheduler';
 
 export const getDashboardStats = async (_req: Request, res: Response): Promise<void> => {
   try {
@@ -625,6 +627,123 @@ export const broadcastNotification = async (req: Request, res: Response): Promis
     });
   } catch (error) {
     console.error('Broadcast notification error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// ─── Auto Tournament Templates ─────────────────────────────────────────────
+
+export const createAutoTournamentTemplate = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const data = autoTournamentSchema.parse(req.body);
+    const { placementPoints: pp, ...rest } = data;
+
+    const template = await prisma.autoTournamentTemplate.create({
+      data: {
+        ...rest,
+        placementPoints: pp ? JSON.stringify(pp) : undefined,
+        createdBy: req.user!.id,
+      },
+    });
+
+    res.status(201).json({ message: 'Auto tournament template created', template });
+  } catch (error: any) {
+    if (error?.issues) {
+      res.status(400).json({ error: 'Invalid input', details: error.issues });
+      return;
+    }
+    console.error('Create auto template error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const getAutoTournamentTemplates = async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const templates = await prisma.autoTournamentTemplate.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        creator: { select: { id: true, username: true } },
+      },
+    });
+
+    res.json({ templates });
+  } catch (error) {
+    console.error('Get auto templates error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const updateAutoTournamentTemplate = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const id = req.params.id as string;
+    const data = autoTournamentSchema.partial().parse(req.body);
+    const { placementPoints: pp, ...rest } = data;
+
+    const existing = await prisma.autoTournamentTemplate.findUnique({ where: { id } });
+    if (!existing) {
+      res.status(404).json({ error: 'Template not found' });
+      return;
+    }
+
+    const template = await prisma.autoTournamentTemplate.update({
+      where: { id },
+      data: {
+        ...rest,
+        placementPoints: pp !== undefined ? JSON.stringify(pp) : undefined,
+      },
+      include: {
+        creator: { select: { id: true, username: true } },
+      },
+    });
+
+    res.json({ message: 'Template updated', template });
+  } catch (error: any) {
+    if (error?.issues) {
+      res.status(400).json({ error: 'Invalid input', details: error.issues });
+      return;
+    }
+    console.error('Update auto template error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const deleteAutoTournamentTemplate = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const id = req.params.id as string;
+
+    const existing = await prisma.autoTournamentTemplate.findUnique({ where: { id } });
+    if (!existing) {
+      res.status(404).json({ error: 'Template not found' });
+      return;
+    }
+
+    await prisma.autoTournamentTemplate.delete({ where: { id } });
+
+    res.json({ message: 'Template deleted' });
+  } catch (error) {
+    console.error('Delete auto template error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const triggerAutoTournament = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const id = req.params.id as string;
+
+    const result = await executeAutoTournamentTemplate(id);
+
+    if (result.error === 'Template not found') {
+      res.status(404).json({ error: result.error });
+      return;
+    }
+
+    if (result.created) {
+      res.json({ message: `Tournament "${result.title}" created successfully` });
+    } else {
+      res.json({ message: result.error || 'Tournament was not created' });
+    }
+  } catch (error) {
+    console.error('Trigger auto tournament error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };

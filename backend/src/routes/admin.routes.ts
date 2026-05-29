@@ -14,6 +14,11 @@ import {
   deleteUser,
   adjustWalletBalance,
   broadcastNotification,
+  createAutoTournamentTemplate,
+  getAutoTournamentTemplates,
+  updateAutoTournamentTemplate,
+  deleteAutoTournamentTemplate,
+  triggerAutoTournament,
 } from '../controllers/admin.controller';
 import { authenticate, requireRole } from '../middleware/auth';
 
@@ -48,5 +53,12 @@ router.post('/wallet/adjust', adjustWalletBalance);
 
 // Notifications
 router.post('/notifications/broadcast', broadcastNotification);
+
+// Auto Tournament Templates
+router.post('/auto-tournaments', createAutoTournamentTemplate);
+router.get('/auto-tournaments', getAutoTournamentTemplates);
+router.patch('/auto-tournaments/:id', updateAutoTournamentTemplate);
+router.delete('/auto-tournaments/:id', deleteAutoTournamentTemplate);
+router.post('/auto-tournaments/:id/trigger', triggerAutoTournament);
 
 export default router;

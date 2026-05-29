@@ -20,6 +20,7 @@ import {
   User,
   ChevronDown,
   Mail,
+  Download,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -28,6 +29,7 @@ const navLinks = [
   { href: '/tournaments', label: 'Tournaments', icon: Trophy },
   { href: '/leaderboard', label: 'Leaderboard', icon: Swords },
   { href: '/clans', label: 'Clans', icon: Users },
+  { href: '/download', label: 'Download', icon: Download },
 ];
 
 export function Navbar() {

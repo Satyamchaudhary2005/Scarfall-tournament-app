@@ -42,6 +42,7 @@ model User {
   reports                 Report[]                 @relation("ReportReporter")
   hostedTournaments       Tournament[]             @relation("TournamentHost")
   tournamentRegistrations TournamentRegistration[]
+  autoTournamentTemplates AutoTournamentTemplate[]
   clan                    Clan?                    @relation(fields: [clanId], references: [id])
   wallet                  Wallet?
 
@@ -341,6 +342,33 @@ model Report {
 
   @@index([status])
   @@index([reportedId])
+}
+
+model AutoTournamentTemplate {
+  id              String    @id @default(uuid())
+  title           String
+  description     String?
+  bannerUrl       String?
+  prizePool       String    @default("0")
+  entryFee        String    @default("Free")
+  mode            String    @default("SOLO")
+  slots           Int       @default(100)
+  mapName         String?
+  rules           String?
+  format          String    @default("SINGLE")
+  totalRounds     Int       @default(1)
+  killPoints      Int       @default(1)
+  placementPoints String?
+  isActive        Boolean   @default(true)
+  createdBy       String
+  lastCreatedAt   DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  creator User @relation(fields: [createdBy], references: [id])
+
+  @@index([createdBy])
+  @@index([isActive])
 }
 
 model Wallet {

@@ -7,6 +7,7 @@ import { config } from './config';
 import { initializeSocket } from './services/socket';
 import { runCleanup, autoStartRounds } from './controllers/tournament.controller';
 import { startDailyFreeTournamentScheduler } from './services/dailyFreeTournaments';
+import { startAutoTournamentScheduler } from './services/autoTournamentScheduler';
 
 // Route imports
 import authRoutes from './routes/auth.routes';
@@ -108,5 +109,8 @@ setInterval(() => {
 startDailyFreeTournamentScheduler().catch((err) =>
   console.error('[DailyFreeTournaments] Scheduler init error:', err)
 );
+
+// Auto tournament templates scheduler (admin-configured daily tournaments)
+startAutoTournamentScheduler();
 
 export default app;

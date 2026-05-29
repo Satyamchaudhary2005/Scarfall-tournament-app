@@ -422,6 +422,29 @@ export interface RazorpayOrder {
   currency: string;
 }
 
+// Auto Tournament Template
+export interface AutoTournamentTemplate {
+  id: string;
+  title: string;
+  description?: string | null;
+  bannerUrl?: string | null;
+  prizePool: string;
+  entryFee: string;
+  mode: TournamentMode;
+  slots: number;
+  mapName?: string | null;
+  rules?: string | null;
+  format?: TournamentFormat;
+  totalRounds: number;
+  killPoints: number;
+  placementPoints?: number[] | null;
+  isActive: boolean;
+  createdBy: string;
+  creator?: UserBrief;
+  lastCreatedAt?: string | null;
+  createdAt: string;
+}
+
 export interface RazorpayVerifyResponse {
   message: string;
   wallet: Wallet;
