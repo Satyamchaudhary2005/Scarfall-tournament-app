@@ -7,6 +7,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui';
 import { cn } from '@/lib/utils';
+import { isNativeApp } from '@/utils/platform';
 import {
   Download,
   Smartphone,
@@ -104,6 +105,7 @@ const features = [
 
 export default function DownloadPage() {
   const [copied, setCopied] = useState(false);
+  const inApp = isNativeApp();
 
   const apkUrl = '/downloads/tournax.apk';
 
@@ -173,24 +175,38 @@ export default function DownloadPage() {
               <span className="text-gradient">Anywhere</span>
             </motion.h1>
 
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="text-lg sm:text-xl text-white/50 max-w-2xl mx-auto mb-8 leading-relaxed"
-            >
-              Download the official TournaX app and never miss a tournament.
-              Compete, track, and win — right from your pocket.
-            </motion.p>
+            {inApp ? (
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="text-lg sm:text-xl text-white/50 max-w-2xl mx-auto mb-8 leading-relaxed"
+              >
+                You already have the app! Explore tournaments, track your stats, and
+                compete — all from here.
+              </motion.p>
+            ) : (
+              <>
+                <motion.p
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="text-lg sm:text-xl text-white/50 max-w-2xl mx-auto mb-8 leading-relaxed"
+                >
+                  Download the official TournaX app and never miss a tournament.
+                  Compete, track, and win — right from your pocket.
+                </motion.p>
 
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="text-sm text-white/30"
-            >
-              Version 1.0.0 &middot; 4 MB &middot; Android 8.0+
-            </motion.p>
+                <motion.p
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                  className="text-sm text-white/30"
+                >
+                  Version 1.0.0 &middot; 4 MB &middot; Android 8.0+
+                </motion.p>
+              </>
+            )}
           </motion.div>
         </div>
 
@@ -207,7 +223,7 @@ export default function DownloadPage() {
             whileInView="animate"
             viewport={{ once: true, margin: '-100px' }}
           >
-            {platforms.map((platform, i) => {
+            {platforms.filter(p => !(inApp && p.id === 'android')).map((platform, i) => {
               const Icon = platform.icon;
               const isAvailable = platform.status === 'available';
 
@@ -275,35 +291,36 @@ export default function DownloadPage() {
             })}
           </motion.div>
 
-          {/* Share link */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="mt-8 text-center"
-          >
-            <button
-              onClick={handleCopyLink}
-              className="inline-flex items-center gap-2 text-sm text-white/30 hover:text-primary transition-colors"
+          {!inApp && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              className="mt-8 text-center"
             >
-              {copied ? (
-                <>
-                  <Check className="w-4 h-4 text-green-400" />
-                  <span className="text-green-400">Link copied!</span>
-                </>
-              ) : (
-                <>
-                  <Download className="w-4 h-4" />
-                  <span>Copy download link</span>
-                </>
-              )}
-            </button>
-          </motion.div>
+              <button
+                onClick={handleCopyLink}
+                className="inline-flex items-center gap-2 text-sm text-white/30 hover:text-primary transition-colors"
+              >
+                {copied ? (
+                  <>
+                    <Check className="w-4 h-4 text-green-400" />
+                    <span className="text-green-400">Link copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4" />
+                    <span>Copy download link</span>
+                  </>
+                )}
+              </button>
+            </motion.div>
+          )}
         </div>
       </section>
 
-      {/* ─── QR Section ─── */}
-      <section className="pb-24">
+      {!inApp && (
+        <section className="pb-24">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 24 }}
@@ -349,6 +366,7 @@ export default function DownloadPage() {
           </motion.div>
         </div>
       </section>
+      )}
 
       {/* ─── Features ─── */}
       <section className="pb-24">
@@ -411,8 +429,9 @@ export default function DownloadPage() {
                 Ready to Compete?
               </h2>
               <p className="text-white/50 leading-relaxed mb-8 max-w-lg mx-auto">
-                Download the app and join thousands of players battling for glory,
-                rankings, and prizes.
+                {inApp
+                  ? 'Join thousands of players battling for glory, rankings, and prizes.'
+                  : 'Download the app and join thousands of players battling for glory, rankings, and prizes.'}
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link href="/tournaments">
