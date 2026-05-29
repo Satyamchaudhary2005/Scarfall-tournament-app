@@ -9,6 +9,7 @@ import { clanApi } from '@/services/api';
 import { Button } from '@/components/ui';
 import { WalletDropdown } from '@/components/ui/WalletDropdown';
 import { cn } from '@/lib/utils';
+import { isNativeApp } from '@/utils/platform';
 import {
   Menu,
   X,
@@ -38,6 +39,13 @@ export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [inApp, setInApp] = useState(false);
+
+  useEffect(() => {
+    setInApp(isNativeApp());
+  }, []);
+
+  const visibleLinks = navLinks.filter(l => !(inApp && l.href === '/download'));
 
   const clansHref = user?.clanId ? `/clans/${user.clanId}` : '/clans';
 
@@ -82,7 +90,7 @@ export function Navbar() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => {
+            {visibleLinks.map((link) => {
               const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href));
               const effectiveHref = link.label === 'Clans' ? clansHref : link.href;
               return (
@@ -223,7 +231,7 @@ export function Navbar() {
             className="md:hidden bg-surface/95 backdrop-blur-xl border-b border-white/5"
           >
             <div className="px-4 py-3 space-y-1">
-              {navLinks.map((link) => {
+              {visibleLinks.map((link) => {
                 const isActive = pathname === link.href;
                 const effectiveHref = link.label === 'Clans' ? clansHref : link.href;
                 const effectiveActive = link.label === 'Clans'
