@@ -1465,7 +1465,7 @@ function AutoTournamentsTab() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <p className="text-sm text-white/50">
-            Configure tournament templates that are automatically created daily at a fixed time.
+            Configure tournament templates that auto-create daily. Use comma-separated times with optional titles (e.g. 15:00|Afternoon Showdown, 18:00|Evening Clash).
           </p>
         </div>
         <Button onClick={() => { setShowForm(!showForm); setEditingId(null); resetForm(); }}>
@@ -1517,7 +1517,16 @@ function AutoTournamentsTab() {
                 </div>
                 <Input label="Total Rounds" type="number" value={form.totalRounds.toString()} onChange={(e) => setForm({ ...form, totalRounds: parseInt(e.target.value) || 1 })} />
                 <Input label="Kill Points" type="number" value={form.killPoints.toString()} onChange={(e) => setForm({ ...form, killPoints: parseInt(e.target.value) || 0 })} />
-                <Input label="Start Time (24h)" type="time" value={form.scheduledTime} onChange={(e) => setForm({ ...form, scheduledTime: e.target.value })} />
+                <div>
+                  <label className="block text-sm font-medium text-white/70 mb-1.5">Start Times (24h)</label>
+                  <input
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder:text-white/30 focus:outline-none focus:border-primary/50 transition-all"
+                    type="text"
+                    value={form.scheduledTime}
+                    onChange={(e) => setForm({ ...form, scheduledTime: e.target.value })}
+                    placeholder="e.g. 15:00|Afternoon Showdown, 18:00|Evening Clash"
+                  />
+                </div>
                 <div className="flex items-center gap-3 pt-6">
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input

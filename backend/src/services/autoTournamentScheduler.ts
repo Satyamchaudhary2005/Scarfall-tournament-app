@@ -7,67 +7,93 @@ function isToday(date: Date): boolean {
     && date.getDate() === now.getDate();
 }
 
-function getNextScheduledTime(timeStr: string): Date {
+function getTodayAtTime(timeStr: string): Date {
   const [hours, minutes] = timeStr.split(':').map(Number);
-  const now = new Date();
-  const next = new Date(now);
-  next.setHours(hours, minutes, 0, 0);
-
-  if (next <= now) {
-    next.setDate(next.getDate() + 1);
-  }
-
-  return next;
+  const d = new Date();
+  d.setHours(hours, minutes, 0, 0);
+  return d;
 }
 
-export async function executeAutoTournamentTemplate(templateId: string): Promise<{ created: boolean; title?: string; error?: string }> {
+function getTimeWindow(time: Date): { start: Date; end: Date } {
+  const start = new Date(time);
+  start.setSeconds(0, 0);
+  const end = new Date(time);
+  end.setSeconds(59, 999);
+  return { start, end };
+}
+
+export async function executeAutoTournamentTemplate(templateId: string): Promise<{ created: number; title?: string; error?: string }> {
   const template = await prisma.autoTournamentTemplate.findUnique({
     where: { id: templateId },
   });
 
-  if (!template) return { created: false, error: 'Template not found' };
-  if (!template.isActive) return { created: false, error: 'Template is inactive' };
+  if (!template) return { created: 0, error: 'Template not found' };
+  if (!template.isActive) return { created: 0, error: 'Template is inactive' };
 
-  if (template.lastCreatedAt && isToday(template.lastCreatedAt)) {
-    return { created: false, error: 'Already created today' };
+  const timeSlots = (template.scheduledTime || '18:00')
+    .split(',')
+    .map(t => t.trim())
+    .filter(Boolean);
+
+  let created = 0;
+
+  for (const slot of timeSlots) {
+    const parts = slot.split('|').map(s => s.trim());
+    const timeStr = parts[0];
+    const customTitle = parts[1] || null;
+
+    const startsAt = getTodayAtTime(timeStr);
+    const { start, end } = getTimeWindow(startsAt);
+    const title = customTitle || template.title;
+
+    const existing = await prisma.tournament.findFirst({
+      where: {
+        title,
+        startsAt: { gte: start, lte: end },
+      },
+    });
+
+    if (existing) continue;
+
+    const regEndsAt = new Date(startsAt.getTime() - 2 * 60 * 60 * 1000);
+
+    const placementPoints = template.placementPoints
+      ? JSON.stringify(template.placementPoints)
+      : undefined;
+
+    await prisma.tournament.create({
+      data: {
+        title,
+        description: template.description,
+        bannerUrl: template.bannerUrl,
+        prizePool: template.prizePool,
+        entryFee: template.entryFee,
+        mode: template.mode,
+        slots: template.slots,
+        status: 'UPCOMING',
+        startsAt,
+        registrationEndsAt: regEndsAt,
+        mapName: template.mapName,
+        rules: template.rules,
+        format: template.format,
+        totalRounds: template.totalRounds,
+        killPoints: template.killPoints,
+        placementPoints,
+        hostId: template.createdBy,
+      },
+    });
+
+    created++;
   }
 
-  const startsAt = getNextScheduledTime(template.scheduledTime || '18:00');
-  const regEndsAt = new Date(startsAt.getTime() - 2 * 60 * 60 * 1000);
+  if (created > 0) {
+    await prisma.autoTournamentTemplate.update({
+      where: { id: templateId },
+      data: { lastCreatedAt: new Date() },
+    });
+  }
 
-  const placementPoints = template.placementPoints
-    ? JSON.stringify(template.placementPoints)
-    : undefined;
-
-  await prisma.tournament.create({
-    data: {
-      title: template.title,
-      description: template.description,
-      bannerUrl: template.bannerUrl,
-      prizePool: template.prizePool,
-      entryFee: template.entryFee,
-      mode: template.mode,
-      slots: template.slots,
-      status: 'UPCOMING',
-      startsAt,
-      registrationEndsAt: regEndsAt,
-      mapName: template.mapName,
-      rules: template.rules,
-      format: template.format,
-      totalRounds: template.totalRounds,
-      killPoints: template.killPoints,
-      placementPoints,
-      hostId: template.createdBy,
-    },
-  });
-
-  await prisma.autoTournamentTemplate.update({
-    where: { id: templateId },
-    data: { lastCreatedAt: new Date() },
-  });
-
-  console.log(`[AutoTournament] Created "${template.title}" — starts at ${startsAt.toISOString()}`);
-  return { created: true, title: template.title };
+  return { created, title: template.title };
 }
 
 export async function executeAllAutoTemplates(): Promise<{ created: number; errors: number }> {
@@ -79,11 +105,9 @@ export async function executeAllAutoTemplates(): Promise<{ created: number; erro
   let errors = 0;
 
   for (const template of templates) {
-    if (template.lastCreatedAt && isToday(template.lastCreatedAt)) continue;
-
     try {
       const result = await executeAutoTournamentTemplate(template.id);
-      if (result.created) created++;
+      if (result.created > 0) created += result.created;
       if (result.error) errors++;
     } catch (err) {
       console.error(`[AutoTournament] Error processing template ${template.id}:`, err);
