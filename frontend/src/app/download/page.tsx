@@ -105,12 +105,12 @@ const features = [
 export default function DownloadPage() {
   const [copied, setCopied] = useState(false);
 
-  const apkUrl = '/downloads/tournax.apk';
+  const apkUrl = '/downloads/tournax1.apk';
 
   const handleDownloadAPK = () => {
     const a = document.createElement('a');
     a.href = apkUrl;
-    a.download = 'tournax.apk';
+    a.download = 'tournax1.apk';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
