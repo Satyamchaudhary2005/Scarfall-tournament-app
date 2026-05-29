@@ -26,12 +26,17 @@ export const metadata: Metadata = {
     'Tournaments',
     'India Gaming',
   ],
+  icons: {
+    icon: '/logo.png',
+    apple: '/logo.png',
+  },
   openGraph: {
     title: 'TournaX - India\'s Competitive Gaming Hub',
     description:
       'India\'s premier competitive gaming platform. Join tournaments across any game, climb leaderboards, and compete with the best.',
     type: 'website',
     locale: 'en_IN',
+    images: ['/logo.png'],
   },
 };
 

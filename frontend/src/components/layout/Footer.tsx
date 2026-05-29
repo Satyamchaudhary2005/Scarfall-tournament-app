@@ -24,9 +24,7 @@ export function Footer() {
           {/* Brand */}
           <div className="md:col-span-2">
             <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-white font-bold text-sm">TX</span>
-              </div>
+              <img src="/logo.png" alt="TournaX" className="w-8 h-8 rounded-lg" />
               <span className="text-white font-bold text-lg">
                 Tourna<span className="text-primary">X</span>
               </span>

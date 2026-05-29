@@ -74,9 +74,7 @@ export function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-white font-bold text-sm">TX</span>
-            </div>
+            <img src="/logo.png" alt="TournaX" className="w-8 h-8 rounded-lg" />
             <span className="text-white font-bold text-lg hidden sm:block">
               Tourna<span className="text-primary">X</span>
             </span>
