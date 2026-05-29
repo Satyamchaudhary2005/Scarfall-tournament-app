@@ -97,6 +97,7 @@ export const autoTournamentSchema = z.object({
   totalRounds: z.number().int().min(1).max(20).optional(),
   killPoints: z.number().int().min(0).max(10).optional(),
   placementPoints: z.array(z.number().int().min(0)).optional(),
+  scheduledTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Must be HH:MM format').optional(),
   isActive: z.boolean().optional(),
 });
 

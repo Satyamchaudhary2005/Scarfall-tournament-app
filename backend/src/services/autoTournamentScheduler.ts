@@ -7,8 +7,17 @@ function isToday(date: Date): boolean {
     && date.getDate() === now.getDate();
 }
 
-function hoursFromNow(hours: number): Date {
-  return new Date(Date.now() + hours * 60 * 60 * 1000);
+function getNextScheduledTime(timeStr: string): Date {
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  const now = new Date();
+  const next = new Date(now);
+  next.setHours(hours, minutes, 0, 0);
+
+  if (next <= now) {
+    next.setDate(next.getDate() + 1);
+  }
+
+  return next;
 }
 
 export async function executeAutoTournamentTemplate(templateId: string): Promise<{ created: boolean; title?: string; error?: string }> {
@@ -23,7 +32,7 @@ export async function executeAutoTournamentTemplate(templateId: string): Promise
     return { created: false, error: 'Already created today' };
   }
 
-  const startsAt = hoursFromNow(24);
+  const startsAt = getNextScheduledTime(template.scheduledTime || '18:00');
   const regEndsAt = new Date(startsAt.getTime() - 2 * 60 * 60 * 1000);
 
   const placementPoints = template.placementPoints
@@ -57,7 +66,7 @@ export async function executeAutoTournamentTemplate(templateId: string): Promise
     data: { lastCreatedAt: new Date() },
   });
 
-  console.log(`[AutoTournament] Created "${template.title}" from template ${templateId}`);
+  console.log(`[AutoTournament] Created "${template.title}" — starts at ${startsAt.toISOString()}`);
   return { created: true, title: template.title };
 }
 

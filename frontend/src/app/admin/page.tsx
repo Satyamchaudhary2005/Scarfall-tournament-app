@@ -1391,13 +1391,14 @@ function AutoTournamentsTab() {
     format: 'SINGLE',
     totalRounds: 1,
     killPoints: 1,
+    scheduledTime: '18:00',
     isActive: true,
   });
 
   const resetForm = () => setForm({
     title: '', description: '', prizePool: '', entryFee: 'Free',
     mode: 'SOLO', slots: 100, mapName: '', rules: '',
-    format: 'SINGLE', totalRounds: 1, killPoints: 1, isActive: true,
+    format: 'SINGLE', totalRounds: 1, killPoints: 1, scheduledTime: '18:00', isActive: true,
   });
 
   const createMutation = useMutation({
@@ -1454,6 +1455,7 @@ function AutoTournamentsTab() {
       format: t.format || 'SINGLE',
       totalRounds: t.totalRounds || 1,
       killPoints: t.killPoints || 1,
+      scheduledTime: t.scheduledTime || '18:00',
       isActive: t.isActive,
     });
   };
@@ -1463,7 +1465,7 @@ function AutoTournamentsTab() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <p className="text-sm text-white/50">
-            Configure tournament templates that are automatically created every day.
+            Configure tournament templates that are automatically created daily at a fixed time.
           </p>
         </div>
         <Button onClick={() => { setShowForm(!showForm); setEditingId(null); resetForm(); }}>
@@ -1515,6 +1517,7 @@ function AutoTournamentsTab() {
                 </div>
                 <Input label="Total Rounds" type="number" value={form.totalRounds.toString()} onChange={(e) => setForm({ ...form, totalRounds: parseInt(e.target.value) || 1 })} />
                 <Input label="Kill Points" type="number" value={form.killPoints.toString()} onChange={(e) => setForm({ ...form, killPoints: parseInt(e.target.value) || 0 })} />
+                <Input label="Start Time (24h)" type="time" value={form.scheduledTime} onChange={(e) => setForm({ ...form, scheduledTime: e.target.value })} />
                 <div className="flex items-center gap-3 pt-6">
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
@@ -1566,6 +1569,7 @@ function AutoTournamentsTab() {
                   <th className="text-left p-4">Title</th>
                   <th className="text-left p-4">Status</th>
                   <th className="text-left p-4">Mode</th>
+                  <th className="text-left p-4">Time</th>
                   <th className="text-left p-4">Slots</th>
                   <th className="text-left p-4">Created</th>
                   <th className="text-left p-4">Last Run</th>
@@ -1588,6 +1592,7 @@ function AutoTournamentsTab() {
                         {t.mode}
                       </Badge>
                     </td>
+                    <td className="p-4 text-sm text-white/70">{t.scheduledTime || '18:00'}</td>
                     <td className="p-4 text-sm text-white/70">{t.slots}</td>
                     <td className="p-4 text-sm text-white/50">{new Date(t.createdAt).toLocaleDateString()}</td>
                     <td className="p-4 text-sm text-white/50">
@@ -1627,7 +1632,7 @@ function AutoTournamentsTab() {
                 ))}
                 {(!data?.templates || data.templates.length === 0) && (
                   <tr>
-                    <td colSpan={7} className="p-8 text-center text-white/30">
+                    <td colSpan={8} className="p-8 text-center text-white/30">
                       No auto tournament templates configured yet
                     </td>
                   </tr>

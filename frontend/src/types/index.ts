@@ -438,6 +438,7 @@ export interface AutoTournamentTemplate {
   totalRounds: number;
   killPoints: number;
   placementPoints?: number[] | null;
+  scheduledTime: string;
   isActive: boolean;
   createdBy: string;
   creator?: UserBrief;
