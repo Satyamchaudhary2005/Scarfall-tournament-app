@@ -101,10 +101,13 @@ export const autoTournamentSchema = z.object({
     const slots = val.split(',').map(s => s.trim()).filter(Boolean);
     if (slots.length === 0) return false;
     return slots.every(slot => {
-      const [timePart] = slot.split('|').map(s => s.trim());
-      return /^([01]\d|2[0-3]):[0-5]\d$/.test(timePart);
+      const parts = slot.split('|').map(s => s.trim());
+      const timePart = parts[0];
+      if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(timePart)) return false;
+      if (parts[2] && !/^([01]\d|2[0-3]):[0-5]\d$/.test(parts[2])) return false;
+      return true;
     });
-  }, 'Must be HH:MM|Title, HH:MM|Title format').optional(),
+  }, 'Must be HH:MM|Title|DeleteTime format').optional(),
   isActive: z.boolean().optional(),
 });
 

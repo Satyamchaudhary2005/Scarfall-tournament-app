@@ -14,6 +14,16 @@ function getTodayAtTime(timeStr: string): Date {
   return d;
 }
 
+function getEndsAt(startsAt: Date, deleteTimeStr: string): Date {
+  const [hours, minutes] = deleteTimeStr.split(':').map(Number);
+  const d = new Date(startsAt);
+  d.setHours(hours, minutes, 0, 0);
+  if (d <= startsAt) {
+    d.setDate(d.getDate() + 1);
+  }
+  return d;
+}
+
 function getTimeWindow(time: Date): { start: Date; end: Date } {
   const start = new Date(time);
   start.setSeconds(0, 0);
@@ -41,10 +51,12 @@ export async function executeAutoTournamentTemplate(templateId: string): Promise
     const parts = slot.split('|').map(s => s.trim());
     const timeStr = parts[0];
     const customTitle = parts[1] || null;
+    const deleteTimeStr = parts[2] || null;
 
     const startsAt = getTodayAtTime(timeStr);
     const { start, end } = getTimeWindow(startsAt);
     const title = customTitle || template.title;
+    const endsAt = deleteTimeStr ? getEndsAt(startsAt, deleteTimeStr) : undefined;
 
     const existing = await prisma.tournament.findFirst({
       where: {
@@ -73,6 +85,7 @@ export async function executeAutoTournamentTemplate(templateId: string): Promise
         status: 'UPCOMING',
         startsAt,
         registrationEndsAt: regEndsAt,
+        endsAt,
         mapName: template.mapName,
         rules: template.rules,
         format: template.format,

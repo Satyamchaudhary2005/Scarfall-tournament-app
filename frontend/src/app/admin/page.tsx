@@ -1524,7 +1524,7 @@ function AutoTournamentsTab() {
                     type="text"
                     value={form.scheduledTime}
                     onChange={(e) => setForm({ ...form, scheduledTime: e.target.value })}
-                    placeholder="e.g. 15:00|Afternoon Showdown, 18:00|Evening Clash"
+                    placeholder="e.g. 15:00|Free Fire Squad|17:00, 18:00|Evening Clash|20:00"
                   />
                 </div>
                 <div className="flex items-center gap-3 pt-6">
@@ -1579,6 +1579,7 @@ function AutoTournamentsTab() {
                   <th className="text-left p-4">Status</th>
                   <th className="text-left p-4">Mode</th>
                   <th className="text-left p-4">Time</th>
+                  <th className="text-left p-4">Auto Del</th>
                   <th className="text-left p-4">Slots</th>
                   <th className="text-left p-4">Created</th>
                   <th className="text-left p-4">Last Run</th>
@@ -1602,6 +1603,7 @@ function AutoTournamentsTab() {
                       </Badge>
                     </td>
                     <td className="p-4 text-sm text-white/70">{t.scheduledTime || '18:00'}</td>
+                    <td className="p-4 text-sm text-white/70">{t.autoDeleteAfter ? `${t.autoDeleteAfter}m` : '—'}</td>
                     <td className="p-4 text-sm text-white/70">{t.slots}</td>
                     <td className="p-4 text-sm text-white/50">{new Date(t.createdAt).toLocaleDateString()}</td>
                     <td className="p-4 text-sm text-white/50">
@@ -1641,7 +1643,7 @@ function AutoTournamentsTab() {
                 ))}
                 {(!data?.templates || data.templates.length === 0) && (
                   <tr>
-                    <td colSpan={8} className="p-8 text-center text-white/30">
+                    <td colSpan={9} className="p-8 text-center text-white/30">
                       No auto tournament templates configured yet
                     </td>
                   </tr>

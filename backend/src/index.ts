@@ -8,6 +8,7 @@ import { initializeSocket } from './services/socket';
 import { runCleanup, autoStartRounds } from './controllers/tournament.controller';
 import { startDailyFreeTournamentScheduler } from './services/dailyFreeTournaments';
 import { startAutoTournamentScheduler } from './services/autoTournamentScheduler';
+import { startAutoDeleteScheduler } from './services/autoDeleteService';
 
 // Route imports
 import authRoutes from './routes/auth.routes';
@@ -112,5 +113,8 @@ startDailyFreeTournamentScheduler().catch((err) =>
 
 // Auto tournament templates scheduler (admin-configured daily tournaments)
 startAutoTournamentScheduler();
+
+// Auto-delete tournaments whose endsAt has passed
+startAutoDeleteScheduler();
 
 export default app;
