@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Script from 'next/script';
 import dynamic from 'next/dynamic';
+import { Analytics } from '@vercel/analytics/react';
 import '@/styles/globals.css';
 import { Providers } from './providers';
 
@@ -51,6 +52,7 @@ export default function RootLayout({
         <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
         <ServiceWorkerRegister />
         <Providers>{children}</Providers>
+        <Analytics />
       </body>
     </html>
   );
