@@ -547,9 +547,7 @@ export default function StreamSetupPage() {
                 <div className="relative flex-1 flex items-center justify-center">
                   <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-white/10"
                     style={{ backgroundColor: '#00FF00' }}>
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <p className="text-[10px] font-mono text-black/20 tracking-widest uppercase">Chroma Key Area</p>
-                    </div>
+
                     <div className="absolute inset-0" style={{ zIndex: 1 }}>
                       {activeScene.sources.map((source) => (
                         <SourceRenderer key={source.id} source={source} />
