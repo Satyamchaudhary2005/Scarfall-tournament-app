@@ -5,6 +5,8 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Card, Badge, Button } from '@/components/ui';
 import { getSocket } from '@/services/socket';
+import { useAuthStore } from '@/store/authStore';
+import { API_URL } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Monitor, Eye, EyeOff, Image, Type, Users, Trophy,
@@ -299,6 +301,16 @@ function SourceRenderer({ source }: { source: Source }) {
 }
 
 export default function StreamSetupPage() {
+  const { user, isLoading: authLoading } = useAuthStore();
+  const isAdmin = user?.role === 'ADMIN';
+
+  if (authLoading) return <div className="min-h-screen bg-surface" />;
+  if (!isAdmin) return <StreamViewer />;
+
+  return <StreamEditor />;
+}
+
+function StreamEditor() {
   const [scenes, setScenes] = useState<Scene[]>([
     createScene('Default Overlay', ['logo', 'match-title', 'scoreboard']),
     createScene('Full Screen', ['logo', 'match-title', 'scoreboard', 'player-names', 'grid']),
@@ -398,17 +410,19 @@ export default function StreamSetupPage() {
     setScenes((prev) => fn(prev));
   };
 
-  // Emit local changes to other clients
+  // Emit local changes to other clients + persist to API
   useEffect(() => {
     if (lastEmitChangeId.current === changeIdRef.current) return;
     lastEmitChangeId.current = changeIdRef.current;
     const socket = getSocket();
     if (socket?.connected) {
-      console.log('[stream] Emitting state update via socket');
       socket.emit('stream:state-update', { scenes });
-    } else {
-      console.warn('[stream] Socket not connected - cannot emit');
     }
+    fetch(`${API_URL}/stream/scenes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scenes }),
+    }).catch(() => {});
   }, [scenes]);
 
   const addScene = () => {
@@ -671,6 +685,81 @@ export default function StreamSetupPage() {
       </div>
       <Footer />
     </main>
+  );
+}
+
+function StreamViewer() {
+  const [scenes, setScenes] = useState<Scene[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  // Fetch latest scenes from server on mount
+  useEffect(() => {
+    fetch(`${API_URL}/stream/scenes`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.scenes && data.scenes.length > 0) {
+          setScenes(data.scenes);
+          setActiveId(data.scenes[0].id);
+        }
+        setLoaded(true);
+      })
+      .catch(() => setLoaded(true));
+  }, []);
+
+  // Listen for live updates via socket
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket.connected) {
+      socket.auth = { token: localStorage.getItem('token') || undefined };
+      socket.connect();
+    }
+    const onConnect = () => socket.emit('stream:join');
+    socket.on('connect', onConnect);
+    if (socket.connected) onConnect();
+
+    const handler = (data: { scenes: Scene[] }) => {
+      if (data.scenes) {
+        setScenes(data.scenes);
+        setActiveId((prev) => data.scenes.some((s: Scene) => s.id === prev) ? prev : data.scenes[0]?.id);
+      }
+    };
+    socket.on('stream:state-update', handler);
+    return () => {
+      socket.emit('stream:leave');
+      socket.off('connect', onConnect);
+      socket.off('stream:state-update', handler);
+    };
+  }, []);
+
+  // Also poll API every 3s as fallback
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`${API_URL}/stream/scenes`);
+        const data = await res.json();
+        if (data.scenes && data.scenes.length > 0) {
+          setScenes((prev) => {
+            if (JSON.stringify(prev) === JSON.stringify(data.scenes)) return prev;
+            return data.scenes;
+          });
+          setActiveId((prev) => data.scenes.some((s: Scene) => s.id === prev) ? prev : data.scenes[0]?.id);
+        }
+      } catch {}
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (!loaded) return <div className="min-h-screen bg-surface" />;
+
+  const scene = scenes.find((s) => s.id === activeId);
+
+  return (
+    <div className="w-screen h-screen overflow-hidden" style={{ backgroundColor: '#00FF00' }}>
+      {scene?.sources.map((source) => (
+        <SourceRenderer key={source.id} source={source} />
+      ))}
+    </div>
   );
 }
 

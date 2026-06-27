@@ -3,6 +3,7 @@ import { Server, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import { config } from '../config';
 import { JwtPayload } from '../middleware/auth';
+import { saveScenesToMemory, getScenesVersion } from '../controllers/stream.controller';
 
 let io: Server;
 
@@ -68,7 +69,9 @@ export const initializeSocket = (httpServer: HttpServer): Server => {
     socket.on('stream:state-update', (data: { scenes: any[] }) => {
       const count = io.sockets.adapter.rooms.get('stream:setup')?.size || 0;
       console.log(`[stream] State update from ${socket.id}, broadcasting to ${count - 1} others in room`);
-      socket.broadcast.to('stream:setup').emit('stream:state-update', data);
+      saveScenesToMemory(data.scenes);
+      const payload = { scenes: data.scenes, version: getScenesVersion() };
+      socket.broadcast.to('stream:setup').emit('stream:state-update', payload);
     });
 
     // Handle reaction triggers from admin

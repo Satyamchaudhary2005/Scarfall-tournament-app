@@ -21,6 +21,7 @@ import notificationRoutes from './routes/notification.routes';
 import walletRoutes from './routes/wallet.routes';
 import stageRoutes from './routes/stage.routes';
 import reactionRoutes from './routes/reaction.routes';
+import streamRoutes from './routes/stream.routes';
 
 const app = express();
 const httpServer = createServer(app);
@@ -70,6 +71,7 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/reactions', reactionRoutes);
+app.use('/api/stream/scenes', streamRoutes);
 
 // 404 handler
 app.use((_req, res) => {
