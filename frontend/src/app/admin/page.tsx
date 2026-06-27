@@ -1665,18 +1665,15 @@ function AutoTournamentsTab() {
 function ReactionsTab() {
   const [activeType, setActiveType] = useState<string | null>(null);
 
+  const triggerMutation = useMutation({
+    mutationFn: (type: string) => adminApi.triggerReaction(type),
+    onSuccess: (data: any) => toast.success(data.message),
+    onError: (err: any) => toast.error(err.message || 'Failed'),
+  });
+
   const triggerReaction = (type: string) => {
     setActiveType(type);
-
-    const sock = getSocket();
-    if (sock && !sock.connected) {
-      const token = localStorage.getItem('token') || undefined;
-      sock.auth = { token };
-      sock.connect();
-    }
-    // Socket.io queues events sent before connection is established
-    sock?.emit('reaction:trigger', { type });
-    toast.success(`"${type}" reaction sent!`);
+    triggerMutation.mutate(type);
   };
 
   const reactions = [

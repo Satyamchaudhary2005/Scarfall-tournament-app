@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { getSocket } from '@/services/socket';
+import { API_URL } from '@/lib/utils';
 
 type ReactionType = 'confetti' | 'fireworks' | 'hearts' | 'stars' | 'emoji_rain';
 
@@ -15,6 +16,12 @@ interface Particle {
   size: number;
   color?: string;
   emoji?: string;
+}
+
+interface ReactionEvent {
+  type: ReactionType;
+  triggeredBy?: string;
+  timestamp: number;
 }
 
 const COLORS = ['#ff6b6b', '#feca57', '#48dbfb', '#ff9ff3', '#54a0ff', '#5f27cd', '#ffd700', '#00d2d3'];
@@ -58,32 +65,51 @@ const TYPE_LABELS: Record<ReactionType, { title: string; subtitle: string }> = {
   emoji_rain: { title: '🎊 Emoji Rain!', subtitle: 'Let the party begin' },
 };
 
+let lastTimestamp = 0;
+
 export function LiveReactionOverlay() {
   const [active, setActive] = useState<ReactionType | null>(null);
   const [particles, setParticles] = useState<Particle[]>([]);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const showReaction = useRef((type: ReactionType) => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setActive(type);
+    setParticles(generateParticles(type));
+    timerRef.current = setTimeout(() => {
+      setActive(null);
+      setParticles([]);
+    }, 4500);
+  });
+
   useEffect(() => {
+    const show = (type: ReactionType) => showReaction.current(type);
+
+    // 1. Listen via socket
     const socket = getSocket();
     if (!socket.connected) {
       socket.auth = { token: localStorage.getItem('token') || undefined };
       socket.connect();
     }
+    socket.on('reaction:play', (data: { type: ReactionType }) => show(data.type));
 
-    const handler = (data: { type: ReactionType }) => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-      setActive(data.type);
-      setParticles(generateParticles(data.type));
-      timerRef.current = setTimeout(() => {
-        setActive(null);
-        setParticles([]);
-      }, 4500);
-    };
-
-    socket.on('reaction:play', handler);
+    // 2. Poll API as fallback
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`${API_URL}/reactions/latest`);
+        const data = await res.json();
+        if (data.reaction && data.reaction.timestamp > lastTimestamp) {
+          lastTimestamp = data.reaction.timestamp;
+          show(data.reaction.type);
+        }
+      } catch {
+        // API unreachable
+      }
+    }, 3000);
 
     return () => {
-      socket.off('reaction:play', handler);
+      socket.off('reaction:play');
+      clearInterval(interval);
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, []);

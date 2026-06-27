@@ -19,8 +19,8 @@ import {
   updateAutoTournamentTemplate,
   deleteAutoTournamentTemplate,
   triggerAutoTournament,
-  triggerReaction,
 } from '../controllers/admin.controller';
+import { triggerReaction } from '../controllers/reaction.controller';
 import { authenticate, requireRole } from '../middleware/auth';
 
 const router = Router();
