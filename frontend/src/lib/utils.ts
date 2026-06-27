@@ -37,8 +37,8 @@ export function truncate(str: string, length: number) {
   return str.slice(0, length) + '...';
 }
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-export const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000';
+export const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api').trim();
+export const SOCKET_URL = (process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000').trim();
 
 export function getInitials(name: string) {
   return name
