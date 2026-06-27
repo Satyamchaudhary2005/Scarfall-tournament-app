@@ -759,9 +759,20 @@ function StreamViewer() {
 
   return (
     <div className="w-screen h-screen overflow-hidden" style={{ backgroundColor: '#00FF00' }}>
-      {scene?.sources.map((source) => (
-        <SourceRenderer key={source.id} source={source} />
-      ))}
+      {scene?.sources.map((source) => {
+        const crop = source.crop;
+        const hasCrop = crop && (crop.top > 0 || crop.right > 0 || crop.bottom > 0 || crop.left > 0);
+        return (
+          <div key={source.id} style={{
+            position: 'absolute',
+            left: `${source.x}%`, top: `${source.y}%`,
+            width: `${source.width}%`, height: `${source.height}%`,
+            clipPath: hasCrop ? `inset(${crop!.top}% ${crop!.right}% ${crop!.bottom}% ${crop!.left}%)` : undefined,
+          }}>
+            <SourceRenderer source={source} />
+          </div>
+        );
+      })}
     </div>
   );
 }
