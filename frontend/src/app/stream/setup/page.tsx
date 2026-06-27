@@ -316,14 +316,7 @@ export default function StreamSetupPage() {
   const activeScene = scenes.find((s) => s.id === activeSceneId)!;
   const selectedSource = selectedSourceId ? activeScene?.sources.find((s) => s.id === selectedSourceId) : null;
 
-  const emitStateUpdate = useCallback((scenes: Scene[]) => {
-    if (isRemoteRef.current) return;
-    if (emitTimerRef.current) clearTimeout(emitTimerRef.current);
-    emitTimerRef.current = setTimeout(() => {
-      const socket = getSocket();
-      if (socket?.connected) socket.emit('stream:state-update', { scenes });
-    }, 80);
-  }, []);
+  const prevScenesRef = useRef(scenes);
 
   // Drag-to-position on preview
   const [dragState, setDragState] = useState<{ id: string; origX: number; origY: number; startX: number; startY: number } | null>(null);
@@ -365,21 +358,24 @@ export default function StreamSetupPage() {
       socket.auth = { token: localStorage.getItem('token') || undefined };
       socket.connect();
     }
-    const onConnect = () => socket.emit('stream:join');
+    const onConnect = () => {
+      socket.emit('stream:join');
+      socket.emit('stream:state-update', { scenes });
+    };
     socket.on('connect', onConnect);
     if (socket.connected) onConnect();
 
     const handleRemoteUpdate = (data: { scenes: Scene[] }) => {
       isRemoteRef.current = true;
       setScenes(data.scenes);
-      setTimeout(() => { isRemoteRef.current = false; }, 0);
+      setActiveSceneId((prev) => data.scenes.some((s: Scene) => s.id === prev) ? prev : data.scenes[0]?.id || prev);
+      requestAnimationFrame(() => { isRemoteRef.current = false; });
     };
     socket.on('stream:state-update', handleRemoteUpdate);
     return () => {
       socket.emit('stream:leave');
       socket.off('connect', onConnect);
       socket.off('stream:state-update', handleRemoteUpdate);
-      if (emitTimerRef.current) clearTimeout(emitTimerRef.current);
     };
   }, []);
 
@@ -391,11 +387,16 @@ export default function StreamSetupPage() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const updateScenes = (fn: (scenes: Scene[]) => Scene[]) => setScenes((prev) => {
-    const next = fn(prev);
-    emitStateUpdate(next);
-    return next;
-  });
+  const updateScenes = (fn: (scenes: Scene[]) => Scene[]) => setScenes((prev) => fn(prev));
+
+  // Emit changes to other clients whenever scenes change
+  useEffect(() => {
+    if (isRemoteRef.current) { prevScenesRef.current = scenes; return; }
+    if (prevScenesRef.current === scenes) return;
+    prevScenesRef.current = scenes;
+    const socket = getSocket();
+    if (socket?.connected) socket.emit('stream:state-update', { scenes });
+  }, [scenes]);
 
   const addScene = () => {
     const count = scenes.length + 1;
