@@ -53,6 +53,15 @@ export const initializeSocket = (httpServer: HttpServer): Server => {
       socket.leave(`tournament:${tournamentId}`);
     });
 
+    // Handle reaction triggers from admin
+    socket.on('reaction:trigger', (data: { type: string }) => {
+      const validTypes = ['confetti', 'fireworks', 'hearts', 'stars', 'emoji_rain'];
+      if (validTypes.includes(data.type)) {
+        console.log(`Reaction triggered: ${data.type} by ${socket.userId || 'unknown'}`);
+        io.emit('reaction:play', { type: data.type, triggeredBy: socket.userId });
+      }
+    });
+
     socket.on('disconnect', () => {
       console.log(`Client disconnected: ${socket.id}`);
     });
