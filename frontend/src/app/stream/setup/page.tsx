@@ -461,14 +461,17 @@ function StreamEditor() {
     input.onchange = () => {
       const file = input.files?.[0];
       if (!file) return;
-      const url = URL.createObjectURL(file);
-      const source = createSource(type);
-      source.config.src = url;
-      source.config.fileName = file.name;
-      source.label = file.name;
-      updateScenes((prev) => prev.map((s) => (s.id === activeSceneId ? { ...s, sources: [...s.sources, source] } : s)));
-      setSelectedSourceId(source.id);
-      setShowAddMenu(false);
+      const reader = new FileReader();
+      reader.onload = () => {
+        const source = createSource(type);
+        source.config.src = reader.result as string;
+        source.config.fileName = file.name;
+        source.label = file.name;
+        updateScenes((prev) => prev.map((s) => (s.id === activeSceneId ? { ...s, sources: [...s.sources, source] } : s)));
+        setSelectedSourceId(source.id);
+        setShowAddMenu(false);
+      };
+      reader.readAsDataURL(file);
     };
     input.click();
   };
