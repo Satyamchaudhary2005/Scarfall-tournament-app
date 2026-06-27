@@ -41,6 +41,13 @@ interface SourceConfig {
   url?: string;
 }
 
+interface Crop {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
 interface Source {
   id: string;
   type: SourceType;
@@ -50,6 +57,7 @@ interface Source {
   y: number;
   width: number;
   height: number;
+  crop?: Crop;
   config: SourceConfig;
 }
 
@@ -357,15 +365,20 @@ export default function StreamSetupPage() {
       socket.auth = { token: localStorage.getItem('token') || undefined };
       socket.connect();
     }
-    socket.emit('stream:join');
-    socket.on('stream:state-update', (data: { scenes: Scene[] }) => {
+    const onConnect = () => socket.emit('stream:join');
+    socket.on('connect', onConnect);
+    if (socket.connected) onConnect();
+
+    const handleRemoteUpdate = (data: { scenes: Scene[] }) => {
       isRemoteRef.current = true;
       setScenes(data.scenes);
       setTimeout(() => { isRemoteRef.current = false; }, 0);
-    });
+    };
+    socket.on('stream:state-update', handleRemoteUpdate);
     return () => {
       socket.emit('stream:leave');
-      socket.off('stream:state-update');
+      socket.off('connect', onConnect);
+      socket.off('stream:state-update', handleRemoteUpdate);
       if (emitTimerRef.current) clearTimeout(emitTimerRef.current);
     };
   }, []);
@@ -529,11 +542,14 @@ export default function StreamSetupPage() {
                 </div>
 
                 <div className="relative flex-1 flex items-center justify-center">
-                  <div ref={previewRef} className="relative w-full aspect-video rounded-xl overflow-hidden border border-white/10 select-none"
+                  <div ref={previewRef} className="relative w-full aspect-video overflow-hidden border border-white/10 select-none"
                     style={{ backgroundColor: '#00FF00' }}>
                     {/* Sources rendered on the green screen */}
                     <div className="absolute inset-0" style={{ zIndex: 1 }}>
-                      {activeScene.sources.map((source) => (
+                      {activeScene.sources.map((source) => {
+                        const crop = source.crop;
+                        const hasCrop = crop && (crop.top > 0 || crop.right > 0 || crop.bottom > 0 || crop.left > 0);
+                        return (
                         <div
                           key={source.id}
                           onMouseDown={(e) => handlePreviewMouseDown(e, source.id)}
@@ -543,10 +559,10 @@ export default function StreamSetupPage() {
                             left: `${source.x}%`, top: `${source.y}%`,
                             width: `${source.width}%`, height: `${source.height}%`,
                             zIndex: dragState?.id === source.id ? 10 : 1,
+                            clipPath: hasCrop ? `inset(${crop!.top}% ${crop!.right}% ${crop!.bottom}% ${crop!.left}%)` : undefined,
                           }}
                         >
                           <SourceRenderer source={source} />
-                          {/* Hover border + drag indicator */}
                           <div className="absolute inset-0 border border-dashed border-white/0 hover:border-white/40 rounded transition-colors pointer-events-none" />
                           {dragState?.id === source.id && (
                             <div className="absolute -top-6 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded bg-black/80 text-[10px] text-white/70 whitespace-nowrap pointer-events-none">
@@ -554,11 +570,10 @@ export default function StreamSetupPage() {
                             </div>
                           )}
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
-                    <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/60 backdrop-blur-sm pointer-events-none" style={{ zIndex: 2 }}>
-                      <span className="text-[10px] font-mono text-green-300">#00FF00</span>
-                    </div>
+
                   </div>
                 </div>
               </Card>
@@ -672,6 +687,25 @@ function SourceConfigPanel({ source, onUpdate, onConfigUpdate, onReplaceFile }: 
         <div className="grid grid-cols-2 gap-2">
           <SliderField label="Width" value={source.width} onChange={(v) => onUpdate({ width: v })} unit="%" />
           <SliderField label="Height" value={source.height} onChange={(v) => onUpdate({ height: v })} unit="%" />
+        </div>
+
+        {/* Crop */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-[10px] text-white/30 uppercase tracking-wider">Crop</label>
+            {(source.crop?.top || source.crop?.right || source.crop?.bottom || source.crop?.left) ? (
+              <button onClick={() => onUpdate({ crop: { top: 0, right: 0, bottom: 0, left: 0 } })}
+                className="text-[10px] text-red-400/60 hover:text-red-400">Reset</button>
+            ) : null}
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <SliderField label="Top" value={source.crop?.top ?? 0} onChange={(v) => onUpdate({ crop: { ...source.crop || { top: 0, right: 0, bottom: 0, left: 0 }, top: v } })} unit="%" />
+            <SliderField label="Right" value={source.crop?.right ?? 0} onChange={(v) => onUpdate({ crop: { ...source.crop || { top: 0, right: 0, bottom: 0, left: 0 }, right: v } })} unit="%" />
+          </div>
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            <SliderField label="Bottom" value={source.crop?.bottom ?? 0} onChange={(v) => onUpdate({ crop: { ...source.crop || { top: 0, right: 0, bottom: 0, left: 0 }, bottom: v } })} unit="%" />
+            <SliderField label="Left" value={source.crop?.left ?? 0} onChange={(v) => onUpdate({ crop: { ...source.crop || { top: 0, right: 0, bottom: 0, left: 0 }, left: v } })} unit="%" />
+          </div>
         </div>
 
         {/* Image config */}
