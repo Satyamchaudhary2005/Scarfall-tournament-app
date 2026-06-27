@@ -56,14 +56,18 @@ export const initializeSocket = (httpServer: HttpServer): Server => {
     // Stream setup collaborative editing
     socket.on('stream:join', () => {
       socket.join('stream:setup');
-      console.log(`Socket ${socket.id} joined stream:setup`);
+      const count = io.sockets.adapter.rooms.get('stream:setup')?.size || 0;
+      console.log(`[stream] Socket ${socket.id} joined stream:setup (${count} users in room)`);
     });
 
     socket.on('stream:leave', () => {
       socket.leave('stream:setup');
+      console.log(`[stream] Socket ${socket.id} left stream:setup`);
     });
 
     socket.on('stream:state-update', (data: { scenes: any[] }) => {
+      const count = io.sockets.adapter.rooms.get('stream:setup')?.size || 0;
+      console.log(`[stream] State update from ${socket.id}, broadcasting to ${count - 1} others in room`);
       socket.broadcast.to('stream:setup').emit('stream:state-update', data);
     });
 
