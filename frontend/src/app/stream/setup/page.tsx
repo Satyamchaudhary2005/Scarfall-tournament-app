@@ -26,7 +26,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-type SourceType = 'logo' | 'match-title' | 'scoreboard' | 'player-names' | 'grid' | 'timer' | 'custom-text' | 'image' | 'video' | 'browser';
+type SourceType = 'logo' | 'match-title' | 'scoreboard' | 'player-names' | 'grid' | 'timer' | 'custom-text' | 'image' | 'video' | 'browser' | 'screen-capture';
 
 interface SourceConfig {
   text?: string;
@@ -41,6 +41,7 @@ interface SourceConfig {
   src?: string;
   fileName?: string;
   url?: string;
+  capturedFrame?: string;
 }
 
 interface Crop {
@@ -80,6 +81,7 @@ const SOURCE_META: Record<SourceType, { label: string; icon: any; defaultLabel: 
   image:           { label: 'Image',           icon: Image,    defaultLabel: 'Image',              defaults: { x: 10, y: 10, width: 30, height: 25 } },
   video:           { label: 'Video',           icon: Video,    defaultLabel: 'Video',              defaults: { x: 10, y: 10, width: 50, height: 35 } },
   browser:         { label: 'Browser Source',  icon: Globe,    defaultLabel: 'Browser Source',     defaults: { x: 10, y: 10, width: 60, height: 40 } },
+  'screen-capture': { label: 'Screen Capture',  icon: Monitor,  defaultLabel: 'Screen Capture',     defaults: { x: 5, y: 5, width: 50, height: 40 } },
 };
 
 const SOURCE_DEFAULTS: Record<SourceType, SourceConfig> = {
@@ -93,6 +95,7 @@ const SOURCE_DEFAULTS: Record<SourceType, SourceConfig> = {
   image:          {},
   video:          {},
   browser:        { url: 'https://example.com' },
+  'screen-capture': {},
 };
 
 function createSource(type: SourceType): Source {
@@ -293,6 +296,20 @@ function SourceRenderer({ source }: { source: Source }) {
           ) : (
             <div className="w-full h-full flex items-center justify-center rounded-lg bg-white/5 border border-dashed border-white/10">
               <Globe className="w-6 h-6 text-white/20" />
+            </div>
+          )}
+        </div>
+      );
+
+    case 'screen-capture':
+      return (
+        <div style={baseStyle} className="pointer-events-none">
+          {source.config.capturedFrame ? (
+            <img src={source.config.capturedFrame} alt="" className="w-full h-full object-contain rounded-lg" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center rounded-lg bg-white/10 border border-dashed border-white/20">
+              <Monitor className="w-6 h-6 text-white/20" />
+              <span className="ml-2 text-[10px] text-white/20 font-mono">Screen Capture</span>
             </div>
           )}
         </div>
@@ -503,6 +520,68 @@ function StreamEditor() {
       return { ...s, sources: arrayMove(s.sources, oldIndex, newIndex) };
     }));
   };
+
+  // Screen capture - start getDisplayMedia when a screen-capture source exists
+  const screenStreamRef = useRef<MediaStream | null>(null);
+  const captureIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const screenCaptureActive = activeScene?.sources.some((s) => s.type === 'screen-capture' && s.visible) ?? false;
+
+  useEffect(() => {
+    if (!screenCaptureActive) {
+      if (screenStreamRef.current) {
+        screenStreamRef.current.getTracks().forEach((t) => t.stop());
+        screenStreamRef.current = null;
+      }
+      if (captureIntervalRef.current) { clearInterval(captureIntervalRef.current); captureIntervalRef.current = null; }
+      return;
+    }
+
+    if (!screenStreamRef.current) {
+      navigator.mediaDevices.getDisplayMedia({
+        video: { frameRate: { ideal: 5 } },
+        audio: false,
+      }).then((stream) => {
+        screenStreamRef.current = stream;
+        stream.getVideoTracks()[0]?.addEventListener('ended', () => {
+          screenStreamRef.current = null;
+          if (captureIntervalRef.current) { clearInterval(captureIntervalRef.current); captureIntervalRef.current = null; }
+        });
+      }).catch(() => {});
+    }
+
+    if (!captureIntervalRef.current) {
+      captureIntervalRef.current = setInterval(() => {
+        if (!screenStreamRef.current) return;
+        const canvas = document.createElement('canvas');
+        const video = document.createElement('video');
+        video.srcObject = screenStreamRef.current;
+        video.play();
+        video.addEventListener('loadeddata', () => {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          canvas.getContext('2d')!.drawImage(video, 0, 0);
+          const frame = canvas.toDataURL('image/jpeg', 0.4);
+          video.remove();
+          canvas.remove();
+          const src = activeScene.sources.find((s) => s.type === 'screen-capture');
+          if (src) updateSourceConfig(src.id, { capturedFrame: frame });
+        }, { once: true });
+      }, 2000);
+    }
+
+    return () => {
+      if (captureIntervalRef.current) { clearInterval(captureIntervalRef.current); captureIntervalRef.current = null; }
+    };
+  }, [screenCaptureActive, activeSceneId]);
+
+  useEffect(() => {
+    return () => {
+      if (screenStreamRef.current) {
+        screenStreamRef.current.getTracks().forEach((t) => t.stop());
+        screenStreamRef.current = null;
+      }
+    };
+  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
