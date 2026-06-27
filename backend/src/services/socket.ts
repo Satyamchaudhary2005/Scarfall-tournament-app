@@ -84,3 +84,7 @@ export const emitNotification = (userId: string, notification: any) => {
 export const emitTournamentStatusChange = (tournamentId: string, status: string) => {
   io.to(`tournament:${tournamentId}`).emit('tournament:status', { tournamentId, status });
 };
+
+export const emitReaction = (reaction: { type: string; triggeredBy?: string }) => {
+  io.emit('reaction:play', reaction);
+};

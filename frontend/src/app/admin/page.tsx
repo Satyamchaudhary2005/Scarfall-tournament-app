@@ -8,6 +8,7 @@ import { Footer } from '@/components/layout/Footer';
 import { Card, Button, Input, Badge, Select, ConfirmModal } from '@/components/ui';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
+import { LiveReactionOverlay } from '@/components/home/LiveReactionOverlay';
 import {
   LayoutDashboard, Users, Trophy, Swords, AlertTriangle,
   Plus, Search, X, Check, Trash2, Ban, Eye, Edit3,
@@ -16,13 +17,13 @@ import {
   PlayCircle, CheckCircle,
   Wallet, DollarSign, Minus,
   Crosshair, UserPlus, XCircle, Shield, Star, User,
-  CalendarClock,
+  CalendarClock, Sparkles, Heart, Laugh,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { cn, API_URL } from '@/lib/utils';
 
-type Tab = 'overview' | 'tournaments' | 'users' | 'clans' | 'reports' | 'notifications' | 'auto-tournaments';
+type Tab = 'overview' | 'tournaments' | 'users' | 'clans' | 'reports' | 'notifications' | 'auto-tournaments' | 'reactions';
 
 export default function AdminPage() {
   const { user, isAuthenticated } = useAuthStore();
@@ -45,6 +46,7 @@ export default function AdminPage() {
 
   return (
     <main className="min-h-screen bg-surface">
+      <LiveReactionOverlay />
       <Navbar />
 
       <div className="pt-24 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -66,6 +68,7 @@ export default function AdminPage() {
               { id: 'reports', label: 'Reports', icon: AlertTriangle },
               { id: 'notifications', label: 'Broadcast', icon: Send },
               { id: 'auto-tournaments', label: 'Auto Tournaments', icon: CalendarClock },
+              { id: 'reactions', label: 'Reactions', icon: Sparkles },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -90,6 +93,7 @@ export default function AdminPage() {
           {activeTab === 'reports' && <ReportsTab />}
           {activeTab === 'notifications' && <BroadcastTab />}
           {activeTab === 'auto-tournaments' && <AutoTournamentsTab />}
+          {activeTab === 'reactions' && <ReactionsTab />}
         </motion.div>
       </div>
 
@@ -1652,6 +1656,128 @@ function AutoTournamentsTab() {
             </table>
           </div>
         )}
+      </Card>
+    </div>
+  );
+}
+
+// ─── Reactions Tab ────────────────────────────────────────────────────────────
+
+function ReactionsTab() {
+  const [activeType, setActiveType] = useState<string | null>(null);
+
+  const triggerMutation = useMutation({
+    mutationFn: (type: string) => adminApi.triggerReaction(type),
+    onSuccess: (data: any) => toast.success(data.message),
+    onError: (err: any) => toast.error(err.message || 'Failed'),
+  });
+
+  const reactions = [
+    {
+      type: 'confetti',
+      label: 'Confetti',
+      icon: Sparkles,
+      description: 'Colorful confetti bursts across the screen',
+      color: 'text-yellow-400',
+      bg: 'bg-yellow-500/10',
+      border: 'border-yellow-500/20',
+      hover: 'hover:border-yellow-500/40',
+    },
+    {
+      type: 'fireworks',
+      label: 'Fireworks',
+      icon: Star,
+      description: 'Explosive fireworks display',
+      color: 'text-red-400',
+      bg: 'bg-red-500/10',
+      border: 'border-red-500/20',
+      hover: 'hover:border-red-500/40',
+    },
+    {
+      type: 'hearts',
+      label: 'Hearts',
+      icon: Heart,
+      description: 'Floating hearts fill the screen',
+      color: 'text-pink-400',
+      bg: 'bg-pink-500/10',
+      border: 'border-pink-500/20',
+      hover: 'hover:border-pink-500/40',
+    },
+    {
+      type: 'stars',
+      label: 'Stars',
+      icon: Star,
+      description: 'Twinkling stars rain down',
+      color: 'text-blue-400',
+      bg: 'bg-blue-500/10',
+      border: 'border-blue-500/20',
+      hover: 'hover:border-blue-500/40',
+    },
+    {
+      type: 'emoji_rain',
+      label: 'Emoji Rain',
+      icon: Laugh,
+      description: 'Raining emojis from the sky',
+      color: 'text-purple-400',
+      bg: 'bg-purple-500/10',
+      border: 'border-purple-500/20',
+      hover: 'hover:border-purple-500/40',
+    },
+  ];
+
+  return (
+    <div className="max-w-3xl">
+      <Card className="p-6 mb-6">
+        <h3 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
+          <Sparkles className="w-5 h-5 text-primary" />
+          Live Reactions
+        </h3>
+        <p className="text-sm text-white/40 mb-6">
+          Trigger real-time animations that will be displayed instantly on the homepage for ALL visitors.
+          Use these to celebrate events, announcements, or special moments.
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {reactions.map((r) => (
+            <motion.button
+              key={r.type}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => {
+                setActiveType(r.type);
+                triggerMutation.mutate(r.type);
+              }}
+              disabled={triggerMutation.isPending}
+              className={`p-5 rounded-xl bg-white/[0.02] border ${r.border} ${r.hover} transition-all text-left group relative overflow-hidden`}
+            >
+              <div className={`absolute top-0 right-0 w-32 h-32 -translate-y-12 translate-x-12 rounded-full ${r.bg} opacity-30 group-hover:opacity-60 transition-opacity duration-500`} />
+              <div className={`w-12 h-12 rounded-xl ${r.bg} flex items-center justify-center mb-4 relative`}>
+                <r.icon className={`w-6 h-6 ${r.color}`} />
+              </div>
+              <h4 className="text-white font-semibold text-base relative">{r.label}</h4>
+              <p className="text-white/40 text-sm mt-1 relative">{r.description}</p>
+            </motion.button>
+          ))}
+        </div>
+      </Card>
+
+      <Card className="p-6">
+        <h4 className="text-sm font-semibold text-white/70 mb-3">What happens when you trigger a reaction?</h4>
+        <div className="space-y-3">
+          {[
+            { step: '1', text: 'The reaction is broadcast via WebSocket to all connected users' },
+            { step: '2', text: 'A full-screen animation overlay appears on the homepage' },
+            { step: '3', text: 'The animation plays for ~4.5 seconds and auto-dismisses' },
+            { step: '4', text: 'Works for both logged-in and guest users on the homepage' },
+          ].map((item) => (
+            <div key={item.step} className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-0.5">
+                <span className="text-xs font-bold text-primary">{item.step}</span>
+              </div>
+              <p className="text-sm text-white/50">{item.text}</p>
+            </div>
+          ))}
+        </div>
       </Card>
     </div>
   );

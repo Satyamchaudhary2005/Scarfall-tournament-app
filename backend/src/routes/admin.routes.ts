@@ -19,6 +19,7 @@ import {
   updateAutoTournamentTemplate,
   deleteAutoTournamentTemplate,
   triggerAutoTournament,
+  triggerReaction,
 } from '../controllers/admin.controller';
 import { authenticate, requireRole } from '../middleware/auth';
 
@@ -60,5 +61,8 @@ router.get('/auto-tournaments', getAutoTournamentTemplates);
 router.patch('/auto-tournaments/:id', updateAutoTournamentTemplate);
 router.delete('/auto-tournaments/:id', deleteAutoTournamentTemplate);
 router.post('/auto-tournaments/:id/trigger', triggerAutoTournament);
+
+// Reactions
+router.post('/reactions/trigger', triggerReaction);
 
 export default router;

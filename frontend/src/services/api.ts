@@ -404,6 +404,10 @@ export const adminApi = {
 
   triggerAutoTournament: (id: string) =>
     request<{ message: string }>(`/admin/auto-tournaments/${id}/trigger`, { method: 'POST' }),
+
+  // Reactions
+  triggerReaction: (type: string) =>
+    request<{ message: string }>('/admin/reactions/trigger', { method: 'POST', body: JSON.stringify({ type }) }),
 };
 
 // Notification API

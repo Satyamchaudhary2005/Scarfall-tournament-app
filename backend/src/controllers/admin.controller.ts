@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../config/database';
 import { paginate } from '../utils/helpers';
-import { emitNotification } from '../services/socket';
+import { emitNotification, emitReaction } from '../services/socket';
 import { autoTournamentSchema } from '../utils/validators';
 import { executeAutoTournamentTemplate } from '../services/autoTournamentScheduler';
 
@@ -744,6 +744,31 @@ export const triggerAutoTournament = async (req: Request, res: Response): Promis
     }
   } catch (error) {
     console.error('Trigger auto tournament error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// ─── Reactions ────────────────────────────────────────────────────────────────
+
+export const triggerReaction = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { type } = req.body;
+    const validTypes = ['confetti', 'fireworks', 'hearts', 'stars', 'emoji_rain'];
+
+    if (!validTypes.includes(type)) {
+      res.status(400).json({ error: `Invalid reaction type. Use: ${validTypes.join(', ')}` });
+      return;
+    }
+
+    try {
+      emitReaction({ type, triggeredBy: req.user?.username });
+    } catch {
+      // Socket may not be initialized
+    }
+
+    res.json({ message: `Reaction "${type}" triggered successfully` });
+  } catch (error) {
+    console.error('Trigger reaction error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
