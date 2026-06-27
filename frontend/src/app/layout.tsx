@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { Analytics } from '@vercel/analytics/react';
 import '@/styles/globals.css';
 import { Providers } from './providers';
+import { LiveReactionOverlay } from '@/components/home/LiveReactionOverlay';
 
 const ServiceWorkerRegister = dynamic(
   () => import('@/components/sw-register'),
@@ -51,6 +52,7 @@ export default function RootLayout({
       <body className="min-h-screen bg-surface text-white/90">
         <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
         <ServiceWorkerRegister />
+        <LiveReactionOverlay />
         <Providers>{children}</Providers>
         <Analytics />
       </body>

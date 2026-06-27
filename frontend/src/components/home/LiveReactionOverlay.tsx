@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { io } from 'socket.io-client';
-import { SOCKET_URL } from '@/lib/utils';
+import { getSocket } from '@/services/socket';
 
 type ReactionType = 'confetti' | 'fireworks' | 'hearts' | 'stars' | 'emoji_rain';
 
@@ -65,25 +64,26 @@ export function LiveReactionOverlay() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const socket = io(SOCKET_URL, {
-      transports: ['websocket', 'polling'],
-      autoConnect: true,
-    });
+    const socket = getSocket();
+    if (!socket.connected) {
+      socket.auth = { token: localStorage.getItem('token') || undefined };
+      socket.connect();
+    }
 
-    socket.on('reaction:play', (data: { type: ReactionType }) => {
+    const handler = (data: { type: ReactionType }) => {
       if (timerRef.current) clearTimeout(timerRef.current);
-
       setActive(data.type);
       setParticles(generateParticles(data.type));
-
       timerRef.current = setTimeout(() => {
         setActive(null);
         setParticles([]);
       }, 4500);
-    });
+    };
+
+    socket.on('reaction:play', handler);
 
     return () => {
-      socket.disconnect();
+      socket.off('reaction:play', handler);
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, []);

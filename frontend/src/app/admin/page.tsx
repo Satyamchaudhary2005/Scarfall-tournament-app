@@ -8,7 +8,6 @@ import { Footer } from '@/components/layout/Footer';
 import { Card, Button, Input, Badge, Select, ConfirmModal } from '@/components/ui';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
-import { LiveReactionOverlay } from '@/components/home/LiveReactionOverlay';
 import { getSocket } from '@/services/socket';
 import {
   LayoutDashboard, Users, Trophy, Swords, AlertTriangle,
@@ -47,7 +46,6 @@ export default function AdminPage() {
 
   return (
     <main className="min-h-screen bg-surface">
-      <LiveReactionOverlay />
       <Navbar />
 
       <div className="pt-24 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1666,34 +1664,19 @@ function AutoTournamentsTab() {
 
 function ReactionsTab() {
   const [activeType, setActiveType] = useState<string | null>(null);
-  const [sending, setSending] = useState(false);
-
-  const token = useAuthStore((s) => s.token);
 
   const triggerReaction = (type: string) => {
     setActiveType(type);
-    setSending(true);
 
     const sock = getSocket();
     if (sock && !sock.connected) {
+      const token = localStorage.getItem('token') || undefined;
       sock.auth = { token };
       sock.connect();
     }
-
-    if (sock?.connected) {
-      sock.emit('reaction:trigger', { type });
-      toast.success(`"${type}" reaction sent!`);
-      setSending(false);
-    } else {
-      adminApi.triggerReaction(type)
-        .then((data: any) => {
-          toast.success(data.message);
-        })
-        .catch((err: any) => {
-          toast.error(err.message || 'Failed');
-        })
-        .finally(() => setSending(false));
-    }
+    // Socket.io queues events sent before connection is established
+    sock?.emit('reaction:trigger', { type });
+    toast.success(`"${type}" reaction sent!`);
   };
 
   const reactions = [
@@ -1768,7 +1751,6 @@ function ReactionsTab() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => triggerReaction(r.type)}
-              disabled={sending}
               className={`p-5 rounded-xl bg-white/[0.02] border ${r.border} ${r.hover} transition-all text-left group relative overflow-hidden`}
             >
               <div className={`absolute top-0 right-0 w-32 h-32 -translate-y-12 translate-x-12 rounded-full ${r.bg} opacity-30 group-hover:opacity-60 transition-opacity duration-500`} />

@@ -7,12 +7,10 @@ import { LiveTournamentWidget } from '@/components/home/LiveTournamentWidget';
 import { StatsSection } from '@/components/home/StatsSection';
 import { UpcomingTournaments } from '@/components/home/UpcomingTournaments';
 import { TopClansSection } from '@/components/home/TopClansSection';
-import { LiveReactionOverlay } from '@/components/home/LiveReactionOverlay';
 
 export default function HomePage() {
   return (
     <main className="min-h-screen">
-      <LiveReactionOverlay />
       <Navbar />
       
       {/* Hero Section */}
