@@ -53,6 +53,20 @@ export const initializeSocket = (httpServer: HttpServer): Server => {
       socket.leave(`tournament:${tournamentId}`);
     });
 
+    // Stream setup collaborative editing
+    socket.on('stream:join', () => {
+      socket.join('stream:setup');
+      console.log(`Socket ${socket.id} joined stream:setup`);
+    });
+
+    socket.on('stream:leave', () => {
+      socket.leave('stream:setup');
+    });
+
+    socket.on('stream:state-update', (data: { scenes: any[] }) => {
+      socket.broadcast.to('stream:setup').emit('stream:state-update', data);
+    });
+
     // Handle reaction triggers from admin
     socket.on('reaction:trigger', (data: { type: string }) => {
       const validTypes = ['confetti', 'fireworks', 'hearts', 'stars', 'emoji_rain'];

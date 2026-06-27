@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Card, Badge, Button } from '@/components/ui';
+import { getSocket } from '@/services/socket';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Monitor, Eye, EyeOff, Image, Type, Users, Trophy,
@@ -301,9 +302,20 @@ export default function StreamSetupPage() {
   const [copied, setCopied] = useState(false);
   const addMenuRef = useRef<HTMLDivElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
+  const isRemoteRef = useRef(false);
+  const emitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const activeScene = scenes.find((s) => s.id === activeSceneId)!;
   const selectedSource = selectedSourceId ? activeScene?.sources.find((s) => s.id === selectedSourceId) : null;
+
+  const emitStateUpdate = useCallback((scenes: Scene[]) => {
+    if (isRemoteRef.current) return;
+    if (emitTimerRef.current) clearTimeout(emitTimerRef.current);
+    emitTimerRef.current = setTimeout(() => {
+      const socket = getSocket();
+      if (socket?.connected) socket.emit('stream:state-update', { scenes });
+    }, 80);
+  }, []);
 
   // Drag-to-position on preview
   const [dragState, setDragState] = useState<{ id: string; origX: number; origY: number; startX: number; startY: number } | null>(null);
@@ -338,6 +350,26 @@ export default function StreamSetupPage() {
     return () => { window.removeEventListener('mousemove', handleMouseMove); window.removeEventListener('mouseup', handleMouseUp); };
   }, [dragState]);
 
+  // Socket real-time sync
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket.connected) {
+      socket.auth = { token: localStorage.getItem('token') || undefined };
+      socket.connect();
+    }
+    socket.emit('stream:join');
+    socket.on('stream:state-update', (data: { scenes: Scene[] }) => {
+      isRemoteRef.current = true;
+      setScenes(data.scenes);
+      setTimeout(() => { isRemoteRef.current = false; }, 0);
+    });
+    return () => {
+      socket.emit('stream:leave');
+      socket.off('stream:state-update');
+      if (emitTimerRef.current) clearTimeout(emitTimerRef.current);
+    };
+  }, []);
+
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (addMenuRef.current && !addMenuRef.current.contains(e.target as Node)) setShowAddMenu(false);
@@ -346,7 +378,11 @@ export default function StreamSetupPage() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const updateScenes = (fn: (scenes: Scene[]) => Scene[]) => setScenes((prev) => fn(prev));
+  const updateScenes = (fn: (scenes: Scene[]) => Scene[]) => setScenes((prev) => {
+    const next = fn(prev);
+    emitStateUpdate(next);
+    return next;
+  });
 
   const addScene = () => {
     const count = scenes.length + 1;
